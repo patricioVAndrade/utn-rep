@@ -1,17 +1,184 @@
 ---
+// 1. IMPORTAMOS LA CONEXIÓN A LA BASE DE DATOS
+import { supabase } from '../lib/supabase';
+import '../styles/global.css';
 
+// 2. CONSULTAS AL SERVIDOR (Se ejecutan antes de mostrar la página)
+const { data: topMaterias, error } = await supabase
+  .from('materias')
+  .select('id, nombre, nivel')
+  .limit(3);
+
+if (error) {
+  console.error("Error trayendo materias:", error.message);
+}
+
+const aniosCarrera = [
+  { nivel: 1, label: "1er Año", icon: "📘", color: "from-blue-500 to-blue-600" },
+  { nivel: 2, label: "2do Año", icon: "📗", color: "from-green-500 to-green-600" },
+  { nivel: 3, label: "3er Año", icon: "📙", color: "from-orange-500 to-orange-600" },
+  { nivel: 4, label: "4to Año", icon: "📕", color: "from-red-500 to-red-600" },
+  { nivel: 5, label: "5to Año", icon: "📓", color: "from-purple-500 to-purple-600" },
+];
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>UTN Reviews - Opiniones de Materias y Profesores</title>
+  </head>
+  <body class="bg-gradient-to-br from-slate-50 to-slate-100 text-gray-800 antialiased min-h-screen" style="font-family: 'Inter', sans-serif;">
+    
+    <!-- Header con gradiente -->
+    <header class="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div>
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
+              UTN Reviews
+            </h1>
+            <p class="text-indigo-200 mt-2 text-sm sm:text-base lg:text-lg">
+              Ingeniería en Sistemas - FRC
+            </p>
+            <p class="text-indigo-300 mt-1 text-xs sm:text-sm">
+              Opiniones reales de estudiantes sobre materias y profesores
+            </p>
+          </div>
+          
+          <div class="w-full lg:w-96">
+            <div class="relative">
+              <input 
+                type="text" 
+                placeholder="Buscar materia o profesor..." 
+                class="w-full px-5 py-4 pl-12 rounded-2xl text-gray-900 bg-white/95 backdrop-blur shadow-lg focus:outline-none focus:ring-4 focus:ring-white/30 transition-all placeholder:text-gray-400"
+              />
+              <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navegación por Niveles -->
+    <nav class="bg-gradient-to-r from-slate-50 to-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <!-- Leyenda visible en móvil y desktop -->
+        <div class="flex items-center gap-2 mb-2 sm:mb-0 sm:hidden">
+          <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+          <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ver materias por año</span>
+        </div>
+        
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-500 hidden sm:flex items-center gap-2">
+            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Explorar por año:
+          </span>
+          <div class="flex items-center gap-2 sm:gap-3 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+            {aniosCarrera.map((anio) => (
+              <a 
+                href={`/nivel/${anio.nivel}`} 
+                class="flex items-center gap-1.5 px-4 py-2.5 sm:px-4 sm:py-2 rounded-xl text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-indigo-500 hover:text-white transition-all duration-200 whitespace-nowrap shadow-sm hover:shadow-md active:scale-95"
+              >
+                <span class="text-lg sm:text-base">{anio.icon}</span>
+                <span class="hidden sm:inline">{anio.label}</span>
+                <span class="sm:hidden text-base">{anio.nivel}°</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+      
+      <!-- Materias Destacadas -->
+      <section class="mb-12">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+          <span class="bg-amber-100 text-amber-600 p-2 rounded-xl">⭐</span>
+          Materias Destacadas
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {topMaterias && topMaterias.map((materia, index) => (
+            <a 
+              href={`/materia/${materia.id}`} 
+              class="group bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 hover:border-indigo-200 hover:shadow-xl transition-all duration-300 flex items-start gap-4"
+            >
+              <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md">
+                {index + 1}
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
+                  {materia.nombre}
+                </h3>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                    {materia.nivel}º Año
+                  </span>
+                  <span class="text-xs text-yellow-600 flex items-center gap-1">
+                    ⭐ 4.5
+                  </span>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">
+                  12 reseñas
+                </p>
+              </div>
+              <svg class="w-5 h-5 text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <!-- CTA Section -->
+      <section class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-8 sm:p-12 text-white text-center shadow-xl mb-12">
+        <h2 class="text-2xl sm:text-3xl font-bold mb-4">
+          ¿Ya cursaste alguna materia?
+        </h2>
+        <p class="text-indigo-100 mb-6 max-w-xl mx-auto">
+          Compartí tu experiencia y ayudá a otros estudiantes a elegir mejor sus cátedras
+        </p>
+        <a 
+          href="/nueva-resena" 
+          class="inline-flex items-center gap-2 bg-white text-indigo-600 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 hover:scale-105 transition-all shadow-lg"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Escribir Reseña
+        </a>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 mt-16">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div class="text-center sm:text-left">
+            <p class="font-bold text-white">UTN Reviews</p>
+            <p class="text-sm">Hecho por estudiantes, para estudiantes</p>
+          </div>
+          <div class="flex gap-6 text-sm">
+            <a href="/sobre-nosotros" class="hover:text-white transition-colors">Sobre Nosotros</a>
+            <a href="/contacto" class="hover:text-white transition-colors">Contacto</a>
+          </div>
+        </div>
+        <div class="border-t border-gray-800 mt-6 pt-6 text-center text-xs">
+          <p>© 2026 UTN FRC - Ingeniería en Sistemas</p>
+        </div>
+      </div>
+    </footer>
+
+  </body>
 </html>
