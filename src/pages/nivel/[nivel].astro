@@ -73,7 +73,7 @@ const infoNivel = nivelesInfo[nivelNum];
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {materias.map((materia) => (
             <a 
-              href={`/materia/${materia.id}`} 
+              href={`/materia/${materia.id}?from=nivel`} 
               class="group bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 hover:border-indigo-200 hover:shadow-xl transition-all duration-300"
             >
               <div class="flex items-start justify-between gap-4">
