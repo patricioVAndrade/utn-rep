@@ -2,32 +2,22 @@
 import Layout from '../layouts/Layout.astro';
 import HeaderNav from '../components/HeaderNav.astro';
 import { supabase } from '../lib/supabase';
-import { getCached, setCache } from '../lib/cache';
 
 const user = Astro.locals.user;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Traer TODAS las materias (con cache)
-let allMaterias = getCached<any[]>('index:materias');
-if (!allMaterias) {
-  const { data } = await supabase
-    .from('materias')
-    .select('id, nombre, nivel')
-    .order('nivel')
-    .order('nombre');
-  allMaterias = data || [];
-  setCache('index:materias', allMaterias, CACHE_TTL);
-}
+// Traer TODAS las materias
+const { data: allMateriasRaw } = await supabase
+  .from('materias')
+  .select('id, nombre, nivel')
+  .order('nivel')
+  .order('nombre');
+const allMaterias = allMateriasRaw || [];
 
-// Traer todas las reseñas con su materia_id (con cache)
-let allResenas = getCached<any[]>('index:resenas');
-if (!allResenas) {
-  const { data } = await supabase
-    .from('resenas')
-    .select('calificacion_general, dictado_id, dictados!inner(materia_id)');
-  allResenas = data || [];
-  setCache('index:resenas', allResenas, CACHE_TTL);
-}
+// Traer todas las reseñas con su materia_id
+const { data: allResenasRaw } = await supabase
+  .from('resenas')
+  .select('calificacion_general, dictado_id, dictados!inner(materia_id)');
+const allResenas = allResenasRaw || [];
 
 // Calcular stats por materia
 const materiaStats: Record<number, { promedio: number; count: number }> = {};
@@ -70,16 +60,12 @@ const aniosCarrera = [
   { nivel: 5, label: "5to Año", color: "from-purple-500 to-purple-600" },
 ];
 
-// Traer profesores con sus materias (para el buscador, con cache)
-let allProfesores = getCached<any[]>('index:profesores');
-if (!allProfesores) {
-  const { data } = await supabase
-    .from('profesores')
-    .select('id, nombre_completo, dictado_profesores(dictados(id, materia_id, materias(nombre, nivel), cursos(identificador)))')
-    .order('nombre_completo');
-  allProfesores = data || [];
-  setCache('index:profesores', allProfesores, CACHE_TTL);
-}
+// Traer profesores con sus materias (para el buscador)
+const { data: allProfesoresRaw } = await supabase
+  .from('profesores')
+  .select('id, nombre_completo, dictado_profesores(dictados(id, materia_id, materias(nombre, nivel), cursos(identificador)))')
+  .order('nombre_completo');
+const allProfesores = allProfesoresRaw || [];
 
 // Datos para buscador client-side
 const materiasSearch = (allMaterias || []).map(m => ({ id: m.id, nombre: m.nombre, nivel: m.nivel }));
