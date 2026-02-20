@@ -8,6 +8,9 @@ const user = Astro.locals.user;
 // Verificar si viene con dictado preseleccionado
 const dictadoIdParam = Astro.url.searchParams.get('dictado');
 
+// Verificar si viene con materia preseleccionada (desde página de materia)
+const materiaIdParam = Astro.url.searchParams.get('materia');
+
 // Guardar de dónde vino el usuario para redirigir después de enviar
 const fromParam = Astro.url.searchParams.get('from') || '';
 
@@ -25,6 +28,17 @@ if (dictadoIdParam) {
   dictadoInfo = data;
 }
 
+// Info de materia preseleccionada
+let materiaPreseleccionada: any = null;
+if (materiaIdParam && !dictadoIdParam) {
+  const { data } = await supabase
+    .from('materias')
+    .select('id, nombre, nivel')
+    .eq('id', materiaIdParam)
+    .single();
+  materiaPreseleccionada = data;
+}
+
 // Materias para el selector (solo si no viene con dictado)
 let materias: any[] = [];
 if (!dictadoIdParam) {
@@ -36,7 +50,7 @@ if (!dictadoIdParam) {
   materias = data || [];
 }
 
-const nivel = dictadoInfo?.materias?.nivel || 3;
+const nivel = dictadoInfo?.materias?.nivel || materiaPreseleccionada?.nivel || 3;
 const nivelColors: Record<number, string> = {
   1: "from-blue-500 to-blue-600",
   2: "from-green-500 to-green-600",
@@ -44,7 +58,7 @@ const nivelColors: Record<number, string> = {
   4: "from-red-500 to-red-600",
   5: "from-purple-500 to-purple-600",
 };
-const headerBg = dictadoInfo ? (nivelColors[nivel] || "from-stone-700 to-stone-900") : "from-stone-700 to-stone-900";
+const headerBg = (dictadoInfo || materiaPreseleccionada) ? (nivelColors[nivel] || "from-stone-700 to-stone-900") : "from-stone-700 to-stone-900";
 
 const currentYear = new Date().getFullYear();
 ---
@@ -64,6 +78,14 @@ const currentYear = new Date().getFullYear();
           Volver a {dictadoInfo.cursos.identificador}
         </a>
       )}
+      {!dictadoInfo && materiaPreseleccionada && (
+        <a href={`/materia/${materiaPreseleccionada.id}`} class="inline-flex items-center gap-2 text-white/70 hover:text-white mb-2 transition-colors text-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Volver a {materiaPreseleccionada.nombre}
+        </a>
+      )}
       <h1 class="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight flex items-center gap-3">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
         Nueva Reseña
@@ -71,6 +93,11 @@ const currentYear = new Date().getFullYear();
       {dictadoInfo && (
         <p class="text-white/80 mt-2">
           {dictadoInfo.materias.nombre} · {dictadoInfo.cursos.identificador} · Turno {dictadoInfo.cursos.turno}
+        </p>
+      )}
+      {!dictadoInfo && materiaPreseleccionada && (
+        <p class="text-white/80 mt-2">
+          {materiaPreseleccionada.nombre} · Elegí un curso abajo
         </p>
       )}
     </div>
@@ -121,8 +148,9 @@ const currentYear = new Date().getFullYear();
             <label for="materia-select" class="block text-sm font-semibold text-neutral-300 mb-2">Materia</label>
             <select 
               id="materia-select" 
-              class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#242424] text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all"
+              class={`w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#242424] text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all ${materiaPreseleccionada ? 'opacity-70 cursor-not-allowed' : ''}`}
               required
+              disabled={!!materiaPreseleccionada}
             >
               <option value="">Seleccioná una materia...</option>
               {[1, 2, 3, 4, 5].map((niv) => {
@@ -130,12 +158,15 @@ const currentYear = new Date().getFullYear();
                 return materiasNivel.length > 0 && (
                   <optgroup label={`${niv}º Año`}>
                     {materiasNivel.map(m => (
-                      <option value={m.id}>{m.nombre}</option>
+                      <option value={m.id} selected={materiaPreseleccionada?.id === m.id}>{m.nombre}</option>
                     ))}
                   </optgroup>
                 );
               })}
             </select>
+            {materiaPreseleccionada && (
+              <input type="hidden" id="materia-hidden" value={materiaPreseleccionada.id} />
+            )}
           </div>
 
           <div>
@@ -144,9 +175,9 @@ const currentYear = new Date().getFullYear();
               id="curso-select" 
               class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#242424] text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               required
-              disabled
+              disabled={!materiaPreseleccionada}
             >
-              <option value="">Primero seleccioná una materia</option>
+              <option value="">{materiaPreseleccionada ? 'Cargando cursos...' : 'Primero seleccioná una materia'}</option>
             </select>
           </div>
         </div>
@@ -282,43 +313,54 @@ const currentYear = new Date().getFullYear();
     // ========== MATERIA → CURSO DINÁMICO ==========
     const materiaSelect = document.getElementById('materia-select');
     const cursoSelect = document.getElementById('curso-select');
+    const materiaHidden = document.getElementById('materia-hidden');
+
+    async function loadCursos(materiaId) {
+      if (!cursoSelect) return;
+      cursoSelect.innerHTML = '<option value="">Cargando cursos...</option>';
+      cursoSelect.disabled = true;
+
+      if (!materiaId) {
+        cursoSelect.innerHTML = '<option value="">Primero seleccioná una materia</option>';
+        return;
+      }
+
+      try {
+        const res = await fetch(supabaseUrl + '/rest/v1/dictados?materia_id=eq.' + materiaId + '&select=id,cursos(identificador,turno)', {
+          headers: { 'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey }
+        });
+        const dictados = await res.json();
+
+        if (dictados.length === 0) {
+          cursoSelect.innerHTML = '<option value="">No hay cursos para esta materia</option>';
+          return;
+        }
+
+        dictados.sort((a, b) => a.cursos.identificador.localeCompare(b.cursos.identificador));
+
+        cursoSelect.innerHTML = '<option value="">Elegí un curso...</option>';
+        dictados.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = d.cursos.identificador + ' - Turno ' + d.cursos.turno;
+          cursoSelect.appendChild(opt);
+        });
+        cursoSelect.disabled = false;
+      } catch (err) {
+        console.error('Error cargando cursos:', err);
+        cursoSelect.innerHTML = '<option value="">Error al cargar cursos</option>';
+      }
+    }
+
+    // Si viene con materia preseleccionada, cargar cursos automáticamente
+    if (materiaHidden) {
+      loadCursos(materiaHidden.value);
+    }
 
     if (materiaSelect && cursoSelect) {
       materiaSelect.addEventListener('change', async () => {
         const materiaId = materiaSelect.value;
-        cursoSelect.innerHTML = '<option value="">Cargando cursos...</option>';
-        cursoSelect.disabled = true;
-
-        if (!materiaId) {
-          cursoSelect.innerHTML = '<option value="">Primero seleccioná una materia</option>';
-          return;
-        }
-
-        try {
-          const res = await fetch(supabaseUrl + '/rest/v1/dictados?materia_id=eq.' + materiaId + '&select=id,cursos(identificador,turno)', {
-            headers: { 'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey }
-          });
-          const dictados = await res.json();
-
-          if (dictados.length === 0) {
-            cursoSelect.innerHTML = '<option value="">No hay cursos para esta materia</option>';
-            return;
-          }
-
-          dictados.sort((a, b) => a.cursos.identificador.localeCompare(b.cursos.identificador));
-
-          cursoSelect.innerHTML = '<option value="">Elegí un curso...</option>';
-          dictados.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d.id;
-            opt.textContent = d.cursos.identificador + ' - Turno ' + d.cursos.turno;
-            cursoSelect.appendChild(opt);
-          });
-          cursoSelect.disabled = false;
-        } catch (err) {
-          console.error('Error cargando cursos:', err);
-          cursoSelect.innerHTML = '<option value="">Error al cargar cursos</option>';
-        }
+        await loadCursos(materiaId);
       });
     }
 
