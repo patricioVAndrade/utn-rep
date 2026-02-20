@@ -115,10 +115,44 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
   }
 
   // 4. Validate email domain
-  const domain = emailLower.split('@')[1];
+  const [localPart, domain] = emailLower.split('@');
   if (!ALLOWED_DOMAINS.has(domain)) {
     return new Response(JSON.stringify({
       error: 'Dominio de email no permitido. Usá Gmail, Hotmail, Outlook o tu email de UTN.'
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // 4b. Strip Gmail/Googlemail plus aliases and dots (user+tag@gmail → user@gmail)
+  let normalizedEmail = emailLower;
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    const basePart = localPart.split('+')[0].replace(/\./g, '');
+    normalizedEmail = `${basePart}@gmail.com`;
+  } else {
+    // Strip + aliases for all other providers too
+    const basePart = localPart.split('+')[0];
+    normalizedEmail = `${basePart}@${domain}`;
+  }
+
+  // 4c. Reject suspicious local parts (random strings, too short, etc.)
+  const cleanLocal = normalizedEmail.split('@')[0];
+  // Count consonant clusters — random strings have many consecutive consonants
+  const consonantClusters = cleanLocal.match(/[bcdfghjklmnpqrstvwxyz]{4,}/gi);
+  if (consonantClusters && consonantClusters.length > 0) {
+    return new Response(JSON.stringify({
+      error: 'El email parece ser una cuenta temporal o generada. Usá tu email personal.'
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Reject if local part is too short (less than 4 chars)
+  if (cleanLocal.replace(/[^a-z0-9]/g, '').length < 4) {
+    return new Response(JSON.stringify({
+      error: 'El email no parece ser una cuenta válida.'
     }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
@@ -151,7 +185,7 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
 
   const { error } = await supabase.auth.signInWithOtp({
-    email: emailLower,
+    email: normalizedEmail,
     options: {
       data: {
         full_name: nombreFormateado,
