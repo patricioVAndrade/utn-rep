@@ -68,7 +68,7 @@ const currentYear = new Date().getFullYear();
   <!-- Header -->
   <header class={`bg-gradient-to-r ${headerBg} text-white relative overflow-hidden`}>
     <div class="absolute inset-0 dot-pattern opacity-30"></div>
-    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-10">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-10">
       <HeaderNav user={user} />
       {dictadoInfo && (
         <a href={`/dictado/${dictadoIdParam}`} class="inline-flex items-center gap-2 text-white/70 hover:text-white mb-2 transition-colors text-sm">
@@ -95,11 +95,7 @@ const currentYear = new Date().getFullYear();
           {dictadoInfo.materias.nombre} · {dictadoInfo.cursos.identificador} · Turno {dictadoInfo.cursos.turno}
         </p>
       )}
-      {!dictadoInfo && materiaPreseleccionada && (
-        <p class="text-white/80 mt-2">
-          {materiaPreseleccionada.nombre} · Elegí un curso abajo
-        </p>
-      )}
+
     </div>
   </header>
 
