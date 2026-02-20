@@ -26,19 +26,27 @@ export function createSupabaseServerClient(context: {
   headers: Headers;
   cookies: AstroCookies;
 }) {
-  const cookieHeader = context.headers.get('Cookie') ?? '';
+  // Mutable cookie store: starts from request cookies, updated by setAll().
+  // This ensures that after a token refresh (getUser), subsequent DB
+  // operations (delete, update) use the fresh token, not the stale one.
+  const cookieStore = new Map<string, string>();
+  for (const { name, value } of parseCookieHeader(context.headers.get('Cookie') ?? '')) {
+    cookieStore.set(name, value);
+  }
+
   const responseCookies: Array<{ name: string; value: string; options: Record<string, any> }> = [];
 
   const client = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
-        return parseCookieHeader(cookieHeader);
+        return Array.from(cookieStore.entries()).map(([name, value]) => ({ name, value }));
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
+          // Update mutable store so future getAll() calls return fresh values
+          cookieStore.set(name, value);
           const opts = { ...options, ...cookieOpts };
           responseCookies.push({ name, value, options: opts });
-          // Also set via Astro cookies (works for non-redirect responses like middleware)
           context.cookies.set(name, value, opts);
         });
       },
