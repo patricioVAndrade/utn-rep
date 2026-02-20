@@ -2,8 +2,10 @@
 import Layout from '../../layouts/Layout.astro';
 import HeaderNav from '../../components/HeaderNav.astro';
 import { supabase } from '../../lib/supabase';
+import { isAdmin } from '../../lib/admin';
 
 const user = Astro.locals.user;
+const userIsAdmin = isAdmin(user?.id);
 
 const { id } = Astro.params;
 
@@ -224,7 +226,12 @@ function tiempoRelativo(fecha: string): string {
                     </div>
                     <div>
                       <div class="flex items-center gap-1.5">
-                        <p class="font-semibold text-neutral-100 text-sm">{resena.es_anonima ? 'Anónimo' : (resena.nombre_usuario || 'Estudiante')}</p>
+                        <p class="font-semibold text-neutral-100 text-sm">
+                          {resena.es_anonima ? 'Anónimo' : (resena.nombre_usuario || 'Estudiante')}
+                          {resena.es_anonima && userIsAdmin && (
+                            <span class="text-[10px] text-red-400/70 font-normal ml-1" title="Visible solo para admin">({resena.nombre_usuario})</span>
+                          )}
+                        </p>
                         {resena.es_alumno_utn && (
                           <span class="inline-flex items-center gap-0.5 bg-blue-900/40 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-700/50" title="Alumno verificado de UTN FRC">
                             <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
@@ -262,12 +269,14 @@ function tiempoRelativo(fecha: string): string {
 
                 <!-- Actions -->
                 <div class="flex items-center justify-between mt-3 pt-3 border-t border-neutral-700/40">
-                  {user?.id === resena.user_id ? (
+                  {(user?.id === resena.user_id || userIsAdmin) ? (
                     <div class="flex items-center gap-3">
-                      <button class="edit-btn text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                        Editar
-                      </button>
+                      {user?.id === resena.user_id && (
+                        <button class="edit-btn text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                          Editar
+                        </button>
+                      )}
                       <button class="delete-btn text-xs text-red-400/70 hover:text-red-400 flex items-center gap-1 cursor-pointer transition-colors">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         Eliminar

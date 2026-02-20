@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../../lib/supabase';
+import { isAdmin } from '../../../lib/admin';
 
 /**
  * DELETE /api/resenas/:id
@@ -38,7 +39,7 @@ export const DELETE: APIRoute = async ({ params, request, cookies }) => {
     });
   }
 
-  if (resena.user_id !== user.id) {
+  if (resena.user_id !== user.id && !isAdmin(user.id)) {
     return new Response(JSON.stringify({ error: 'No podés eliminar una reseña que no es tuya.' }), {
       status: 403,
       headers: { 'Content-Type': 'application/json' },
