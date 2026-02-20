@@ -32,25 +32,29 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return redirectWithCookies(url.pathname, responseCookies);
   }
 
-  // ── Read session for all pages ──
-  const { client: supabase } = createSupabaseServerClient({
-    headers: request.headers,
-    cookies,
-  });
+  // ── Read session for all pages (skip API routes — they handle their own auth) ──
+  if (!url.pathname.startsWith('/api/')) {
+    const { client: supabase } = createSupabaseServerClient({
+      headers: request.headers,
+      cookies,
+    });
 
-  const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (user) {
-    context.locals.user = {
-      id: user.id,
-      name:
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email?.split('@')[0] ||
-        'Usuario',
-      avatar: user.user_metadata?.avatar_url || undefined,
-      email: user.email || '',
-    };
+    if (user) {
+      context.locals.user = {
+        id: user.id,
+        name:
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          user.email?.split('@')[0] ||
+          'Usuario',
+        avatar: user.user_metadata?.avatar_url || undefined,
+        email: user.email || '',
+      };
+    } else {
+      context.locals.user = null;
+    }
   } else {
     context.locals.user = null;
   }

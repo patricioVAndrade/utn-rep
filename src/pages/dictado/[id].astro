@@ -450,7 +450,7 @@ function tiempoRelativo(fecha: string): string {
     // ========== DELETE ==========
     document.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('¿Seguro que querés eliminar tu reseña? Esta acción no se puede deshacer.')) return;
+        if (!confirm('¿Seguro que querés eliminar esta reseña? Esta acción no se puede deshacer.')) return;
 
         const card = btn.closest('.review-card');
         if (!card) return;
@@ -460,7 +460,12 @@ function tiempoRelativo(fecha: string): string {
 
         try {
           const res = await fetch('/api/resenas/' + resenaId, { method: 'DELETE' });
-          const data = await res.json();
+          let data;
+          try {
+            data = await res.json();
+          } catch {
+            throw new Error('Error del servidor. Recargá la página e intentá de nuevo.');
+          }
           if (!res.ok) throw new Error(data.error || 'Error');
 
           card.style.transition = 'opacity 0.3s, transform 0.3s';

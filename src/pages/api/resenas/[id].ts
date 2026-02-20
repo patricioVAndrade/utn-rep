@@ -7,6 +7,7 @@ import { isAdmin } from '../../../lib/admin';
  * Deletes a review. Only the author can delete their own review.
  */
 export const DELETE: APIRoute = async ({ params, request, cookies }) => {
+  try {
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -63,6 +64,13 @@ export const DELETE: APIRoute = async ({ params, request, cookies }) => {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
+  } catch (err: any) {
+    console.error('Unhandled error in DELETE /api/resenas/[id]:', err);
+    return new Response(JSON.stringify({ error: 'Error interno del servidor.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 };
 
 /**
@@ -70,6 +78,7 @@ export const DELETE: APIRoute = async ({ params, request, cookies }) => {
  * Updates a review's comment. Only the author can edit their own review.
  */
 export const PUT: APIRoute = async ({ params, request, cookies }) => {
+  try {
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -152,4 +161,11 @@ export const PUT: APIRoute = async ({ params, request, cookies }) => {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
+  } catch (err: any) {
+    console.error('Unhandled error in PUT /api/resenas/[id]:', err);
+    return new Response(JSON.stringify({ error: 'Error interno del servidor.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 };
