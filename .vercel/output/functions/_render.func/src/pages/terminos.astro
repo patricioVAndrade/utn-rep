@@ -1,0 +1,111 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeaderNav from '../components/HeaderNav.astro';
+
+const user = Astro.locals.user;
+---
+
+<Layout title="Términos de Uso - UTN REP" description="Términos y condiciones de uso de UTN REP.">
+
+  <header class="bg-gradient-to-r from-stone-700 to-stone-900 text-white relative overflow-hidden">
+    <div class="absolute inset-0 dot-pattern opacity-30"></div>
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-10">
+      <HeaderNav user={user} />
+      <h1 class="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight flex items-center gap-3">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        Términos de Uso
+      </h1>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-6">
+
+    <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6 sm:p-8 space-y-6">
+      
+      <p class="text-neutral-400 text-sm leading-relaxed">
+        Al usar <strong class="text-neutral-200">UTN REP</strong> aceptás los siguientes términos y condiciones. 
+        Si no estás de acuerdo, por favor no utilices la plataforma.
+      </p>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">1. Propósito de la plataforma</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          UTN REP es una plataforma de reseñas estudiantiles donde los alumnos de la UTN FRC pueden 
+          compartir su experiencia sobre materias y cátedras de la carrera de Ingeniería en Sistemas de Información. 
+          No es un sitio oficial de la universidad.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">2. Cuenta y autenticación</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          Para publicar reseñas necesitás iniciar sesión con tu cuenta de Google o GitHub. 
+          Tu nombre (obtenido del proveedor de autenticación) se mostrará junto a tus reseñas. 
+          Sos responsable de mantener la seguridad de tu cuenta.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">3. Contenido de las reseñas</h2>
+        <ul class="text-neutral-400 text-sm leading-relaxed list-disc list-inside space-y-2">
+          <li>Las reseñas deben ser <strong class="text-neutral-200">honestas, respetuosas y basadas en tu experiencia real</strong>.</li>
+          <li>Está prohibido publicar contenido <strong class="text-neutral-200">ofensivo, difamatorio, amenazante o discriminatorio</strong>.</li>
+          <li>No publiques información personal de terceros (teléfonos, direcciones, etc.).</li>
+          <li>No se permite el spam ni la publicidad.</li>
+          <li>Las opiniones son responsabilidad exclusiva de quien las publica.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">4. Moderación</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          Nos reservamos el derecho de <strong class="text-neutral-200">eliminar cualquier reseña</strong> que viole estos términos 
+          sin previo aviso. Los usuarios que incumplan repetidamente podrán ser bloqueados de la plataforma.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">5. Privacidad</h2>
+        <ul class="text-neutral-400 text-sm leading-relaxed list-disc list-inside space-y-2">
+          <li>Solo almacenamos tu nombre, avatar y email (proporcionados por Google/GitHub) con el fin de mostrar tu identidad en las reseñas.</li>
+          <li>No vendemos ni compartimos tus datos con terceros.</li>
+          <li>Tus credenciales de inicio de sesión no son almacenadas por nosotros, la autenticación es manejada de forma segura por el proveedor que elijas.</li>
+          <li>Podés eliminar tus reseñas en cualquier momento.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">6. Limitación de responsabilidad</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          UTN REP se proporciona "tal cual". No garantizamos la exactitud de las reseñas ni somos responsables 
+          por decisiones tomadas en base a las opiniones publicadas. La plataforma no tiene relación oficial 
+          con la Universidad Tecnológica Nacional.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">7. Modificaciones</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          Estos términos pueden actualizarse en cualquier momento. El uso continuado de la plataforma 
+          implica la aceptación de los términos vigentes.
+        </p>
+      </section>
+
+      <div class="border-t border-neutral-700 pt-4">
+        <p class="text-xs text-neutral-500">
+          Última actualización: Febrero 2026
+        </p>
+      </div>
+
+    </div>
+
+    <div class="text-center">
+      <a href="/" class="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 font-semibold text-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        Volver al inicio
+      </a>
+    </div>
+
+  </main>
+
+</Layout>
