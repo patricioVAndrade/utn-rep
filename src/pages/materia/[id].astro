@@ -32,9 +32,15 @@ const { data: dictados } = await supabase
   `)
   .eq('materia_id', id);
 
-const dictadosOrdenados = dictados?.sort((a, b) => 
-  a.cursos.identificador.localeCompare(b.cursos.identificador)
-) || [];
+const dictadosOrdenados = dictados?.sort((a, b) => {
+  // Natural sort: extract numeric part after letter (e.g. "2K10" → 10)
+  const numA = parseInt(a.cursos.identificador.replace(/\D+/g, '').slice(1) || '0');
+  const numB = parseInt(b.cursos.identificador.replace(/\D+/g, '').slice(1) || '0');
+  const prefixA = a.cursos.identificador.replace(/\d+$/, '');
+  const prefixB = b.cursos.identificador.replace(/\d+$/, '');
+  if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
+  return numA - numB;
+}) || [];
 
 // Traer reseñas y calcular estadísticas reales
 const dictadoIds = dictados?.map(d => d.id) || [];
@@ -133,7 +139,7 @@ function tiempoRelativo(fecha: string): string {
           {dictadosOrdenados.map((dictado) => {
             const stats = dictadoStats[dictado.id] || { promedio: "0.0", count: 0 };
             return (
-              <a href={`/dictado/${dictado.id}`} class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5 sm:p-6 hover:shadow-xl hover:-translate-y-1 hover:border-amber-300 transition-all duration-300 block">
+              <a href={`/dictado/${dictado.id}`} class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5 sm:p-6 hover:shadow-xl hover:-translate-y-1 hover:border-amber-300 transition-all duration-300 flex flex-col">
                 <div class="flex justify-between items-start mb-3">
                   <h3 class="font-heading font-extrabold text-2xl text-white">{dictado.cursos.identificador}</h3>
                   <span class={`text-xs font-bold ${colors.accent} px-3 py-1 rounded-lg uppercase tracking-wide`}>
@@ -141,7 +147,7 @@ function tiempoRelativo(fecha: string): string {
                   </span>
                 </div>
                 
-                <div class="text-sm text-neutral-400 mb-4">
+                <div class="text-sm text-neutral-400 mb-4 flex-1">
                   <span class="font-semibold text-neutral-100 block mb-2">Equipo Docente:</span>
                   <ul class="flex flex-col gap-1.5">
                     {dictado.dictado_profesores.map((dp: any) => (
@@ -156,7 +162,7 @@ function tiempoRelativo(fecha: string): string {
                   </ul>
                 </div>
                 
-                <div class="pt-4 border-t border-neutral-700 flex justify-between items-center text-sm">
+                <div class="pt-4 border-t border-neutral-700 flex justify-between items-center text-sm mt-auto">
                   {stats.count > 0 ? (
                     <span class="text-amber-500 font-bold flex items-center gap-1">
                       &#11088; {stats.promedio} 
