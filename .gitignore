@@ -2,6 +2,9 @@
 dist/
 .astro/
 
+# ── Vercel ────────────────────────────────────────
+.vercel/
+
 # ── Dependencias ──────────────────────────────────
 node_modules/
 
@@ -16,6 +19,7 @@ pnpm-debug.log*
 .env.local
 .env.production
 .env.*.local
+ETL/.env
 
 # ── ETL / Python ──────────────────────────────────
 __pycache__/
@@ -25,7 +29,21 @@ venv/
 ENV/
 ETL/resultado_materias.txt
 
+# ── Cloudflare ────────────────────────────────────
+cloudflared.exe
+cloudflared-windows-amd64.msi
+
 # ── OS / IDE ───────────────────────────────────────
 .DS_Store
 .idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+
+# ── SQL scripts (sensible) ────────────────────────
+supabase-security-setup.sql
+
+# ── OG image generator (temp) ─────────────────────
+public/og-image.html
 .vscode/
