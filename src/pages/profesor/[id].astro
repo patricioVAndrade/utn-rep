@@ -1,0 +1,216 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import HeaderNav from '../../components/HeaderNav.astro';
+import { supabase } from '../../lib/supabase';
+
+const user = Astro.locals.user;
+
+const { id } = Astro.params;
+
+// Traer el profesor
+const { data: profesor } = await supabase
+  .from('profesores')
+  .select('id, nombre_completo')
+  .eq('id', id)
+  .single();
+
+if (!profesor) {
+  return Astro.redirect('/404');
+}
+
+// Traer todos los dictados donde da clases, con materia, curso y otros profes
+const { data: dictadoProfesores } = await supabase
+  .from('dictado_profesores')
+  .select(`
+    dictados (
+      id,
+      materia_id,
+      materias ( id, nombre, nivel ),
+      cursos ( identificador, turno ),
+      dictado_profesores (
+        profesores ( nombre_completo )
+      )
+    )
+  `)
+  .eq('profesor_id', id);
+
+// Agrupar dictados por materia
+const dictadosPorMateria: Record<number, { materia: any; dictados: any[] }> = {};
+
+(dictadoProfesores || []).forEach((dp: any) => {
+  const d = dp.dictados;
+  if (!d || !d.materias) return;
+  const mid = d.materias.id;
+  if (!dictadosPorMateria[mid]) {
+    dictadosPorMateria[mid] = { materia: d.materias, dictados: [] };
+  }
+  dictadosPorMateria[mid].dictados.push(d);
+});
+
+// Ordenar dictados dentro de cada materia
+Object.values(dictadosPorMateria).forEach(group => {
+  group.dictados.sort((a, b) => a.cursos.identificador.localeCompare(b.cursos.identificador));
+});
+
+// Ordenar materias por nivel
+const materiasOrdenadas = Object.values(dictadosPorMateria).sort((a, b) => a.materia.nivel - b.materia.nivel);
+
+// Traer reseñas de los dictados de este profesor para stats
+const dictadoIds = (dictadoProfesores || []).map((dp: any) => dp.dictados?.id).filter(Boolean);
+let dictadoStats: Record<number, { promedio: number; count: number }> = {};
+
+if (dictadoIds.length > 0) {
+  const { data: resenas } = await supabase
+    .from('resenas')
+    .select('calificacion_general, dictado_id')
+    .in('dictado_id', dictadoIds);
+
+  if (resenas) {
+    resenas.forEach((r: any) => {
+      if (!dictadoStats[r.dictado_id]) dictadoStats[r.dictado_id] = { promedio: 0, count: 0 };
+      dictadoStats[r.dictado_id].count++;
+      dictadoStats[r.dictado_id].promedio += r.calificacion_general;
+    });
+    Object.keys(dictadoStats).forEach(did => {
+      const s = dictadoStats[Number(did)];
+      s.promedio = s.count > 0 ? s.promedio / s.count : 0;
+    });
+  }
+}
+
+// Promedio general del profesor
+const allStats = Object.values(dictadoStats);
+const totalResenas = allStats.reduce((acc, s) => acc + s.count, 0);
+const promedioGeneral = totalResenas > 0
+  ? (allStats.reduce((acc, s) => acc + s.promedio * s.count, 0) / totalResenas).toFixed(1)
+  : "0.0";
+
+const nivelColors: Record<number, { bg: string; accent: string }> = {
+  1: { bg: "from-blue-500 to-blue-600", accent: "bg-blue-900/30 text-blue-400" },
+  2: { bg: "from-green-500 to-green-600", accent: "bg-green-900/30 text-green-400" },
+  3: { bg: "from-orange-500 to-orange-600", accent: "bg-orange-900/30 text-orange-400" },
+  4: { bg: "from-red-500 to-red-600", accent: "bg-red-900/30 text-red-400" },
+  5: { bg: "from-purple-500 to-purple-600", accent: "bg-purple-900/30 text-purple-400" },
+};
+---
+
+<Layout title={`${profesor.nombre_completo} - UTN Rep`}>
+
+  <header class="bg-gradient-to-r from-stone-700 to-stone-900 text-white relative overflow-hidden">
+    <div class="absolute inset-0 dot-pattern opacity-30"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-12">
+      <HeaderNav user={user} />
+      
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center text-3xl font-bold">
+            {profesor.nombre_completo.charAt(0)}
+          </div>
+          <div>
+            <span class="text-sm font-medium text-white/60 uppercase tracking-wider">Profesor/a</span>
+            <h1 class="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight">
+              {profesor.nombre_completo}
+            </h1>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <div class="bg-white/10 backdrop-blur rounded-2xl px-5 py-3 text-center">
+            <span class="text-2xl font-extrabold block">{materiasOrdenadas.length}</span>
+            <span class="text-xs text-white/60 uppercase tracking-wider">Materia{materiasOrdenadas.length !== 1 ? 's' : ''}</span>
+          </div>
+          {totalResenas > 0 && (
+            <div class="bg-white/10 backdrop-blur rounded-2xl px-5 py-3 text-center">
+              <span class="text-2xl font-extrabold block">★ {promedioGeneral}</span>
+              <span class="text-xs text-white/60 uppercase tracking-wider">{totalResenas} reseña{totalResenas !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+
+    {materiasOrdenadas.length > 0 ? (
+      <div class="space-y-10">
+        {materiasOrdenadas.map(({ materia, dictados }) => {
+          const nColors = nivelColors[materia.nivel] || nivelColors[1];
+          return (
+            <section>
+              <div class="flex items-center gap-3 mb-4">
+                <span class={`text-xs font-bold ${nColors.accent} px-3 py-1 rounded-lg uppercase tracking-wide`}>
+                  {materia.nivel}º Año
+                </span>
+                <a href={`/materia/${materia.id}`} class="text-lg sm:text-xl font-heading font-bold text-neutral-100 hover:text-amber-400 transition-colors">
+                  {materia.nombre}
+                </a>
+              </div>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {dictados.map((d: any) => {
+                  const stats = dictadoStats[d.id];
+                  const hasReviews = stats && stats.count > 0;
+                  // Otros profesores del mismo dictado
+                  const otrosProfes = (d.dictado_profesores || [])
+                    .map((dp: any) => dp.profesores.nombre_completo)
+                    .filter((name: string) => name !== profesor.nombre_completo);
+                  
+                  return (
+                    <a href={`/dictado/${d.id}`} class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5 hover:shadow-xl hover:-translate-y-1 hover:border-amber-300 transition-all duration-300 block">
+                      <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-heading font-extrabold text-2xl text-white">{d.cursos.identificador}</h3>
+                        <span class={`text-xs font-bold ${nColors.accent} px-3 py-1 rounded-lg uppercase tracking-wide`}>
+                          {d.cursos.turno}
+                        </span>
+                      </div>
+                      
+                      {otrosProfes.length > 0 && (
+                        <div class="mb-3">
+                          <p class="text-xs text-neutral-500 mb-1">También da clases:</p>
+                          <ul class="space-y-1">
+                            {otrosProfes.map((name: string) => (
+                              <li class="flex items-center gap-1.5 text-sm text-neutral-400">
+                                <span class="w-1.5 h-1.5 bg-stone-300 rounded-full"></span>
+                                {name}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      <div class="pt-3 border-t border-neutral-700 flex justify-between items-center text-sm">
+                        {hasReviews ? (
+                          <span class="text-yellow-500 font-bold flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                            {stats.promedio.toFixed(1)}
+                            <span class="text-neutral-500 font-medium text-xs ml-1">({stats.count})</span>
+                          </span>
+                        ) : (
+                          <span class="text-neutral-500 font-medium text-xs">Sin reseñas</span>
+                        )}
+                        <span class="text-amber-400 font-semibold text-sm">
+                          Ver Reseñas →
+                        </span>
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="text-center py-16">
+        <div class="flex justify-center mb-4">
+          <svg class="w-16 h-16 text-neutral-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+        </div>
+        <h2 class="text-xl font-heading font-bold text-neutral-300 mb-2">Sin cursos asignados</h2>
+        <p class="text-neutral-500">Este profesor no tiene cursos asignados actualmente.</p>
+      </div>
+    )}
+
+  </main>
+
+</Layout>

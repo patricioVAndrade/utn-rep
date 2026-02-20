@@ -1,12 +1,13 @@
 ---
+import Layout from '../../layouts/Layout.astro';
+import HeaderNav from '../../components/HeaderNav.astro';
 import { supabase } from '../../lib/supabase';
-import '../../styles/global.css';
 
-// Obtener el parámetro de la URL
+const user = Astro.locals.user;
+
 const { nivel } = Astro.params;
 const nivelNum = parseInt(nivel || '1');
 
-// Validar que sea un nivel válido (1-5)
 if (isNaN(nivelNum) || nivelNum < 1 || nivelNum > 5) {
   return Astro.redirect('/');
 }
@@ -18,125 +19,133 @@ const { data: materias, error } = await supabase
   .eq('nivel', nivelNum)
   .order('nombre');
 
-if (error) {
-  console.error("Error trayendo materias:", error.message);
+if (error) console.error("Error trayendo materias:", error.message);
+
+// Traer reseñas para stats reales
+const materiaIds = materias?.map(m => m.id) || [];
+const materiaStats: Record<number, { promedio: number; count: number }> = {};
+
+if (materiaIds.length > 0) {
+  const { data: resenas } = await supabase
+    .from('resenas')
+    .select('calificacion_general, dictados!inner(materia_id)')
+    .in('dictados.materia_id', materiaIds);
+
+  if (resenas) {
+    resenas.forEach((r: any) => {
+      const mid = r.dictados?.materia_id;
+      if (!mid) return;
+      if (!materiaStats[mid]) materiaStats[mid] = { promedio: 0, count: 0 };
+      materiaStats[mid].count++;
+      materiaStats[mid].promedio += r.calificacion_general;
+    });
+    Object.keys(materiaStats).forEach(id => {
+      const s = materiaStats[Number(id)];
+      s.promedio = s.count > 0 ? s.promedio / s.count : 0;
+    });
+  }
 }
 
-const nivelesInfo: Record<number, { label: string; icon: string; color: string }> = {
-  1: { label: "1er Año", icon: "📘", color: "from-blue-500 to-blue-600" },
-  2: { label: "2do Año", icon: "📗", color: "from-green-500 to-green-600" },
-  3: { label: "3er Año", icon: "📙", color: "from-orange-500 to-orange-600" },
-  4: { label: "4to Año", icon: "📕", color: "from-red-500 to-red-600" },
-  5: { label: "5to Año", icon: "📓", color: "from-purple-500 to-purple-600" },
+const nivelesInfo: Record<number, { label: string; color: string }> = {
+  1: { label: "1er Año", color: "from-blue-500 to-blue-600" },
+  2: { label: "2do Año", color: "from-green-500 to-green-600" },
+  3: { label: "3er Año", color: "from-orange-500 to-orange-600" },
+  4: { label: "4to Año", color: "from-red-500 to-red-600" },
+  5: { label: "5to Año", color: "from-purple-500 to-purple-600" },
 };
 
 const infoNivel = nivelesInfo[nivelNum];
 ---
 
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <title>Materias de {infoNivel.label} - UTN Reviews</title>
-  </head>
-  <body class="bg-gradient-to-br from-slate-50 to-slate-100 text-gray-800 antialiased min-h-screen" style="font-family: 'Inter', sans-serif;">
-    
-    <!-- Header -->
-    <header class={`bg-gradient-to-r ${infoNivel.color} text-white`}>
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-        <a href="/" class="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-          </svg>
-          Volver al inicio
-        </a>
-        <div class="flex items-center gap-4">
-          <span class="text-5xl">{infoNivel.icon}</span>
-          <div>
-            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-              {infoNivel.label}
-            </h1>
-            <p class="text-white/80 mt-2">
-              {materias?.length || 0} materias encontradas
-            </p>
-          </div>
+<Layout title={`Materias de ${infoNivel.label} - UTN Rep`}>
+
+  <header class={`bg-gradient-to-r ${infoNivel.color} text-white relative overflow-hidden`}>
+    <div class="absolute inset-0 dot-pattern opacity-30"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-12">
+      <HeaderNav user={user} />
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+        </div>
+        <div>
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-heading font-extrabold tracking-tight">
+            {infoNivel.label}
+          </h1>
+          <p class="text-white/80 mt-2">
+            {materias?.length || 0} materias encontradas
+          </p>
         </div>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-      
-      {materias && materias.length > 0 ? (
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {materias.map((materia) => (
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+    
+    {materias && materias.length > 0 ? (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {materias.map((materia) => {
+          const stats = materiaStats[materia.id];
+          const hasReviews = stats && stats.count > 0;
+          return (
             <a 
               href={`/materia/${materia.id}?from=nivel`} 
-              class="group bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 hover:border-indigo-200 hover:shadow-xl transition-all duration-300"
+              class="group bg-[#242424] p-5 sm:p-6 rounded-2xl border border-neutral-700/60 hover:border-amber-300 hover:shadow-xl transition-all duration-300"
             >
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1 min-w-0">
-                  <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                  <h3 class="font-heading font-bold text-white group-hover:text-amber-400 transition-colors">
                     {materia.nombre}
                   </h3>
                   <div class="flex items-center gap-2 mt-2">
-                    <span class="text-xs text-yellow-600 flex items-center gap-1">
-                      ⭐ 4.2
-                    </span>
-                    <span class="text-xs text-gray-400">
-                      • 8 reseñas
-                    </span>
+                    {hasReviews ? (
+                      <>
+                        <span class="text-xs text-amber-400 flex items-center gap-1 font-semibold">
+                          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                          {stats.promedio.toFixed(1)}
+                        </span>
+                        <span class="text-xs text-neutral-500">
+                          · {stats.count} reseña{stats.count !== 1 ? 's' : ''}
+                        </span>
+                      </>
+                    ) : (
+                      <span class="text-xs text-neutral-500">Sin reseñas aún</span>
+                    )}
                   </div>
                 </div>
-                <svg class="w-5 h-5 text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-neutral-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
               </div>
             </a>
-          ))}
-        </div>
-      ) : (
-        <div class="text-center py-16">
-          <span class="text-6xl mb-4 block">📭</span>
-          <h2 class="text-xl font-bold text-gray-700 mb-2">No hay materias cargadas</h2>
-          <p class="text-gray-500">Todavía no hay materias registradas para este nivel.</p>
-        </div>
-      )}
-
-      <!-- Navegación entre niveles -->
-      <nav class="mt-12 pt-8 border-t border-gray-200">
-        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Otros niveles</h3>
-        <div class="flex flex-wrap gap-3">
-          {[1, 2, 3, 4, 5].filter(n => n !== nivelNum).map((n) => (
-            <a 
-              href={`/nivel/${n}`}
-              class={`bg-gradient-to-br ${nivelesInfo[n].color} text-white px-4 py-2 rounded-xl font-semibold hover:scale-105 transition-all shadow-md`}
-            >
-              {nivelesInfo[n].icon} {nivelesInfo[n].label}
-            </a>
-          ))}
-        </div>
-      </nav>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-400 mt-16">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div class="text-center sm:text-left">
-            <p class="font-bold text-white">UTN Reviews</p>
-            <p class="text-sm">Hecho por estudiantes, para estudiantes</p>
-          </div>
-          <div class="flex gap-6 text-sm">
-            <a href="/" class="hover:text-white transition-colors">Inicio</a>
-            <a href="/sobre-nosotros" class="hover:text-white transition-colors">Sobre Nosotros</a>
-          </div>
-        </div>
+          );
+        })}
       </div>
-    </footer>
+    ) : (
+      <div class="text-center py-16">
+        <div class="flex justify-center mb-4">
+          <svg class="w-16 h-16 text-neutral-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+        </div>
+        <h2 class="text-xl font-heading font-bold text-neutral-300 mb-2">No hay materias cargadas</h2>
+        <p class="text-neutral-500">Todavía no hay materias registradas para este nivel.</p>
+      </div>
+    )}
 
-  </body>
-</html>
+    <!-- Navegación entre niveles -->
+    <nav class="mt-12 pt-8 border-t border-neutral-700">
+      <h3 class="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-4">Otros niveles</h3>
+      <div class="flex flex-wrap gap-3">
+        {[1, 2, 3, 4, 5].filter(n => n !== nivelNum).map((n) => (
+          <a 
+            href={`/nivel/${n}`}
+            class={`bg-gradient-to-br ${nivelesInfo[n].color} text-white px-4 py-2 rounded-xl font-semibold hover:scale-105 transition-all shadow-md flex items-center gap-1.5`}
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            {nivelesInfo[n].label}
+          </a>
+        ))}
+      </div>
+    </nav>
+
+  </main>
+
+</Layout>

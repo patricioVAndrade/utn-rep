@@ -1,1 +1,105 @@
 @import "tailwindcss";
+
+/* ============================
+   UTN Rep — Design System
+   Palette: Warm dark + Amber accents
+   Fonts: Plus Jakarta Sans + Inter
+   Always dark mode — softer charcoal
+   ============================ */
+
+@theme {
+  /* Brand colors */
+  --color-brand-50: #fffbeb;
+  --color-brand-100: #fef3c7;
+  --color-brand-200: #fde68a;
+  --color-brand-300: #fcd34d;
+  --color-brand-400: #fbbf24;
+  --color-brand-500: #f59e0b;
+  --color-brand-600: #d97706;
+  --color-brand-700: #b45309;
+
+  /* Surface colors — dark only */
+  --color-surface: #1a1a1a;
+  --color-surface-card: #242424;
+  --color-surface-raised: #2e2e2e;
+  --color-surface-inset: #383838;
+}
+
+/* Plus Jakarta Sans for headings */
+@layer base {
+  h1, h2, h3, h4, h5, h6,
+  .font-heading {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  }
+}
+
+/* Fade-in animation for cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* Staggered delays for card grids */
+.animate-delay-1 { animation-delay: 0.1s; }
+.animate-delay-2 { animation-delay: 0.2s; }
+.animate-delay-3 { animation-delay: 0.3s; }
+.animate-delay-4 { animation-delay: 0.4s; }
+.animate-delay-5 { animation-delay: 0.5s; }
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(36, 36, 36, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 56, 56, 0.5);
+}
+
+/* Geometric pattern for headers */
+.hero-pattern {
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(251, 191, 36, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 60% 80%, rgba(217, 119, 6, 0.08) 0%, transparent 50%);
+}
+
+/* Dot grid pattern for header areas */
+.dot-pattern {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Animated stat counter pulse */
+@keyframes countPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.stat-pulse {
+  animation: countPulse 2s ease-in-out infinite;
+}
+
+/* Smooth transitions */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Base dark background */
+body {
+  background: #1a1a1a;
+  color: #d4d4d4;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #525252; border-radius: 4px; }
