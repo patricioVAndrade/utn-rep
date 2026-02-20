@@ -237,7 +237,22 @@ const currentYear = new Date().getFullYear();
           placeholder="Contá tu experiencia: ¿Cómo son las clases? ¿Los parciales? ¿Los profes explican bien? Cualquier dato es útil..."
           required
         ></textarea>
-        <p class="text-xs text-neutral-500 mt-2">Tu nombre aparecerá junto a tu reseña. Sé respetuoso/a con los docentes.</p>
+        <p class="text-xs text-neutral-500 mt-2">Sé respetuoso/a con los docentes.</p>
+      </div>
+
+      <!-- Opción anónima -->
+      <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
+        <label class="flex items-start gap-4 cursor-pointer group">
+          <div class="relative flex-shrink-0 mt-0.5">
+            <input type="checkbox" id="es-anonima" class="peer sr-only" />
+            <div class="w-5 h-5 rounded-md border-2 border-neutral-600 bg-neutral-800 peer-checked:bg-amber-500 peer-checked:border-amber-500 transition-all"></div>
+            <svg class="absolute inset-0 m-auto w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+          </div>
+          <div>
+            <span class="font-heading font-bold text-neutral-100 group-hover:text-amber-400 transition-colors">Publicar como anónimo</span>
+            <p class="text-xs text-neutral-500 mt-1" id="anonima-hint">Tu nombre aparecerá junto a tu reseña. Activá esta opción si preferís que se muestre como "Anónimo".</p>
+          </div>
+        </label>
       </div>
 
       <!-- Botón enviar -->
@@ -412,7 +427,8 @@ const currentYear = new Date().getFullYear();
             dictado_id: parseInt(dictadoId),
             calificacion_general: calificacion,
             anio_cursado: anio,
-            comentario: comentario
+            comentario: comentario,
+            es_anonima: document.getElementById('es-anonima')?.checked || false
           })
         });
 
@@ -447,6 +463,17 @@ const currentYear = new Date().getFullYear();
         btnSubmit.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Enviar Reseña';
       }
     });
+
+    // ========== CHECKBOX ANÓNIMA - hint text ==========
+    const esAnonimaCheck = document.getElementById('es-anonima');
+    const anonimaHint = document.getElementById('anonima-hint');
+    if (esAnonimaCheck && anonimaHint) {
+      esAnonimaCheck.addEventListener('change', () => {
+        anonimaHint.textContent = esAnonimaCheck.checked
+          ? 'Tu reseña se publicará como "Anónimo". Seguimos sabiendo quién la escribió para moderación.'
+          : 'Tu nombre aparecerá junto a tu reseña. Activá esta opción si preferís que se muestre como "Anónimo".';
+      });
+    }
   </script>
 
 </Layout>

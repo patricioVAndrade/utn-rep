@@ -31,7 +31,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
   }
 
-  const { dictado_id, calificacion_general, anio_cursado, comentario } = body;
+  const { dictado_id, calificacion_general, anio_cursado, comentario, es_anonima } = body;
 
   if (!dictado_id || typeof dictado_id !== 'number') {
     return new Response(JSON.stringify({ error: 'Dictado inválido.' }), {
@@ -134,6 +134,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       user_id: user.id,
       nombre_usuario: nombreUsuario,
       es_alumno_utn: esAlumnoUtn,
+      es_anonima: !!es_anonima,
       votos_utilidad: 0,
     });
 
