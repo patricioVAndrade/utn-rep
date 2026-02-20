@@ -89,7 +89,7 @@ const profesSearch = (allProfesores || []).map((p: any) => {
 });
 ---
 
-<Layout title="UTN REP — Opiniones y reseñas de materias y profesores | UTN FRC Sistemas" description="Opiniones y reseñas reales de materias, cátedras y profesores de Ingeniería en Sistemas de Información — UTN Facultad Regional Córdoba. Elegí mejor tu cursada.">
+<Layout title="UTN REP — Reseñas de materias y profesores | UTN FRC Sistemas" description="Reseñas reales de materias, cátedras y profesores de Ingeniería en Sistemas de Información — UTN Facultad Regional Córdoba. Elegí mejor tu cursada.">
     
   <!-- Header / Hero -->
   <header class="bg-stone-900 text-white relative z-50">
@@ -301,11 +301,16 @@ const profesSearch = (allProfesores || []).map((p: any) => {
       return d.innerHTML;
     }
 
+    // Normalize: remove accents for accent-insensitive search
+    function norm(str) {
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
     let debounceTimer;
     searchInput.addEventListener('input', () => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        const query = searchInput.value.trim().toLowerCase();
+        const query = norm(searchInput.value.trim());
         
         if (query.length < 2) {
           searchResults.classList.add('hidden');
@@ -314,11 +319,11 @@ const profesSearch = (allProfesores || []).map((p: any) => {
         }
 
         const matchMaterias = materiasSearch.filter(m => 
-          m.nombre.toLowerCase().includes(query)
+          norm(m.nombre).includes(query)
         ).slice(0, 5);
 
         const matchProfes = profesSearch.filter(p =>
-          p.nombre.toLowerCase().includes(query)
+          norm(p.nombre).includes(query)
         ).slice(0, 5);
 
         if (matchMaterias.length === 0 && matchProfes.length === 0) {
