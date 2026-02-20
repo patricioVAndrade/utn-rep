@@ -424,11 +424,13 @@ function tiempoRelativo(fecha: string): string {
 
         try {
           const res = await fetch('/api/resenas/' + resenaId, {
-            method: 'PUT',
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ comentario: newComment }),
+            body: JSON.stringify({ _method: 'PUT', comentario: newComment }),
           });
-          const data = await res.json();
+          const text = await res.text();
+          let data;
+          try { data = JSON.parse(text); } catch { throw new Error('Error del servidor. Recargá la página e intentá de nuevo.'); }
           if (!res.ok) throw new Error(data.error || 'Error');
 
           // Update the displayed comment
@@ -459,14 +461,15 @@ function tiempoRelativo(fecha: string): string {
         btn.disabled = true;
 
         try {
-          const res = await fetch('/api/resenas/' + resenaId, { method: 'DELETE' });
+          const res = await fetch('/api/resenas/' + resenaId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ _method: 'DELETE' }),
+          });
+          const text = await res.text();
           let data;
-          try {
-            data = await res.json();
-          } catch {
-            throw new Error('Error del servidor. Recargá la página e intentá de nuevo.');
-          }
-          if (!res.ok) throw new Error(data.error || 'Error');
+          try { data = JSON.parse(text); } catch { throw new Error('Error del servidor. Recargá la página e intentá de nuevo.'); }
+          if (!res.ok) throw new Error(data.error || 'Error al eliminar.');
 
           card.style.transition = 'opacity 0.3s, transform 0.3s';
           card.style.opacity = '0';
