@@ -120,7 +120,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     user.email?.split('@')[0] ||
     'Usuario';
 
-  // 7. Insert the review
+  // 7. Check if UTN student
+  const esAlumnoUtn = !!(user.email && (user.email.endsWith('@frc.utn.edu.ar') || user.email.endsWith('@utn.edu.ar')));
+
+  // 8. Insert the review
   const { error: insertError } = await supabase
     .from('resenas')
     .insert({
@@ -130,6 +133,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       comentario: comentario.trim(),
       user_id: user.id,
       nombre_usuario: nombreUsuario,
+      es_alumno_utn: esAlumnoUtn,
       votos_utilidad: 0,
     });
 

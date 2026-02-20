@@ -122,6 +122,91 @@ const siteURL = Astro.url.origin;
     modal.addEventListener('click', (e) => {
       if (e.target === modal) closeModal();
     });
+
+    // ========== TABS ==========
+    const tabEmail = document.getElementById('tab-email');
+    const tabSocial = document.getElementById('tab-social');
+    const panelEmail = document.getElementById('panel-email');
+    const panelSocial = document.getElementById('panel-social');
+
+    if (tabEmail && tabSocial && panelEmail && panelSocial) {
+      tabEmail.addEventListener('click', () => {
+        tabEmail.classList.add('text-amber-400', 'border-amber-400');
+        tabEmail.classList.remove('text-neutral-500', 'border-transparent');
+        tabSocial.classList.add('text-neutral-500', 'border-transparent');
+        tabSocial.classList.remove('text-amber-400', 'border-amber-400');
+        panelEmail.classList.remove('hidden');
+        panelSocial.classList.add('hidden');
+      });
+
+      tabSocial.addEventListener('click', () => {
+        tabSocial.classList.add('text-amber-400', 'border-amber-400');
+        tabSocial.classList.remove('text-neutral-500', 'border-transparent');
+        tabEmail.classList.add('text-neutral-500', 'border-transparent');
+        tabEmail.classList.remove('text-amber-400', 'border-amber-400');
+        panelSocial.classList.remove('hidden');
+        panelEmail.classList.add('hidden');
+      });
+    }
+
+    // ========== MAGIC LINK FORM ==========
+    const mlSubmit = document.getElementById('ml-submit');
+    const mlNombre = document.getElementById('ml-nombre') as HTMLInputElement | null;
+    const mlEmail = document.getElementById('ml-email') as HTMLInputElement | null;
+    const mlMsg = document.getElementById('ml-msg');
+
+    if (mlSubmit && mlNombre && mlEmail && mlMsg) {
+      mlSubmit.addEventListener('click', async () => {
+        const nombre = mlNombre.value.trim();
+        const email = mlEmail.value.trim().toLowerCase();
+
+        // Client-side quick validation
+        if (!nombre || nombre.length < 4) {
+          mlMsg.textContent = 'Ingresá tu nombre y apellido.';
+          mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-red-900/30 border border-red-700 text-red-400';
+          mlMsg.classList.remove('hidden');
+          return;
+        }
+
+        if (!email || !email.includes('@')) {
+          mlMsg.textContent = 'Ingresá un email válido.';
+          mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-red-900/30 border border-red-700 text-red-400';
+          mlMsg.classList.remove('hidden');
+          return;
+        }
+
+        (mlSubmit as HTMLButtonElement).disabled = true;
+        mlSubmit.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Enviando...';
+        mlMsg.classList.add('hidden');
+
+        try {
+          const res = await fetch('/api/auth/magic-link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, nombre }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            mlMsg.textContent = data.error || 'Error al enviar el link.';
+            mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-red-900/30 border border-red-700 text-red-400';
+          } else {
+            mlMsg.innerHTML = '✓ Revisá tu bandeja de entrada (y spam).<br><span class="text-xs text-neutral-500">Enviamos un link a <strong>' + email + '</strong></span>';
+            mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-green-900/30 border border-green-700 text-green-400';
+            mlNombre.disabled = true;
+            mlEmail.disabled = true;
+          }
+        } catch {
+          mlMsg.textContent = 'Error de conexión. Intentá de nuevo.';
+          mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-red-900/30 border border-red-700 text-red-400';
+        }
+
+        mlMsg.classList.remove('hidden');
+        (mlSubmit as HTMLButtonElement).disabled = false;
+        mlSubmit.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> Enviar link de acceso';
+      });
+    }
   }
 
   initLoginModal();

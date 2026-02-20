@@ -219,7 +219,15 @@ function tiempoRelativo(fecha: string): string {
                       {(resena.nombre_usuario || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p class="font-semibold text-neutral-100 text-sm">{resena.nombre_usuario || 'Estudiante'}</p>
+                      <div class="flex items-center gap-1.5">
+                        <p class="font-semibold text-neutral-100 text-sm">{resena.nombre_usuario || 'Estudiante'}</p>
+                        {resena.es_alumno_utn && (
+                          <span class="inline-flex items-center gap-0.5 bg-blue-900/40 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-700/50" title="Alumno verificado de UTN FRC">
+                            <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                            UTN
+                          </span>
+                        )}
+                      </div>
                       <p class="text-xs text-neutral-500">
                         {resena.anio_cursado ? `Cursó en ${resena.anio_cursado}` : ''}
                         {resena.anio_cursado && resena.created_at ? ' · ' : ''}
