@@ -13,25 +13,10 @@ const { data: allMateriasRaw } = await supabase
   .order('nombre');
 const allMaterias = allMateriasRaw || [];
 
-// Traer todas las reseñas con su materia_id (try view, fallback to table)
-let allResenasRaw: any[] | null = null;
-try {
-  const r = await supabase
-    .from('public_resenas')
-    .select('calificacion_general, dictado_id, dictados!inner(materia_id)');
-  // @ts-ignore
-  if (!r.error && r.data) allResenasRaw = r.data;
-} catch (e) {
-  allResenasRaw = null;
-}
-
-if (!allResenasRaw) {
-  const r2 = await supabase
-    .from('resenas')
-    .select('calificacion_general, dictado_id, dictados!inner(materia_id)');
-  // @ts-ignore
-  allResenasRaw = r2.data || [];
-}
+// Traer todas las reseñas con su materia_id
+const { data: allResenasRaw } = await supabase
+  .from('public_resenas')
+  .select('calificacion_general, dictado_id, dictados!inner(materia_id)');
 const allResenas = allResenasRaw || [];
 
 // Calcular stats por materia

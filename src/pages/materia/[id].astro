@@ -51,30 +51,12 @@ let promedioGeneral = "0.0";
 let dictadoStats: Record<number, { promedio: string, count: number }> = {};
 
 if (dictadoIds.length > 0) {
-  // Try reading from the public view first (may not exist yet). Fallback to base table.
-  let resenasData: any[] | null = null;
-  try {
-    const r = await supabase
-      .from('public_resenas')
-      .select('*')
-      .in('dictado_id', dictadoIds)
-      .order('created_at', { ascending: false });
-    // @ts-ignore
-    if (!r.error && r.data) resenasData = r.data;
-  } catch (e) {
-    resenasData = null;
-  }
-
-  if (!resenasData) {
-    const r2 = await supabase
-      .from('resenas')
-      .select('*')
-      .in('dictado_id', dictadoIds)
-      .order('created_at', { ascending: false });
-    // @ts-ignore
-    resenasData = r2.data || [];
-  }
-
+  const { data: resenasData } = await supabase
+    .from('public_resenas')
+    .select('*')
+    .in('dictado_id', dictadoIds)
+    .order('created_at', { ascending: false });
+    
   resenas = resenasData || [];
   
   if (resenas.length > 0) {

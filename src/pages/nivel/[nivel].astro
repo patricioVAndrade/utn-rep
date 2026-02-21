@@ -26,27 +26,10 @@ const materiaIds = materias?.map(m => m.id) || [];
 const materiaStats: Record<number, { promedio: number; count: number }> = {};
 
 if (materiaIds.length > 0) {
-  // Try view first, fallback to table
-  let resenas: any[] | null = null;
-  try {
-    const r = await supabase
-      .from('public_resenas')
-      .select('calificacion_general, dictados!inner(materia_id)')
-      .in('dictados.materia_id', materiaIds);
-    // @ts-ignore
-    if (!r.error && r.data) resenas = r.data;
-  } catch (e) {
-    resenas = null;
-  }
-
-  if (!resenas) {
-    const r2 = await supabase
-      .from('resenas')
-      .select('calificacion_general, dictados!inner(materia_id)')
-      .in('dictados.materia_id', materiaIds);
-    // @ts-ignore
-    resenas = r2.data || [];
-  }
+  const { data: resenas } = await supabase
+    .from('public_resenas')
+    .select('calificacion_general, dictados!inner(materia_id)')
+    .in('dictados.materia_id', materiaIds);
 
   if (resenas) {
     resenas.forEach((r: any) => {
