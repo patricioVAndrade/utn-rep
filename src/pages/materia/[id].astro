@@ -52,7 +52,7 @@ let dictadoStats: Record<number, { promedio: string, count: number }> = {};
 
 if (dictadoIds.length > 0) {
   const { data: resenasData } = await supabase
-    .from('public_resenas')
+    .from('resenas')
     .select('*')
     .in('dictado_id', dictadoIds)
     .order('created_at', { ascending: false });
