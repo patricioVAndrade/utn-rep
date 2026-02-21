@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '../../../lib/supabase';
 // ── Dominios de email permitidos ──
 const ALLOWED_DOMAINS = new Set([
   // Institucionales UTN
-  'frc.utn.edu.ar',
+  'sistemas.frc.utn.edu.ar',
   'utn.edu.ar',
   // Populares
   'gmail.com',
