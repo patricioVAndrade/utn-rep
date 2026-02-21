@@ -15,15 +15,21 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
 
   // Store the page the user wants to return to after login
   const returnTo = url.searchParams.get('returnTo') || '/';
-  cookies.set('auth_redirect', returnTo, {
-    path: '/',
-    httpOnly: true,
-    secure: import.meta.env.PROD,
-    sameSite: 'lax',
-    maxAge: 600, // 10 minutes
-  });
 
   const { client: supabase, responseCookies } = createSupabaseServerClient({ headers: request.headers, cookies });
+
+  // Add the auth_redirect cookie to responseCookies so redirectWithCookies includes it
+  responseCookies.push({
+    name: 'auth_redirect',
+    value: returnTo,
+    options: {
+      path: '/',
+      httpOnly: true,
+      secure: import.meta.env.PROD,
+      sameSite: 'lax',
+      maxAge: 600,
+    },
+  });
 
   const redirectTo = `${url.origin}/api/auth/callback`;
 

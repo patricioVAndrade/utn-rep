@@ -39,8 +39,14 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
 
   // Redirect to the page the user was on before login (or home)
   const returnTo = cookies.get('auth_redirect')?.value || '/';
-  // Clean up the cookie
-  cookies.delete('auth_redirect', { path: '/' });
+  console.log('[Auth Callback] returnTo cookie value:', returnTo);
+
+  // Clean up the redirect cookie by adding an expired cookie to the response
+  responseCookies.push({
+    name: 'auth_redirect',
+    value: '',
+    options: { path: '/', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax', maxAge: 0 },
+  });
 
   // Validate returnTo is a relative path (prevent open redirect)
   const destination = returnTo.startsWith('/') ? returnTo : '/';
