@@ -49,6 +49,23 @@ async function handleDelete(params: Record<string, string | undefined>, request:
     return json({ error: 'No se pudo eliminar la reseña.' }, 500);
   }
 
+  // Verify the row was actually removed (RLS can make delete a no-op)
+  const { data: checkAfterDelete, error: checkError } = await supabase
+    .from('resenas')
+    .select('id')
+    .eq('id', resenaId)
+    .maybeSingle();
+
+  if (checkError) {
+    console.error('Error verifying deletion:', checkError);
+    return json({ error: 'Error verificando eliminación.' }, 500);
+  }
+
+  if (checkAfterDelete) {
+    console.warn('Delete appeared to succeed but row still present (likely RLS).');
+    return json({ error: 'No autorizado para eliminar esta reseña (políticas de seguridad).'}, 403);
+  }
+
   return json({ success: true });
 }
 
