@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import HeaderNav from '../../components/HeaderNav.astro';
-import { supabase } from '../../lib/supabase';
+import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 
 const user = Astro.locals.user;
 
@@ -60,26 +60,35 @@ const dictadoIds = (dictadoProfesores || []).map((dp: any) => dp.dictados?.id).f
 let dictadoStats: Record<number, { promedio: number; count: number }> = {};
 
 if (dictadoIds.length > 0) {
-  // Try reading from view first, fallback to base table
+  // If admin, fetch from base table to see real names; otherwise prefer public view
   let resenas: any[] | null = null;
-  try {
-    const r = await supabase
-      .from('public_resenas')
-      .select('calificacion_general, dictado_id')
-      .in('dictado_id', dictadoIds);
-    // @ts-ignore
-    if (!r.error && r.data) resenas = r.data;
-  } catch (e) {
-    resenas = null;
-  }
-
-  if (!resenas) {
-    const r2 = await supabase
+  if (userIsAdmin) {
+    const { client: adminClient } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+    const { data: adminRes } = await adminClient
       .from('resenas')
       .select('calificacion_general, dictado_id')
       .in('dictado_id', dictadoIds);
-    // @ts-ignore
-    resenas = r2.data || [];
+    resenas = adminRes || [];
+  } else {
+    try {
+      const r = await supabase
+        .from('public_resenas')
+        .select('calificacion_general, dictado_id')
+        .in('dictado_id', dictadoIds);
+      // @ts-ignore
+      if (!r.error && r.data) resenas = r.data;
+    } catch (e) {
+      resenas = null;
+    }
+
+    if (!resenas) {
+      const r2 = await supabase
+        .from('resenas')
+        .select('calificacion_general, dictado_id')
+        .in('dictado_id', dictadoIds);
+      // @ts-ignore
+      resenas = r2.data || [];
+    }
   }
 
   if (resenas) {
