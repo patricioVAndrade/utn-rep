@@ -462,11 +462,7 @@ const currentYear = new Date().getFullYear();
     const esAnonimaCheck = document.getElementById('es-anonima');
     const anonimaHint = document.getElementById('anonima-hint');
     if (esAnonimaCheck && anonimaHint) {
-      esAnonimaCheck.addEventListener('change', () => {
-        anonimaHint.textContent = esAnonimaCheck.checked
-          ? '✓ Se publicará como "Anónimo"'
-          : 'Publicar como anónimo';
-      });
+      // No text change — the label stays as "Publicar como anónimo"
     }
   </script>
 
