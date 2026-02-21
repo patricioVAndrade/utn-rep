@@ -108,12 +108,18 @@ const siteURL = Astro.url.origin;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
 
-      // Set returnTo on OAuth links so after login the user comes back here
-      const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+      // Save the current page URL for post-login redirect
+      const currentPage = window.location.pathname + window.location.search;
+      const returnTo = encodeURIComponent(currentPage);
+
+      // Set returnTo on OAuth links
       const googleLink = document.getElementById('oauth-google') as HTMLAnchorElement | null;
       const githubLink = document.getElementById('oauth-github') as HTMLAnchorElement | null;
       if (googleLink) googleLink.href = '/api/auth/login?provider=google&returnTo=' + returnTo;
       if (githubLink) githubLink.href = '/api/auth/login?provider=github&returnTo=' + returnTo;
+
+      // Also save to localStorage as universal fallback (for magic link, cross-tab, etc.)
+      try { localStorage.setItem('auth_returnTo', currentPage); } catch {}
     }
 
     function closeModal() {
@@ -253,4 +259,23 @@ const siteURL = Astro.url.origin;
   }
 
   initLoginModal();
+</script>
+
+<!-- Post-login redirect from localStorage fallback -->
+<script>
+  try {
+    const returnTo = localStorage.getItem('auth_returnTo');
+    if (returnTo) {
+      // Check if user is now logged in (look for user avatar or greeting in header)
+      const isLoggedIn = !!document.querySelector('[href="/api/auth/logout"]');
+      const currentPage = window.location.pathname + window.location.search;
+      if (isLoggedIn && returnTo !== currentPage) {
+        localStorage.removeItem('auth_returnTo');
+        window.location.replace(returnTo);
+      } else if (isLoggedIn) {
+        // Already on the right page, just clean up
+        localStorage.removeItem('auth_returnTo');
+      }
+    }
+  } catch {}
 </script>

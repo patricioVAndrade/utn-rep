@@ -4,12 +4,15 @@ import { createSupabaseServerClient, redirectWithCookies } from '../../../lib/su
 /**
  * GET /api/auth/callback
  * Supabase redirects here after OAuth. Exchanges the code for a session,
- * stores session tokens as cookies, then redirects to home.
+ * stores session tokens as cookies, then redirects to the returnTo page.
  */
 export const GET: APIRoute = async ({ request, cookies, url }) => {
   const code = url.searchParams.get('code');
   const error_param = url.searchParams.get('error');
   const error_description = url.searchParams.get('error_description');
+
+  // Read returnTo from the callback URL query params
+  const returnTo = url.searchParams.get('returnTo') || '/';
 
   if (error_param) {
     console.error('[Auth Callback] Provider error:', error_param, error_description);
@@ -35,18 +38,7 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
     return new Response(null, { status: 302, headers: { Location: '/?auth_error=exchange_failed' } });
   }
 
-  console.log('[Auth Callback] Session established! Cookies to set:', responseCookies.length, responseCookies.map(c => c.name));
-
-  // Redirect to the page the user was on before login (or home)
-  const returnTo = cookies.get('auth_redirect')?.value || '/';
-  console.log('[Auth Callback] returnTo cookie value:', returnTo);
-
-  // Clean up the redirect cookie by adding an expired cookie to the response
-  responseCookies.push({
-    name: 'auth_redirect',
-    value: '',
-    options: { path: '/', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax', maxAge: 0 },
-  });
+  console.log('[Auth Callback] Session established! returnTo:', returnTo);
 
   // Validate returnTo is a relative path (prevent open redirect)
   const destination = returnTo.startsWith('/') ? returnTo : '/';
