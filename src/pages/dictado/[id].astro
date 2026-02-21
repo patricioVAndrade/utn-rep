@@ -364,6 +364,17 @@ function tiempoRelativo(fecha: string): string {
   )}
 
   <script>
+    // Expose minimal user info to client for UI-only checks
+    window.__APP_USER = {
+      id: {user ? `'${user.id}' : null},
+      isAdmin: {userIsAdmin ? 'true' : 'false'}
+    };
+
+    // Hide edit/delete/report actions when there's no logged-in user (UI-only safeguard)
+    if (!window.__APP_USER.id) {
+      document.querySelectorAll('.edit-btn, .delete-btn, .report-btn').forEach(el => el.remove());
+    }
+
     // ========== PAGINATION ==========
     const showMoreBtn = document.getElementById('show-more-btn');
     if (showMoreBtn) {
