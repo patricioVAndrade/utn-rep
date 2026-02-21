@@ -461,7 +461,6 @@ function tiempoRelativo(fecha: string): string {
         try {
           const res = await fetch('/api/resenas/' + resenaId, {
             method: 'POST',
-            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ _method: 'PUT', comentario: newComment }),
           });
@@ -500,7 +499,6 @@ function tiempoRelativo(fecha: string): string {
         try {
           const res = await fetch('/api/resenas/' + resenaId, {
             method: 'POST',
-            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ _method: 'DELETE' }),
           });
