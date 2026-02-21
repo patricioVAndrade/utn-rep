@@ -29,11 +29,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     // Redirect to clean URL (remove ?code= param, keep other query params) with session cookies
-    const cleanParams = new URLSearchParams(url.searchParams);
-    cleanParams.delete('code');
-    const cleanQuery = cleanParams.toString();
-    const cleanUrl = cleanQuery ? `${url.pathname}?${cleanQuery}` : url.pathname;
-    return redirectWithCookies(cleanUrl, responseCookies);
+    // Check for auth_returnTo cookie to redirect directly to the intended page (avoids flash)
+    const returnToCookie = cookies.get('auth_returnTo')?.value;
+    let destination: string;
+    if (returnToCookie) {
+      const decoded = decodeURIComponent(returnToCookie);
+      destination = decoded.startsWith('/') ? decoded : '/';
+      // Delete the returnTo cookie by adding an expired cookie to the response
+      responseCookies.push({
+        name: 'auth_returnTo',
+        value: '',
+        options: { path: '/', maxAge: 0, sameSite: 'lax' as const },
+      });
+    } else {
+      const cleanParams = new URLSearchParams(url.searchParams);
+      cleanParams.delete('code');
+      const cleanQuery = cleanParams.toString();
+      destination = cleanQuery ? `${url.pathname}?${cleanQuery}` : url.pathname;
+    }
+    return redirectWithCookies(destination, responseCookies);
   }
 
   // ── Read session for all pages (skip API routes — they handle their own auth) ──

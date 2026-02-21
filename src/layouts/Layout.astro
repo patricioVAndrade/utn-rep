@@ -120,6 +120,9 @@ const siteURL = Astro.url.origin;
 
       // Also save to localStorage as universal fallback (for magic link, cross-tab, etc.)
       try { localStorage.setItem('auth_returnTo', currentPage); } catch {}
+
+      // Set a cookie too so the server-side middleware can redirect directly (avoids flash)
+      try { document.cookie = `auth_returnTo=${encodeURIComponent(currentPage)};path=/;max-age=600;SameSite=Lax`; } catch {}
     }
 
     function closeModal() {
@@ -261,20 +264,20 @@ const siteURL = Astro.url.origin;
   initLoginModal();
 </script>
 
-<!-- Post-login redirect from localStorage fallback -->
+<!-- Post-login redirect fallback (only if server-side cookie redirect didn't fire) -->
 <script>
   try {
     const returnTo = localStorage.getItem('auth_returnTo');
     if (returnTo) {
-      // Check if user is now logged in (look for user avatar or greeting in header)
       const isLoggedIn = !!document.querySelector('[href="/api/auth/logout"]');
       const currentPage = window.location.pathname + window.location.search;
       if (isLoggedIn && returnTo !== currentPage) {
         localStorage.removeItem('auth_returnTo');
+        document.cookie = 'auth_returnTo=;path=/;max-age=0';
         window.location.replace(returnTo);
       } else if (isLoggedIn) {
-        // Already on the right page, just clean up
         localStorage.removeItem('auth_returnTo');
+        document.cookie = 'auth_returnTo=;path=/;max-age=0';
       }
     }
   } catch {}

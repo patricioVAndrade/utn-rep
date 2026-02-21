@@ -238,20 +238,14 @@ const currentYear = new Date().getFullYear();
           required
         ></textarea>
         <p class="text-xs text-neutral-500 mt-2">Sé respetuoso/a con los docentes.</p>
-      </div>
-
-      <!-- Opción anónima -->
-      <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
-        <label class="flex items-start gap-4 cursor-pointer group">
-          <div class="relative flex-shrink-0 mt-0.5">
+        <!-- Opción anónima (inline) -->
+        <label class="flex items-center gap-2.5 cursor-pointer group mt-3 pt-3 border-t border-neutral-700/40">
+          <div class="relative flex-shrink-0">
             <input type="checkbox" id="es-anonima" class="peer sr-only" />
-            <div class="w-5 h-5 rounded-md border-2 border-neutral-600 bg-neutral-800 peer-checked:bg-amber-500 peer-checked:border-amber-500 transition-all"></div>
-            <svg class="absolute inset-0 m-auto w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+            <div class="w-4 h-4 rounded border-2 border-neutral-600 bg-neutral-800 peer-checked:bg-amber-500 peer-checked:border-amber-500 transition-all"></div>
+            <svg class="absolute inset-0 m-auto w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
           </div>
-          <div>
-            <span class="font-heading font-bold text-neutral-100 group-hover:text-amber-400 transition-colors">Publicar como anónimo</span>
-            <p class="text-xs text-neutral-500 mt-1" id="anonima-hint">Tu nombre aparecerá junto a tu reseña. Activá esta opción si preferís que se muestre como "Anónimo".</p>
-          </div>
+          <span class="text-sm text-neutral-400 group-hover:text-amber-400 transition-colors select-none" id="anonima-hint">Publicar como anónimo</span>
         </label>
       </div>
 
@@ -470,8 +464,8 @@ const currentYear = new Date().getFullYear();
     if (esAnonimaCheck && anonimaHint) {
       esAnonimaCheck.addEventListener('change', () => {
         anonimaHint.textContent = esAnonimaCheck.checked
-          ? 'Tu reseña se publicará como "Anónimo". Seguimos sabiendo quién la escribió para moderación.'
-          : 'Tu nombre aparecerá junto a tu reseña. Activá esta opción si preferís que se muestre como "Anónimo".';
+          ? '✓ Se publicará como "Anónimo"'
+          : 'Publicar como anónimo';
       });
     }
   </script>
