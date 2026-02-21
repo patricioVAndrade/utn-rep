@@ -60,10 +60,27 @@ const dictadoIds = (dictadoProfesores || []).map((dp: any) => dp.dictados?.id).f
 let dictadoStats: Record<number, { promedio: number; count: number }> = {};
 
 if (dictadoIds.length > 0) {
-    const { data: resenas } = await supabase
+  // Try reading from view first, fallback to base table
+  let resenas: any[] | null = null;
+  try {
+    const r = await supabase
       .from('public_resenas')
       .select('calificacion_general, dictado_id')
       .in('dictado_id', dictadoIds);
+    // @ts-ignore
+    if (!r.error && r.data) resenas = r.data;
+  } catch (e) {
+    resenas = null;
+  }
+
+  if (!resenas) {
+    const r2 = await supabase
+      .from('resenas')
+      .select('calificacion_general, dictado_id')
+      .in('dictado_id', dictadoIds);
+    // @ts-ignore
+    resenas = r2.data || [];
+  }
 
   if (resenas) {
     resenas.forEach((r: any) => {

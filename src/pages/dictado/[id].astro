@@ -27,14 +27,29 @@ if (error || !dictado) {
   return Astro.redirect('/404');
 }
 
-// Traer reseñas
-  const { data: resenas } = await supabase
+// Traer reseñas (try public view, fallback to table)
+let resenasData: any[] = [];
+try {
+  const r = await supabase
     .from('public_resenas')
     .select('*')
     .eq('dictado_id', id)
     .order('created_at', { ascending: false });
+  // @ts-ignore
+  if (!r.error && r.data) resenasData = r.data;
+} catch (e) {
+  resenasData = [];
+}
 
-const resenasData = resenas || [];
+if (!resenasData || resenasData.length === 0) {
+  const r2 = await supabase
+    .from('resenas')
+    .select('*')
+    .eq('dictado_id', id)
+    .order('created_at', { ascending: false });
+  // @ts-ignore
+  resenasData = r2.data || [];
+}
 
 // Estadísticas
 const totalResenas = resenasData.length;
