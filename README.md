@@ -85,7 +85,7 @@ El login es obligatorio para publicar reseñas, pero el usuario puede elegir pub
 1. El usuario navega a `/nueva-resena` (formulario general) o llega desde un dictado especifico (`?dictado=<id>`)
 2. Selecciona materia/curso (o ya viene preseleccionado), calificacion, año de cursado y escribe su opinion
 3. Opcionalmente marca "Publicar como anonimo" para ocultar su nombre
-4. El endpoint `POST /api/resenas` valida los datos, verifica autenticacion, aplica rate-limiting (max 5 por hora) y constraint anti-spam (1 por usuario por dictado)
+4. El endpoint `POST /api/resenas` valida los datos, verifica autenticacion, aplica rate-limiting (max 8 por hora) y constraint anti-spam (1 por usuario por dictado)
 5. Desde la pagina del dictado, el autor puede editar o eliminar su propia reseña
 
 ### DELETE en Vercel

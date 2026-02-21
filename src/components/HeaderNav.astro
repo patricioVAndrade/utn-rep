@@ -38,9 +38,29 @@ else greeting = 'Buenas noches';
             {user.name.charAt(0).toUpperCase()}
           </div>
         )}
-        <span class="text-sm font-medium text-white/80 hidden sm:inline">
+        <span id="greeting" class="text-sm font-medium text-white/80 hidden sm:inline">
           {greeting}, <strong class="text-white">{user.name}</strong>
         </span>
+        <script>
+          (function(){
+            try{
+              const el = document.getElementById('greeting');
+              if(!el) return;
+              const hour = new Date().getHours();
+              let clientGreeting = '';
+              if (hour >= 6 && hour < 12) clientGreeting = 'Buenos días';
+              else if (hour >= 12 && hour < 19) clientGreeting = 'Buenas tardes';
+              else clientGreeting = 'Buenas noches';
+
+              // Preserve the displayed name (rendered server-side)
+              const nameEl = el.querySelector('strong');
+              const name = nameEl ? nameEl.textContent : '';
+              el.innerHTML = `${clientGreeting}, <strong class="text-white">${name}</strong>`;
+            }catch(e){
+              // no-op
+            }
+          })();
+        </script>
         <a href="/api/auth/logout" class="ml-1 text-white/50 hover:text-white transition-colors" title="Cerrar sesión">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>

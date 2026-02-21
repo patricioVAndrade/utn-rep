@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from '../../lib/supabase';
  * POST /api/resenas
  * Creates a review. Requires authentication.
  * Anti-spam: max 1 review per user per dictado.
- * Rate-limit: max 5 reviews per user per hour.
+ * Rate-limit: max 8 reviews per user per hour.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
@@ -84,7 +84,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
   }
 
-  // 4. Rate-limit: max 5 reviews in the last hour
+  // 4. Rate-limit: max 8 reviews in the last hour
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const { count: recentCount } = await supabase
     .from('resenas')
@@ -92,7 +92,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .eq('user_id', user.id)
     .gte('created_at', oneHourAgo);
 
-  if (recentCount !== null && recentCount >= 5) {
+  if (recentCount !== null && recentCount >= 8) {
     return new Response(JSON.stringify({ error: 'Demasiadas reseñas en poco tiempo. Esperá un rato antes de escribir otra.' }), {
       status: 429,
       headers: { 'Content-Type': 'application/json' },
