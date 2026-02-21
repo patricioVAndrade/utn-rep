@@ -28,8 +28,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
       });
     }
 
-    // Redirect to clean URL (remove ?code= param) with session cookies
-    return redirectWithCookies(url.pathname, responseCookies);
+    // Redirect to clean URL (remove ?code= param, keep other query params) with session cookies
+    const cleanParams = new URLSearchParams(url.searchParams);
+    cleanParams.delete('code');
+    const cleanQuery = cleanParams.toString();
+    const cleanUrl = cleanQuery ? `${url.pathname}?${cleanQuery}` : url.pathname;
+    return redirectWithCookies(cleanUrl, responseCookies);
   }
 
   // ── Read session for all pages (skip API routes — they handle their own auth) ──

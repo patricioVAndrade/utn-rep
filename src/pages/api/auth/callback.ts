@@ -37,6 +37,13 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
 
   console.log('[Auth Callback] Session established! Cookies to set:', responseCookies.length, responseCookies.map(c => c.name));
 
-  // Use redirectWithCookies to guarantee session cookies are in the response
-  return redirectWithCookies('/', responseCookies);
+  // Redirect to the page the user was on before login (or home)
+  const returnTo = cookies.get('auth_redirect')?.value || '/';
+  // Clean up the cookie
+  cookies.delete('auth_redirect', { path: '/' });
+
+  // Validate returnTo is a relative path (prevent open redirect)
+  const destination = returnTo.startsWith('/') ? returnTo : '/';
+
+  return redirectWithCookies(destination, responseCookies);
 };

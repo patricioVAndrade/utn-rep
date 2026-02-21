@@ -107,6 +107,13 @@ const siteURL = Astro.url.origin;
     function openModal() {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+
+      // Set returnTo on OAuth links so after login the user comes back here
+      const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+      const googleLink = document.getElementById('oauth-google') as HTMLAnchorElement | null;
+      const githubLink = document.getElementById('oauth-github') as HTMLAnchorElement | null;
+      if (googleLink) googleLink.href = '/api/auth/login?provider=google&returnTo=' + returnTo;
+      if (githubLink) githubLink.href = '/api/auth/login?provider=github&returnTo=' + returnTo;
     }
 
     function closeModal() {
@@ -185,7 +192,7 @@ const siteURL = Astro.url.origin;
           const res = await fetch('/api/auth/magic-link', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, nombre }),
+            body: JSON.stringify({ email, nombre, returnTo: window.location.pathname + window.location.search }),
           });
 
           const data = await res.json();

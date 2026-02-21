@@ -184,13 +184,18 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
   // 6. Send magic link via Supabase
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
 
+  // Use the returnTo URL from the client so the user lands back where they were
+  const returnTo = body.returnTo || '/';
+  const baseUrl = new URL('/', request.url).origin;
+  const emailRedirect = returnTo.startsWith('/') ? `${baseUrl}${returnTo}` : baseUrl;
+
   const { error } = await supabase.auth.signInWithOtp({
     email: normalizedEmail,
     options: {
       data: {
         full_name: nombreFormateado,
       },
-      emailRedirectTo: new URL('/', request.url).origin,
+      emailRedirectTo: emailRedirect,
     },
   });
 

@@ -13,6 +13,16 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
     return new Response(null, { status: 302, headers: { Location: '/?auth_error=invalid_provider' } });
   }
 
+  // Store the page the user wants to return to after login
+  const returnTo = url.searchParams.get('returnTo') || '/';
+  cookies.set('auth_redirect', returnTo, {
+    path: '/',
+    httpOnly: true,
+    secure: import.meta.env.PROD,
+    sameSite: 'lax',
+    maxAge: 600, // 10 minutes
+  });
+
   const { client: supabase, responseCookies } = createSupabaseServerClient({ headers: request.headers, cookies });
 
   const redirectTo = `${url.origin}/api/auth/callback`;
