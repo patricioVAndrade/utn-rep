@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import HeaderNav from '../../components/HeaderNav.astro';
-import { supabase, createSupabaseServerClient } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { isAdmin } from '../../lib/admin';
 
 const user = Astro.locals.user;
@@ -51,42 +51,31 @@ let promedioGeneral = "0.0";
 let dictadoStats: Record<number, { promedio: string, count: number }> = {};
 
 if (dictadoIds.length > 0) {
-  // If admin, read the base table (to see nombre_usuario for anonymous reviews).
-  if (userIsAdmin) {
-    const { client: adminClient } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
-    const { data: adminRes } = await adminClient
+  // Try reading from the public view first (may not exist yet). Fallback to base table.
+  let resenasData: any[] | null = null;
+  try {
+    const r = await supabase
+      .from('public_resenas')
+      .select('*')
+      .in('dictado_id', dictadoIds)
+      .order('created_at', { ascending: false });
+    // @ts-ignore
+    if (!r.error && r.data) resenasData = r.data;
+  } catch (e) {
+    resenasData = null;
+  }
+
+  if (!resenasData) {
+    const r2 = await supabase
       .from('resenas')
       .select('*')
       .in('dictado_id', dictadoIds)
       .order('created_at', { ascending: false });
-    resenas = adminRes || [];
-  } else {
-    // Try reading from the public view first (may not exist yet). Fallback to base table.
-    let resenasData: any[] | null = null;
-    try {
-      const r = await supabase
-        .from('public_resenas')
-        .select('*')
-        .in('dictado_id', dictadoIds)
-        .order('created_at', { ascending: false });
-      // @ts-ignore
-      if (!r.error && r.data) resenasData = r.data;
-    } catch (e) {
-      resenasData = null;
-    }
-
-    if (!resenasData) {
-      const r2 = await supabase
-        .from('resenas')
-        .select('*')
-        .in('dictado_id', dictadoIds)
-        .order('created_at', { ascending: false });
-      // @ts-ignore
-      resenasData = r2.data || [];
-    }
-
-    resenas = resenasData || [];
+    // @ts-ignore
+    resenasData = r2.data || [];
   }
+
+  resenas = resenasData || [];
   
   if (resenas.length > 0) {
     const suma = resenas.reduce((acc: number, r: any) => acc + r.calificacion_general, 0);

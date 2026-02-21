@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import HeaderNav from '../../components/HeaderNav.astro';
-import { supabase, createSupabaseServerClient } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { isAdmin } from '../../lib/admin';
 
 const user = Astro.locals.user;
@@ -27,38 +27,28 @@ if (error || !dictado) {
   return Astro.redirect('/404');
 }
 
-// Traer reseñas: admins leen tabla base, el resto la vista pública (con fallback)
+// Traer reseñas (try public view, fallback to table)
 let resenasData: any[] = [];
-if (userIsAdmin) {
-  const { client: adminClient } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
-  const { data: adminRes } = await adminClient
+try {
+  const r = await supabase
+    .from('public_resenas')
+    .select('*')
+    .eq('dictado_id', id)
+    .order('created_at', { ascending: false });
+  // @ts-ignore
+  if (!r.error && r.data) resenasData = r.data;
+} catch (e) {
+  resenasData = [];
+}
+
+if (!resenasData || resenasData.length === 0) {
+  const r2 = await supabase
     .from('resenas')
     .select('*')
     .eq('dictado_id', id)
     .order('created_at', { ascending: false });
-  resenasData = adminRes || [];
-} else {
-  try {
-    const r = await supabase
-      .from('public_resenas')
-      .select('*')
-      .eq('dictado_id', id)
-      .order('created_at', { ascending: false });
-    // @ts-ignore
-    if (!r.error && r.data) resenasData = r.data;
-  } catch (e) {
-    resenasData = [];
-  }
-
-  if (!resenasData || resenasData.length === 0) {
-    const r2 = await supabase
-      .from('resenas')
-      .select('*')
-      .eq('dictado_id', id)
-      .order('created_at', { ascending: false });
-    // @ts-ignore
-    resenasData = r2.data || [];
-  }
+  // @ts-ignore
+  resenasData = r2.data || [];
 }
 
 // Estadísticas
