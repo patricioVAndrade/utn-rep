@@ -36,7 +36,7 @@ async function handleDelete(params: Record<string, string | undefined>, request:
   }
 
   if (resena.user_id !== user.id && !isAdmin(user.id)) {
-    return json({ error: 'No podés eliminar una reseña que no es tuya.' }, 403);
+    return json({ error: 'No podés eliminar una reseña que no es tuya.', debug: { userId: user.id, resenaUserId: resena.user_id } }, 403);
   }
 
   const { error: deleteError } = await supabase
@@ -63,7 +63,7 @@ async function handleDelete(params: Record<string, string | undefined>, request:
 
   if (checkAfterDelete) {
     console.warn('Delete appeared to succeed but row still present (likely RLS).');
-    return json({ error: 'No autorizado para eliminar esta reseña (políticas de seguridad).'}, 403);
+    return json({ error: 'No autorizado para eliminar esta reseña (políticas de seguridad).', debug: { userId: user.id, resenaUserId: resena.user_id } }, 403);
   }
 
   return json({ success: true });
