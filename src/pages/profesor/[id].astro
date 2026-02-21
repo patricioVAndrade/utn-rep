@@ -60,10 +60,10 @@ const dictadoIds = (dictadoProfesores || []).map((dp: any) => dp.dictados?.id).f
 let dictadoStats: Record<number, { promedio: number; count: number }> = {};
 
 if (dictadoIds.length > 0) {
-  const { data: resenas } = await supabase
-    .from('resenas')
-    .select('calificacion_general, dictado_id')
-    .in('dictado_id', dictadoIds);
+    const { data: resenas } = await supabase
+      .from('public_resenas')
+      .select('calificacion_general, dictado_id')
+      .in('dictado_id', dictadoIds);
 
   if (resenas) {
     resenas.forEach((r: any) => {

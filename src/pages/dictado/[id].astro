@@ -28,11 +28,11 @@ if (error || !dictado) {
 }
 
 // Traer reseñas
-const { data: resenas } = await supabase
-  .from('resenas')
-  .select('*')
-  .eq('dictado_id', id)
-  .order('created_at', { ascending: false });
+  const { data: resenas } = await supabase
+    .from('public_resenas')
+    .select('*')
+    .eq('dictado_id', id)
+    .order('created_at', { ascending: false });
 
 const resenasData = resenas || [];
 

@@ -27,7 +27,7 @@ const materiaStats: Record<number, { promedio: number; count: number }> = {};
 
 if (materiaIds.length > 0) {
   const { data: resenas } = await supabase
-    .from('resenas')
+    .from('public_resenas')
     .select('calificacion_general, dictados!inner(materia_id)')
     .in('dictados.materia_id', materiaIds);
 

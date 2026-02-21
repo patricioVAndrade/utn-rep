@@ -15,7 +15,7 @@ const allMaterias = allMateriasRaw || [];
 
 // Traer todas las reseñas con su materia_id
 const { data: allResenasRaw } = await supabase
-  .from('resenas')
+  .from('public_resenas')
   .select('calificacion_general, dictado_id, dictados!inner(materia_id)');
 const allResenas = allResenasRaw || [];
 
