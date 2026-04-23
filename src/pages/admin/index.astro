@@ -1,0 +1,1414 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import HeaderNav from '../../components/HeaderNav.astro';
+import { isAdmin } from '../../lib/admin';
+import { supabaseAdmin } from '../../lib/supabase-admin';
+import { ADMIN_CSRF_COOKIE, ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+
+const user = Astro.locals.user;
+
+// ── Auth guard: only admins ──
+if (!user || !isAdmin(user.id)) {
+  return Astro.redirect('/');
+}
+
+// ── CSRF token (double-submit cookie) ──
+const existingCsrf = Astro.cookies.get(ADMIN_CSRF_COOKIE)?.value;
+const csrfToken = existingCsrf || crypto.randomUUID();
+if (!existingCsrf) {
+  Astro.cookies.set(ADMIN_CSRF_COOKIE, csrfToken, {
+    path: '/',
+    sameSite: 'strict',
+    secure: import.meta.env.PROD,
+    httpOnly: false,
+    maxAge: 60 * 60 * 8,
+  });
+}
+
+// ── Fetch initial data server-side ──
+
+// Stats
+const [
+  { count: totalMaterias },
+  { count: totalCursos },
+  { count: totalProfesores },
+  { count: totalDictados },
+  { count: totalResenas },
+  { count: totalReportes },
+] = await Promise.all([
+  supabaseAdmin.from('materias').select('id', { count: 'exact', head: true }),
+  supabaseAdmin.from('cursos').select('id', { count: 'exact', head: true }),
+  supabaseAdmin.from('profesores').select('id', { count: 'exact', head: true }),
+  supabaseAdmin.from('dictados').select('id', { count: 'exact', head: true }),
+  supabaseAdmin.from('resenas').select('id', { count: 'exact', head: true }),
+  supabaseAdmin.from('reportes_resenas').select('id', { count: 'exact', head: true }),
+]);
+
+const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+const { count: resenasRecientes } = await supabaseAdmin
+  .from('resenas')
+  .select('id', { count: 'exact', head: true })
+  .gte('created_at', sevenDaysAgo);
+
+// Reportes
+const { data: reportesRaw } = await supabaseAdmin
+  .from('reportes_resenas')
+  .select(`
+    id, motivo, created_at,
+    resena_id,
+    resenas (
+      id, comentario, calificacion_general, nombre_usuario, es_anonima,
+      created_at, user_id, dictado_id,
+      dictados (
+        id,
+        cursos ( identificador ),
+        materias ( nombre )
+      )
+    )
+  `)
+  .order('created_at', { ascending: false });
+
+// Group reports by resena
+const reportesGrouped: Record<number, any> = {};
+for (const r of reportesRaw || []) {
+  const rid = r.resena_id;
+  if (!reportesGrouped[rid]) {
+    reportesGrouped[rid] = {
+      resena: r.resenas,
+      reportes: [],
+      totalReportes: 0,
+    };
+  }
+  reportesGrouped[rid].reportes.push({ id: r.id, motivo: r.motivo, created_at: r.created_at });
+  reportesGrouped[rid].totalReportes++;
+}
+const reportesList = Object.values(reportesGrouped).sort((a: any, b: any) => b.totalReportes - a.totalReportes);
+
+// Profesores
+const { data: profesoresRaw } = await supabaseAdmin
+  .from('profesores')
+  .select(`
+    id, nombre_completo,
+    dictado_profesores (
+      dictado_id,
+      dictados (
+        id,
+        cursos ( identificador ),
+        materias ( nombre, nivel )
+      )
+    )
+  `)
+  .order('nombre_completo');
+const profesores = profesoresRaw || [];
+
+// Materias (para selector de dictados)
+const { data: materiasRaw } = await supabaseAdmin
+  .from('materias')
+  .select('id, nombre, nivel')
+  .order('nivel')
+  .order('nombre');
+const materias = materiasRaw || [];
+
+// Cursos (para selector de dictados)
+const { data: cursosRaw } = await supabaseAdmin
+  .from('cursos')
+  .select('id, identificador, anio_carrera, turno')
+  .order('anio_carrera')
+  .order('identificador');
+const cursos = cursosRaw || [];
+
+// Dictados con sus profesores
+const { data: dictadosRaw, error: dictadosError } = await supabaseAdmin
+  .from('dictados')
+  .select(`
+    id, curso_id, materia_id,
+    cursos ( id, identificador, turno ),
+    materias ( id, nombre, nivel ),
+    dictado_profesores (
+      id, profesor_id,
+      profesores ( id, nombre_completo )
+    )
+  `)
+  .order('materia_id');
+console.log('[Admin] dictados query result:', { count: dictadosRaw?.length, error: dictadosError?.message });
+const dictados = dictadosRaw || [];
+
+// Dictados list for assignment dropdowns
+const dictadosOptions = dictados
+  .map((d: any) => ({
+    id: d.id,
+    materiaNivel: d.materias?.nivel || 0,
+    materiaNombre: d.materias?.nombre || '',
+    cursoIdentificador: d.cursos?.identificador || '',
+    label: `${d.materias?.nombre || 'Materia'} — ${d.cursos?.identificador || 'Curso'} (Turno ${d.cursos?.turno || '?'})`,
+  }))
+  .sort((a: any, b: any) =>
+    (a.materiaNivel - b.materiaNivel) ||
+    a.materiaNombre.localeCompare(b.materiaNombre) ||
+    a.cursoIdentificador.localeCompare(b.cursoIdentificador)
+  );
+
+// Group dictados by materia for the UI
+const dictadosPorMateria: Record<number, { materia: any; dictados: any[] }> = {};
+for (const d of dictados) {
+  const mid = d.materia_id;
+  if (!dictadosPorMateria[mid]) {
+    dictadosPorMateria[mid] = { materia: d.materias, dictados: [] };
+  }
+  dictadosPorMateria[mid].dictados.push(d);
+}
+// Sort by nivel then name
+const materiasConDictados = Object.values(dictadosPorMateria)
+  .sort((a, b) => (a.materia?.nivel || 0) - (b.materia?.nivel || 0) || (a.materia?.nombre || '').localeCompare(b.materia?.nombre || ''));
+
+// Build a JSON-safe list of profesores for client-side use
+const profesoresJSON = JSON.stringify(profesores.map((p: any) => ({ id: p.id, nombre: p.nombre_completo })));
+
+// Color maps for dictados section
+const dictadoNivelColors: Record<number, string> = {
+  1: 'border-blue-500/40 bg-blue-500/5',
+  2: 'border-green-500/40 bg-green-500/5',
+  3: 'border-orange-500/40 bg-orange-500/5',
+  4: 'border-red-500/40 bg-red-500/5',
+  5: 'border-purple-500/40 bg-purple-500/5',
+};
+const dictadoNivelBadge: Record<number, string> = {
+  1: 'bg-blue-500',
+  2: 'bg-green-500',
+  3: 'bg-orange-500',
+  4: 'bg-red-500',
+  5: 'bg-purple-500',
+};
+
+// Últimas reseñas
+const { data: ultimasResenas } = await supabaseAdmin
+  .from('resenas')
+  .select(`
+    id, comentario, calificacion_general, nombre_usuario, es_anonima, created_at, user_id,
+    dictados (
+      cursos ( identificador ),
+      materias ( nombre )
+    )
+  `)
+  .order('created_at', { ascending: false })
+  .limit(20);
+
+function tiempoRelativo(fecha: string): string {
+  const diff = Date.now() - new Date(fecha).getTime();
+  const mins = Math.floor(diff / (1000 * 60));
+  if (mins < 1) return 'Ahora';
+  if (mins < 60) return `Hace ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `Hace ${hrs}h`;
+  const dias = Math.floor(hrs / 24);
+  if (dias === 1) return 'Ayer';
+  if (dias < 30) return `Hace ${dias} días`;
+  return `Hace ${Math.floor(dias / 30)} mes${Math.floor(dias / 30) > 1 ? 'es' : ''}`;
+}
+---
+
+<Layout title="Panel de Administración — UTN REP">
+  <header class="bg-stone-900 text-white relative">
+    <div class="absolute inset-0 hero-pattern dot-pattern opacity-60 overflow-hidden"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-6">
+      <HeaderNav user={user} />
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-heading font-extrabold tracking-tight">
+            Panel de Admin
+          </h1>
+          <p class="text-neutral-400 text-sm">Gestión de contenido y moderación</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tabs Navigation -->
+  <nav class="bg-[#242424] border-b border-neutral-700 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex gap-1 overflow-x-auto py-2">
+        <button data-tab="dashboard" class="admin-tab active px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+          Dashboard
+        </button>
+        <button data-tab="reportes" class="admin-tab px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all relative">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+          Reportes
+          {(totalReportes ?? 0) > 0 && (
+            <span class="ml-1.5 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{totalReportes}</span>
+          )}
+        </button>
+        <button data-tab="profesores" class="admin-tab px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          Profesores
+        </button>
+        <button data-tab="dictados" class="admin-tab px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          Dictados
+        </button>
+        <button data-tab="resenas" class="admin-tab px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+          Reseñas
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ═══════════ TAB: DASHBOARD ═══════════ -->
+    <section id="tab-dashboard" class="admin-panel">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5">
+          <p class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Materias</p>
+          <p class="text-3xl font-heading font-extrabold text-white mt-1">{totalMaterias}</p>
+        </div>
+        <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5">
+          <p class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Cursos</p>
+          <p class="text-3xl font-heading font-extrabold text-white mt-1">{totalCursos}</p>
+        </div>
+        <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5">
+          <p class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Profesores</p>
+          <p class="text-3xl font-heading font-extrabold text-white mt-1">{totalProfesores}</p>
+        </div>
+        <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5">
+          <p class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Dictados</p>
+          <p class="text-3xl font-heading font-extrabold text-white mt-1">{totalDictados}</p>
+        </div>
+        <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5">
+          <p class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Reseñas</p>
+          <p class="text-3xl font-heading font-extrabold text-amber-400 mt-1">{totalResenas}</p>
+        </div>
+        <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5">
+          <p class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Últimos 7 días</p>
+          <p class="text-3xl font-heading font-extrabold text-green-400 mt-1">{resenasRecientes}</p>
+        </div>
+        <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5 col-span-2 sm:col-span-1">
+          <p class="text-neutral-500 text-xs font-semibold uppercase tracking-wider">Reportes Pendientes</p>
+          <p class={`text-3xl font-heading font-extrabold mt-1 ${(totalReportes ?? 0) > 0 ? 'text-red-400' : 'text-neutral-400'}`}>{totalReportes}</p>
+        </div>
+      </div>
+
+      <!-- Últimas reseñas -->
+      <h2 class="text-lg font-heading font-bold text-white mb-4">Últimas Reseñas</h2>
+      <div class="space-y-3">
+        {(ultimasResenas || []).map((r: any) => (
+          <div class="bg-[#242424] rounded-xl border border-neutral-700/60 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 text-sm mb-1">
+                <span class="text-yellow-400">{'★'.repeat(r.calificacion_general)}{'☆'.repeat(5 - r.calificacion_general)}</span>
+                <span class="text-neutral-500">·</span>
+                <span class="text-neutral-400 font-medium">{r.es_anonima ? 'Anónimo' : r.nombre_usuario}</span>
+                <span class="text-neutral-500">·</span>
+                <span class="text-neutral-500 text-xs">{tiempoRelativo(r.created_at)}</span>
+              </div>
+              <p class="text-sm text-neutral-300 truncate">{r.comentario}</p>
+              <p class="text-xs text-neutral-500 mt-1">
+                {r.dictados?.materias?.nombre} — {r.dictados?.cursos?.identificador}
+              </p>
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+              <a href={`/dictado/${r.dictados?.id || ''}`} class="text-xs bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-3 py-1.5 rounded-lg transition-colors">
+                Ver dictado
+              </a>
+              <button onclick={`adminDeleteResena(${r.id})`} class="text-xs bg-red-900/30 hover:bg-red-900/50 text-red-400 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- ═══════════ TAB: REPORTES ═══════════ -->
+    <section id="tab-reportes" class="admin-panel hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-heading font-bold text-white">Reseñas Reportadas</h2>
+        <span class="text-sm text-neutral-500">{reportesList.length} reseña{reportesList.length !== 1 ? 's' : ''} con reportes</span>
+      </div>
+
+      {reportesList.length === 0 ? (
+        <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-12 text-center">
+          <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <p class="text-neutral-400 font-medium">No hay reseñas reportadas</p>
+          <p class="text-neutral-500 text-sm mt-1">Todo limpio por ahora</p>
+        </div>
+      ) : (
+        <div class="space-y-4" id="reportes-list">
+          {reportesList.map((item: any) => (
+            <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5" data-resena-id={item.resena?.id}>
+              <div class="flex items-start justify-between gap-4 mb-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="bg-red-500/20 text-red-400 text-xs font-bold px-2 py-0.5 rounded-full">
+                      {item.totalReportes} reporte{item.totalReportes > 1 ? 's' : ''}
+                    </span>
+                    <span class="text-yellow-400 text-sm">{'★'.repeat(item.resena?.calificacion_general || 0)}</span>
+                    <span class="text-neutral-500 text-xs">·</span>
+                    <span class="text-neutral-400 text-sm">
+                      {item.resena?.es_anonima ? 'Anónimo' : item.resena?.nombre_usuario}
+                    </span>
+                  </div>
+                  <p class="text-sm text-neutral-300 mb-2">{item.resena?.comentario}</p>
+                  <p class="text-xs text-neutral-500">
+                    {item.resena?.dictados?.materias?.nombre} — {item.resena?.dictados?.cursos?.identificador}
+                    <span class="ml-2">· ID: {item.resena?.id}</span>
+                    <span class="ml-2">· User: <code class="bg-neutral-800 px-1 rounded text-[10px]">{item.resena?.user_id?.slice(0, 8)}...</code></span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Motivos de los reportes -->
+              <div class="bg-neutral-800/50 rounded-xl p-3 mb-3">
+                <p class="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Motivos reportados</p>
+                <div class="space-y-1">
+                  {item.reportes.map((rep: any) => (
+                    <div class="flex items-center gap-2 text-sm">
+                      <span class="text-red-400">•</span>
+                      <span class="text-neutral-300">{rep.motivo || '(sin motivo)'}</span>
+                      <span class="text-neutral-600 text-xs ml-auto">{tiempoRelativo(rep.created_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <!-- Acciones -->
+              <div class="flex gap-2">
+                <button
+                  onclick={`dismissReportes(${item.resena?.id})`}
+                  class="text-sm bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                >
+                  Descartar reportes
+                </button>
+                <button
+                  onclick={`deleteResenaReporte(${item.resena?.id})`}
+                  class="text-sm bg-red-900/40 hover:bg-red-900/60 text-red-400 px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                >
+                  Eliminar reseña
+                </button>
+                <a
+                  href={`/dictado/${item.resena?.dictados?.id || ''}`}
+                  class="text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-400 px-4 py-2 rounded-xl transition-colors ml-auto"
+                >
+                  Ver en contexto →
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+
+    <!-- ═══════════ TAB: PROFESORES ═══════════ -->
+    <section id="tab-profesores" class="admin-panel hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-heading font-bold text-white">Gestión de Profesores</h2>
+        <button onclick="showAddProfesor()" class="text-sm bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-xl transition-colors cursor-pointer">
+          + Agregar Profesor
+        </button>
+      </div>
+
+      <!-- Formulario agregar (oculto por defecto) -->
+      <div id="add-profesor-form" class="hidden bg-[#242424] rounded-2xl border border-amber-500/30 p-5 mb-6">
+        <h3 class="font-heading font-bold text-white mb-3">Nuevo Profesor</h3>
+        <div class="flex gap-3">
+          <input
+            type="text"
+            id="new-profesor-nombre"
+            placeholder="Nombre completo del profesor"
+            class="flex-1 px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition-all placeholder:text-neutral-600"
+          />
+          <button onclick="addProfesor()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer text-sm">
+            Agregar
+          </button>
+          <button onclick="hideAddProfesor()" class="bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-4 py-2.5 rounded-xl transition-colors cursor-pointer text-sm">
+            Cancelar
+          </button>
+        </div>
+        <p id="add-profesor-msg" class="hidden text-sm mt-2"></p>
+      </div>
+
+      <!-- Buscador de profesores -->
+      <div class="mb-4">
+        <input
+          type="text"
+          id="search-profesores"
+          placeholder="Buscar profesor..."
+          class="w-full max-w-md px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 placeholder:text-neutral-600"
+        />
+      </div>
+
+      <div class="space-y-3" id="profesores-list">
+        {profesores.map((p: any) => {
+          const asignacionesDetalle = (p.dictado_profesores || [])
+            .map((dp: any) => ({
+              dictadoId: dp.dictado_id,
+              label: `${dp.dictados?.materias?.nombre || '?'} — ${dp.dictados?.cursos?.identificador || '?'}`,
+            }))
+            .filter((a: any) => !!a.dictadoId);
+          const asignaciones = asignacionesDetalle.map((a: any) => a.label);
+          const assignedIds = new Set(asignacionesDetalle.map((a: any) => a.dictadoId));
+          const availableDictados = dictadosOptions.filter((d: any) => !assignedIds.has(d.id));
+          return (
+            <div class="bg-[#242424] rounded-xl border border-neutral-700/60 p-4 profesor-item" data-profesor-id={p.id} data-nombre={p.nombre_completo.toLowerCase()}>
+              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                  <div class="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center text-amber-400 font-bold text-sm flex-shrink-0">
+                    {p.nombre_completo.charAt(0)}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-semibold text-neutral-200 profesor-nombre">{p.nombre_completo}</p>
+                    <p class="text-xs text-neutral-500 truncate">
+                      {asignaciones.length > 0 ? asignaciones.join(' · ') : 'Sin asignaciones'}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex gap-2 flex-shrink-0">
+                  <button
+                    onclick={`editProfesor(${p.id}, '${p.nombre_completo.replace(/'/g, "\\'")}')`}
+                    class="text-xs bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onclick={`deleteProfesor(${p.id}, '${p.nombre_completo.replace(/'/g, "\\'")}')`}
+                    class="text-xs bg-red-900/30 hover:bg-red-900/50 text-red-400 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
+                <div class="flex gap-2">
+                  <select
+                    class="profesor-assign-select flex-1 px-3 py-2 rounded-lg border border-neutral-700/60 bg-[#1a1a1a] text-neutral-100 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                    data-profesor-id={p.id}
+                    disabled={availableDictados.length === 0}
+                  >
+                    <option value="">{availableDictados.length > 0 ? 'Asignar a dictado...' : 'No hay dictados disponibles'}</option>
+                    {availableDictados.map((d: any) => (
+                      <option value={d.id}>{d.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    onclick={`assignProfesorFromList(${p.id})`}
+                    class="text-xs bg-green-900/40 hover:bg-green-900/60 text-green-400 px-3 py-2 rounded-lg transition-colors cursor-pointer font-semibold"
+                    disabled={availableDictados.length === 0}
+                  >
+                    Asignar
+                  </button>
+                </div>
+
+                <div class="flex gap-2">
+                  <select
+                    class="profesor-remove-select flex-1 px-3 py-2 rounded-lg border border-neutral-700/60 bg-[#1a1a1a] text-neutral-100 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                    data-profesor-id={p.id}
+                    disabled={asignacionesDetalle.length === 0}
+                  >
+                    <option value="">{asignacionesDetalle.length > 0 ? 'Quitar de dictado...' : 'Sin asignaciones'}</option>
+                    {asignacionesDetalle.map((a: any) => (
+                      <option value={a.dictadoId}>{a.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    onclick={`removeProfesorFromList(${p.id})`}
+                    class="text-xs bg-red-900/30 hover:bg-red-900/50 text-red-400 px-3 py-2 rounded-lg transition-colors cursor-pointer font-semibold"
+                    disabled={asignacionesDetalle.length === 0}
+                  >
+                    Quitar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+
+    <!-- ═══════════ TAB: DICTADOS ═══════════ -->
+    <section id="tab-dictados" class="admin-panel hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <h2 class="text-lg font-heading font-bold text-white">Gestión de Dictados</h2>
+          <p class="text-sm text-neutral-500">{dictados.length} dictados en {materiasConDictados.length} materias</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="showCreateDictado()" class="text-sm bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-xl transition-colors cursor-pointer">
+            + Crear Dictado
+          </button>
+          <button onclick="showCreateMateria()" class="text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-4 py-2 rounded-xl transition-colors cursor-pointer">
+            + Crear Materia
+          </button>
+          <button onclick="showCreateCurso()" class="text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold px-4 py-2 rounded-xl transition-colors cursor-pointer">
+            + Crear Curso
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario crear dictado -->
+      <div id="create-dictado-form" class="hidden bg-[#242424] rounded-2xl border border-amber-500/30 p-5 mb-6">
+        <h3 class="font-heading font-bold text-white mb-3">Nuevo Dictado</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-semibold text-neutral-400 mb-1">Materia</label>
+            <select id="new-dictado-materia" class="w-full px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+              <option value="">Seleccionar materia...</option>
+              {materias.map((m: any) => (
+                <option value={m.id}>{m.nivel}° — {m.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-neutral-400 mb-1">Curso</label>
+            <select id="new-dictado-curso" class="w-full px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+              <option value="">Seleccionar curso...</option>
+              {cursos.map((c: any) => (
+                <option value={c.id}>{c.identificador} (Turno {c.turno})</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="createDictado()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer text-sm">
+            Crear
+          </button>
+          <button onclick="hideCreateDictado()" class="bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-4 py-2.5 rounded-xl transition-colors cursor-pointer text-sm">
+            Cancelar
+          </button>
+        </div>
+        <p id="create-dictado-msg" class="hidden text-sm mt-2"></p>
+      </div>
+
+      <!-- Formulario crear materia -->
+      <div id="create-materia-form" class="hidden bg-[#242424] rounded-2xl border border-amber-500/30 p-5 mb-6">
+        <h3 class="font-heading font-bold text-white mb-3">Nueva Materia</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-semibold text-neutral-400 mb-1">Nombre</label>
+            <input
+              type="text"
+              id="new-materia-nombre"
+              placeholder="Experiencia de Usuarios"
+              class="w-full px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-neutral-400 mb-1">Nivel</label>
+            <select id="new-materia-nivel" class="w-full px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+              <option value="">Seleccionar nivel...</option>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option value={n}>{n}º Año</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="createMateria()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer text-sm">
+            Crear
+          </button>
+          <button onclick="hideCreateMateria()" class="bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-4 py-2.5 rounded-xl transition-colors cursor-pointer text-sm">
+            Cancelar
+          </button>
+        </div>
+        <p id="create-materia-msg" class="hidden text-sm mt-2"></p>
+      </div>
+
+      <!-- Formulario crear curso -->
+      <div id="create-curso-form" class="hidden bg-[#242424] rounded-2xl border border-amber-500/30 p-5 mb-6">
+        <h3 class="font-heading font-bold text-white mb-3">Nuevo Curso</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-semibold text-neutral-400 mb-1">Identificador</label>
+            <input
+              type="text"
+              id="new-curso-identificador"
+              placeholder="4K1A"
+              class="w-full px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-neutral-400 mb-1">Turno</label>
+            <select id="new-curso-turno" class="w-full px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+              <option value="">Seleccionar turno...</option>
+              <option value="MAÑANA">Mañana</option>
+              <option value="TARDE">Tarde</option>
+              <option value="NOCHE">Noche</option>
+              <option value="INDEFINIDO">Indefinido</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-neutral-400 mb-1">Año</label>
+            <select id="new-curso-anio" class="w-full px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+              <option value="">Auto (por identificador)</option>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option value={n}>{n}º Año</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="createCurso()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer text-sm">
+            Crear
+          </button>
+          <button onclick="hideCreateCurso()" class="bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-4 py-2.5 rounded-xl transition-colors cursor-pointer text-sm">
+            Cancelar
+          </button>
+        </div>
+        <p id="create-curso-msg" class="hidden text-sm mt-2"></p>
+      </div>
+
+      <!-- Filtro por materia -->
+      <div class="flex gap-3 mb-5">
+        <select id="filter-materia" class="flex-1 max-w-md px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50">
+          <option value="">Todas las materias ({materiasConDictados.length})</option>
+          {materiasConDictados.map((g: any) => (
+            <option value={g.materia?.id}>{g.materia?.nivel}° — {g.materia?.nombre} ({g.dictados.length} dictados)</option>
+          ))}
+        </select>
+        <input
+          type="text"
+          id="search-dictados"
+          placeholder="Buscar curso..."
+          class="max-w-[200px] px-4 py-2.5 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 placeholder:text-neutral-600"
+        />
+      </div>
+
+      <!-- Embed profesores data for client-side -->
+      <script id="profesores-data" type="application/json" set:html={profesoresJSON}></script>
+
+      <!-- Dictados grouped by materia -->
+      <div class="space-y-6" id="dictados-list">
+        {materiasConDictados.length === 0 && (
+          <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-12 text-center">
+            <p class="text-neutral-400 font-medium">No hay dictados cargados</p>
+            <p class="text-neutral-500 text-sm mt-1">Creá uno con el botón de arriba</p>
+          </div>
+        )}
+        {materiasConDictados.map((group: any) => {
+          const nivel = group.materia?.nivel || 1;
+          const colorClass = dictadoNivelColors[nivel] || dictadoNivelColors[1];
+          const badgeClass = dictadoNivelBadge[nivel] || dictadoNivelBadge[1];
+
+          return (
+            <div class={`rounded-2xl border ${colorClass} materia-group`} data-materia-id={group.materia?.id}>
+              <!-- Materia header (collapsible) -->
+              <button
+                class="w-full flex items-center justify-between p-4 cursor-pointer hover:bg-white/[0.02] transition-colors rounded-t-2xl materia-toggle"
+                data-materia-id={group.materia?.id}
+              >
+                <div class="flex items-center gap-3">
+                  <span class={`${badgeClass} text-white text-xs font-bold px-2 py-0.5 rounded-md`}>
+                    {nivel}°
+                  </span>
+                  <span class="font-heading font-bold text-white text-base">{group.materia?.nombre}</span>
+                  <span class="text-xs text-neutral-500 bg-neutral-800 px-2 py-0.5 rounded-full">
+                    {group.dictados.length} dictado{group.dictados.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <svg class="w-5 h-5 text-neutral-500 transition-transform materia-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+
+              <!-- Dictados list inside this materia -->
+              <div class="materia-content hidden px-4 pb-4 space-y-3">
+                {group.dictados.map((d: any) => {
+                  const profesoresAsignados = (d.dictado_profesores || [])
+                    .map((dp: any) => dp.profesores)
+                    .filter(Boolean);
+                  const profIds = profesoresAsignados.map((p: any) => p.id);
+                  return (
+                    <div class="bg-[#1a1a1a] rounded-xl border border-neutral-700/40 p-4 dictado-card" data-dictado-id={d.id} data-curso-nombre={(d.cursos?.identificador || '').toLowerCase()}>
+                      <!-- Dictado header -->
+                      <div class="flex items-center justify-between gap-3 mb-3">
+                        <div class="flex items-center gap-2">
+                          <span class="text-base font-heading font-bold text-white">{d.cursos?.identificador}</span>
+                          <span class="text-xs bg-neutral-700/80 text-neutral-400 px-2 py-0.5 rounded-md">
+                            Turno {d.cursos?.turno}
+                          </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <a href={`/dictado/${d.id}`} class="text-xs text-neutral-500 hover:text-neutral-300 transition-colors" title="Ver página">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
+                          </a>
+                          <button
+                            onclick={`deleteDictado(${d.id}, '${d.cursos?.identificador}')`}
+                            class="text-xs text-red-400/60 hover:text-red-400 transition-colors cursor-pointer"
+                            title="Eliminar dictado"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Profesores table -->
+                      <div class="space-y-2">
+                        <p class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                          Equipo docente
+                          {profesoresAsignados.length > 0 && (
+                            <span class="normal-case font-normal ml-1">({profesoresAsignados.length})</span>
+                          )}
+                        </p>
+
+                        {profesoresAsignados.length > 0 ? (
+                          <div class="space-y-1.5">
+                            {profesoresAsignados.map((prof: any) => (
+                              <div class="flex items-center justify-between gap-2 bg-neutral-800/60 rounded-lg px-3 py-2 group">
+                                <div class="flex items-center gap-2">
+                                  <div class={`w-7 h-7 ${badgeClass} rounded-full flex items-center justify-center text-white font-bold text-xs`}>
+                                    {prof.nombre_completo.charAt(0)}
+                                  </div>
+                                  <span class="text-sm text-neutral-200">{prof.nombre_completo}</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                  <button
+                                    onclick={`swapProfesor(${d.id}, ${prof.id}, '${prof.nombre_completo.replace(/'/g, "\\'")}')`}
+                                    class="text-xs text-amber-400/60 hover:text-amber-400 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                                    title="Cambiar por otro profesor"
+                                  >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onclick={`removeProfesorFromDictado(${d.id}, ${prof.id}, '${prof.nombre_completo.replace(/'/g, "\\'")}')`}
+                                    class="text-xs text-red-400/60 hover:text-red-400 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                                    title="Quitar profesor"
+                                  >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p class="text-sm text-neutral-500 italic bg-neutral-800/30 rounded-lg px-3 py-2">Sin profesores asignados</p>
+                        )}
+
+                        <!-- Agregar profesor -->
+                        <div class="flex gap-2 pt-1">
+                          <select class="assign-profesor-select flex-1 px-3 py-1.5 rounded-lg border border-neutral-700/60 bg-[#242424] text-neutral-100 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400/50" data-dictado-id={d.id}>
+                            <option value="">+ Agregar profesor al curso...</option>
+                            {profesores.filter((p: any) => !profIds.includes(p.id)).map((p: any) => (
+                              <option value={p.id}>{p.nombre_completo}</option>
+                            ))}
+                          </select>
+                          <button
+                            onclick={`assignProfesorToDictado(${d.id})`}
+                            class="text-xs bg-green-900/40 hover:bg-green-900/60 text-green-400 px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-semibold"
+                          >
+                            Agregar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+
+    <!-- ═══════════ TAB: RESEÑAS ═══════════ -->
+    <section id="tab-resenas" class="admin-panel hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-heading font-bold text-white">Últimas Reseñas</h2>
+        <span class="text-sm text-neutral-500">Total: {totalResenas}</span>
+      </div>
+
+      <div class="space-y-3">
+        {(ultimasResenas || []).map((r: any) => (
+          <div class="bg-[#242424] rounded-xl border border-neutral-700/60 p-4" data-resena-id={r.id}>
+            <div class="flex items-start gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 text-sm mb-1">
+                  <span class="text-yellow-400">{'★'.repeat(r.calificacion_general)}{'☆'.repeat(5 - r.calificacion_general)}</span>
+                  <span class="text-neutral-500">·</span>
+                  <span class="text-neutral-400 font-medium">{r.es_anonima ? 'Anónimo' : r.nombre_usuario}</span>
+                  {r.es_anonima && r.nombre_usuario && (
+                    <span class="text-neutral-600 text-xs">(real: {r.nombre_usuario})</span>
+                  )}
+                  <span class="text-neutral-500">·</span>
+                  <span class="text-neutral-500 text-xs">{tiempoRelativo(r.created_at)}</span>
+                </div>
+                <p class="text-sm text-neutral-300">{r.comentario}</p>
+                <p class="text-xs text-neutral-500 mt-1">
+                  {r.dictados?.materias?.nombre} — {r.dictados?.cursos?.identificador}
+                  <span class="ml-2">· User: <code class="bg-neutral-800 px-1 rounded text-[10px]">{r.user_id?.slice(0, 8)}...</code></span>
+                </p>
+              </div>
+              <div class="flex flex-col gap-1 flex-shrink-0">
+                <button
+                  onclick={`adminDeleteResena(${r.id})`}
+                  class="text-xs bg-red-900/30 hover:bg-red-900/50 text-red-400 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast container -->
+  <div id="admin-toast" class="fixed bottom-6 right-6 z-50 hidden">
+    <div class="bg-[#242424] border border-neutral-700 rounded-xl shadow-2xl px-5 py-3 flex items-center gap-3 min-w-[280px]">
+      <span id="toast-icon"></span>
+      <span id="toast-msg" class="text-sm text-neutral-200"></span>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .admin-tab {
+    color: #737373;
+    background: transparent;
+  }
+  .admin-tab:hover {
+    color: #d4d4d4;
+    background: rgba(255,255,255,0.05);
+  }
+  .admin-tab.active {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+  }
+</style>
+
+<script define:vars={{ csrfToken, csrfHeader: ADMIN_CSRF_HEADER }}>
+  const ADMIN_CSRF_TOKEN = csrfToken;
+  const ADMIN_CSRF_HEADER = csrfHeader;
+
+  // ═══════════ TAB SWITCHING ═══════════
+  document.querySelectorAll('.admin-tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      // Update active tab
+      document.querySelectorAll('.admin-tab').forEach((t) => t.classList.remove('active'));
+      btn.classList.add('active');
+      // Show corresponding panel
+      document.querySelectorAll('.admin-panel').forEach((p) => p.classList.add('hidden'));
+      if (tab) {
+        document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
+      }
+    });
+  });
+
+  // ═══════════ TOAST NOTIFICATIONS ═══════════
+  function showToast(msg, type = 'success') {
+    const toast = document.getElementById('admin-toast');
+    const icon = document.getElementById('toast-icon');
+    const msgEl = document.getElementById('toast-msg');
+    if (!toast || !icon || !msgEl) return;
+
+    icon.innerHTML = type === 'success'
+      ? '<svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>'
+      : '<svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>';
+    msgEl.textContent = msg;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 4000);
+  }
+
+  // ═══════════ HELPER: API CALL ═══════════
+  async function adminFetch(url, options = {}) {
+    const headers = new Headers(options.headers || {});
+    headers.set('Content-Type', 'application/json');
+    headers.set(ADMIN_CSRF_HEADER, ADMIN_CSRF_TOKEN);
+    const res = await fetch(url, {
+      ...options,
+      credentials: 'same-origin',
+      headers,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error desconocido');
+    return data;
+  }
+
+  // ═══════════ REPORTES ═══════════
+  window.dismissReportes = async (resenaId) => {
+    if (!confirm('¿Descartar todos los reportes de esta reseña?')) return;
+    try {
+      await adminFetch('/api/admin/reportes', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'dismiss', resena_id: resenaId }),
+      });
+      // Remove from DOM
+      const card = document.querySelector(`[data-resena-id="${resenaId}"]`);
+      card?.remove();
+      showToast('Reportes descartados');
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.deleteResenaReporte = async (resenaId) => {
+    if (!confirm('¿Eliminar esta reseña y todos sus reportes? Esta acción es irreversible.')) return;
+    try {
+      await adminFetch('/api/admin/reportes', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete_resena', resena_id: resenaId }),
+      });
+      const card = document.querySelector(`[data-resena-id="${resenaId}"]`);
+      card?.remove();
+      showToast('Reseña eliminada');
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  // ═══════════ PROFESORES ═══════════
+  window.showAddProfesor = () => {
+    const form = document.getElementById('add-profesor-form');
+    const input = document.getElementById('new-profesor-nombre');
+    if (!form || !input) return;
+    form.classList.remove('hidden');
+    input.focus();
+  };
+
+  window.hideAddProfesor = () => {
+    const form = document.getElementById('add-profesor-form');
+    const input = document.getElementById('new-profesor-nombre');
+    if (!form || !input) return;
+    form.classList.add('hidden');
+    input.value = '';
+  };
+
+  window.addProfesor = async () => {
+    const input = document.getElementById('new-profesor-nombre');
+    const msg = document.getElementById('add-profesor-msg');
+    if (!input || !msg) return;
+    const nombre = input.value.trim();
+    if (!nombre || nombre.length < 2) {
+      msg.className = 'text-sm mt-2 text-red-400';
+      msg.textContent = 'El nombre debe tener al menos 2 caracteres.';
+      msg.classList.remove('hidden');
+      return;
+    }
+    try {
+      await adminFetch('/api/admin/profesores', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'create', nombre_completo: nombre }),
+      });
+      showToast(`Profesor "${nombre}" creado`);
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.editProfesor = async (id, currentName) => {
+    const nuevoNombre = prompt('Nuevo nombre para el profesor:', currentName);
+    if (!nuevoNombre || nuevoNombre.trim() === currentName) return;
+    try {
+      await adminFetch('/api/admin/profesores', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'update', id, nombre_completo: nuevoNombre.trim() }),
+      });
+      showToast('Profesor actualizado');
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.deleteProfesor = async (id, nombre) => {
+    if (!confirm(`¿Eliminar al profesor "${nombre}"? Se quitará de todos los dictados.`)) return;
+    try {
+      await adminFetch('/api/admin/profesores', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete', id }),
+      });
+      const card = document.querySelector(`[data-profesor-id="${id}"]`);
+      card?.remove();
+      showToast(`Profesor "${nombre}" eliminado`);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.assignProfesorFromList = async (profesorId) => {
+    const select = document.querySelector(`.profesor-assign-select[data-profesor-id="${profesorId}"]`);
+    const dictadoId = parseInt(select?.value || '', 10);
+    if (!dictadoId) {
+      showToast('Seleccioná un dictado', 'error');
+      return;
+    }
+
+    try {
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'assign_profesor', dictado_id: dictadoId, profesor_id: profesorId }),
+      });
+      showToast('Profesor asignado');
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.removeProfesorFromList = async (profesorId) => {
+    const select = document.querySelector(`.profesor-remove-select[data-profesor-id="${profesorId}"]`);
+    const dictadoId = parseInt(select?.value || '', 10);
+    if (!dictadoId) {
+      showToast('Seleccioná un dictado', 'error');
+      return;
+    }
+    if (!confirm('¿Quitar este profesor del dictado seleccionado?')) return;
+
+    try {
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'remove_profesor', dictado_id: dictadoId, profesor_id: profesorId }),
+      });
+      showToast('Profesor removido');
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  // Search profesores
+  const searchInput = document.getElementById('search-profesores');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.toLowerCase().trim();
+      document.querySelectorAll('.profesor-item').forEach((el) => {
+        const nombre = el.dataset.nombre || '';
+        el.style.display = nombre.includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  // ═══════════ DICTADOS ═══════════
+  window.showCreateDictado = () => {
+    document.getElementById('create-dictado-form')?.classList.remove('hidden');
+  };
+
+  window.hideCreateDictado = () => {
+    document.getElementById('create-dictado-form')?.classList.add('hidden');
+  };
+
+  window.showCreateMateria = () => {
+    document.getElementById('create-materia-form')?.classList.remove('hidden');
+    document.getElementById('new-materia-nombre')?.focus();
+  };
+
+  window.hideCreateMateria = () => {
+    document.getElementById('create-materia-form')?.classList.add('hidden');
+    const nombre = document.getElementById('new-materia-nombre');
+    const nivel = document.getElementById('new-materia-nivel');
+    if (nombre) nombre.value = '';
+    if (nivel) nivel.value = '';
+  };
+
+  window.createMateria = async () => {
+    const nombreInput = document.getElementById('new-materia-nombre');
+    const nivelSelect = document.getElementById('new-materia-nivel');
+    const msg = document.getElementById('create-materia-msg');
+    if (!nombreInput || !nivelSelect || !msg) return;
+
+    const nombre = nombreInput.value.trim();
+    const nivel = parseInt(nivelSelect.value, 10);
+
+    if (!nombre || nombre.length < 2) {
+      msg.className = 'text-sm mt-2 text-red-400';
+      msg.textContent = 'Ingresá un nombre válido.';
+      msg.classList.remove('hidden');
+      return;
+    }
+    if (!nivel) {
+      msg.className = 'text-sm mt-2 text-red-400';
+      msg.textContent = 'Seleccioná un nivel.';
+      msg.classList.remove('hidden');
+      return;
+    }
+
+    try {
+      await adminFetch('/api/admin/materias', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'create', nombre, nivel }),
+      });
+      showToast('Materia creada');
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.showCreateCurso = () => {
+    document.getElementById('create-curso-form')?.classList.remove('hidden');
+    document.getElementById('new-curso-identificador')?.focus();
+  };
+
+  window.hideCreateCurso = () => {
+    document.getElementById('create-curso-form')?.classList.add('hidden');
+    const ident = document.getElementById('new-curso-identificador');
+    const turno = document.getElementById('new-curso-turno');
+    const anio = document.getElementById('new-curso-anio');
+    if (ident) ident.value = '';
+    if (turno) turno.value = '';
+    if (anio) anio.value = '';
+  };
+
+  window.createCurso = async () => {
+    const identificadorInput = document.getElementById('new-curso-identificador');
+    const turnoSelect = document.getElementById('new-curso-turno');
+    const anioSelect = document.getElementById('new-curso-anio');
+    const msg = document.getElementById('create-curso-msg');
+    if (!identificadorInput || !turnoSelect || !anioSelect || !msg) return;
+
+    const identificador = identificadorInput.value.trim();
+    const turno = turnoSelect.value;
+    const anio = anioSelect.value;
+
+    if (!identificador || identificador.length < 2) {
+      msg.className = 'text-sm mt-2 text-red-400';
+      msg.textContent = 'Ingresá un identificador válido.';
+      msg.classList.remove('hidden');
+      return;
+    }
+    if (!turno) {
+      msg.className = 'text-sm mt-2 text-red-400';
+      msg.textContent = 'Seleccioná un turno.';
+      msg.classList.remove('hidden');
+      return;
+    }
+
+    try {
+      await adminFetch('/api/admin/cursos', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'create',
+          identificador,
+          turno,
+          anio_carrera: anio || null,
+        }),
+      });
+      showToast('Curso creado');
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.createDictado = async () => {
+    const materiaSelect = document.getElementById('new-dictado-materia');
+    const cursoSelect = document.getElementById('new-dictado-curso');
+    const msg = document.getElementById('create-dictado-msg');
+    if (!materiaSelect || !cursoSelect || !msg) return;
+
+    const materiaId = parseInt(materiaSelect.value, 10);
+    const cursoId = parseInt(cursoSelect.value, 10);
+
+    if (!materiaId || !cursoId) {
+      msg.className = 'text-sm mt-2 text-red-400';
+      msg.textContent = 'Seleccioná materia y curso.';
+      msg.classList.remove('hidden');
+      return;
+    }
+
+    try {
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'create', materia_id: materiaId, curso_id: cursoId }),
+      });
+      showToast('Dictado creado');
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  // Autocompletar año de carrera desde el identificador
+  const cursoIdentInput = document.getElementById('new-curso-identificador');
+  const cursoAnioSelect = document.getElementById('new-curso-anio');
+  cursoIdentInput?.addEventListener('input', () => {
+    if (!cursoAnioSelect || cursoAnioSelect.value) return;
+    const match = cursoIdentInput.value.match(/\d/);
+    if (match) cursoAnioSelect.value = match[0];
+  });
+
+  window.deleteDictado = async (id, nombre) => {
+    if (!confirm(`¿Eliminar el dictado "${nombre}"? Se eliminarán las asignaciones de profesores.`)) return;
+    try {
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete', id }),
+      });
+      const card = document.querySelector(`[data-dictado-id="${id}"]`);
+      card?.remove();
+      showToast('Dictado eliminado');
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.assignProfesorToDictado = async (dictadoId) => {
+    const select = document.querySelector(`.assign-profesor-select[data-dictado-id="${dictadoId}"]`);
+    const profesorId = parseInt(select?.value || '', 10);
+    if (!profesorId) {
+      showToast('Seleccioná un profesor', 'error');
+      return;
+    }
+
+    try {
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'assign_profesor', dictado_id: dictadoId, profesor_id: profesorId }),
+      });
+      showToast('Profesor asignado');
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.removeProfesorFromDictado = async (dictadoId, profesorId, nombre) => {
+    if (!confirm(`¿Quitar a "${nombre}" de este dictado?`)) return;
+    try {
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'remove_profesor', dictado_id: dictadoId, profesor_id: profesorId }),
+      });
+      showToast(`"${nombre}" removido del dictado`);
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  // Filter dictados by materia
+  const filterMateria = document.getElementById('filter-materia');
+  filterMateria?.addEventListener('change', () => {
+    const val = filterMateria.value;
+    document.querySelectorAll('.materia-group').forEach((el) => {
+      const matId = el.dataset.materiaId;
+      el.style.display = !val || matId === val ? '' : 'none';
+      // Auto-expand the selected materia
+      if (val && matId === val) {
+        const content = el.querySelector('.materia-content');
+        const chevron = el.querySelector('.materia-chevron');
+        content?.classList.remove('hidden');
+        chevron?.classList.add('rotate-180');
+      }
+    });
+  });
+
+  // Search dictados by course name
+  const searchDictados = document.getElementById('search-dictados');
+  searchDictados?.addEventListener('input', () => {
+    const q = searchDictados.value.toLowerCase().trim();
+    if (!q) {
+      // Show all groups, hide all content
+      document.querySelectorAll('.materia-group').forEach((el) => { el.style.display = ''; });
+      document.querySelectorAll('.dictado-card').forEach((el) => { el.style.display = ''; });
+      return;
+    }
+    document.querySelectorAll('.materia-group').forEach((group) => {
+      let hasMatch = false;
+      group.querySelectorAll('.dictado-card').forEach((card) => {
+        const curso = card.dataset.cursoNombre || '';
+        const match = curso.includes(q);
+        card.style.display = match ? '' : 'none';
+        if (match) hasMatch = true;
+      });
+      group.style.display = hasMatch ? '' : 'none';
+      if (hasMatch) {
+        group.querySelector('.materia-content')?.classList.remove('hidden');
+        group.querySelector('.materia-chevron')?.classList.add('rotate-180');
+      }
+    });
+  });
+
+  // Materia group toggle (collapse/expand)
+  document.querySelectorAll('.materia-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const group = btn.closest('.materia-group');
+      if (!group) return;
+      const content = group.querySelector('.materia-content');
+      const chevron = btn.querySelector('.materia-chevron');
+      content?.classList.toggle('hidden');
+      chevron?.classList.toggle('rotate-180');
+    });
+  });
+
+  // Swap professor: remove old, then prompt to pick new one
+  window.swapProfesor = async (dictadoId, oldProfesorId, oldNombre) => {
+    // Load profesores list from embedded JSON
+    let allProfesores = [];
+    try {
+      const dataEl = document.getElementById('profesores-data');
+      if (dataEl) allProfesores = JSON.parse(dataEl.textContent || '[]');
+    } catch {
+      // ignore
+    }
+
+    // Build options excluding the current professor
+    const options = allProfesores
+      .filter((p) => p.id !== oldProfesorId)
+      .map((p) => p.nombre)
+      .join('\n');
+
+    const newNombre = prompt(
+      `Cambiar a "${oldNombre}" por otro profesor.\n\nEscribí el nombre exacto del nuevo profesor:\n\n${options}`
+    );
+    if (!newNombre) return;
+
+    const newProf = allProfesores.find((p) => p.nombre.toLowerCase() === newNombre.trim().toLowerCase());
+    if (!newProf) {
+      showToast('Profesor no encontrado. Verificá que el nombre sea exacto.', 'error');
+      return;
+    }
+
+    try {
+      // Remove old
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'remove_profesor', dictado_id: dictadoId, profesor_id: oldProfesorId }),
+      });
+      // Assign new
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'assign_profesor', dictado_id: dictadoId, profesor_id: newProf.id }),
+      });
+      showToast(`Cambiado: "${oldNombre}" → "${newProf.nombre}"`);
+      setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  // ═══════════ RESEÑAS (ADMIN DELETE) ═══════════
+  window.adminDeleteResena = async (resenaId) => {
+    if (!confirm('¿Eliminar esta reseña? Esta acción es irreversible.')) return;
+    try {
+      await adminFetch('/api/admin/resenas', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'delete', resena_id: resenaId }),
+      });
+      // Remove all elements with this resena ID (could be in multiple tabs)
+      document.querySelectorAll(`[data-resena-id="${resenaId}"]`).forEach((el) => el.remove());
+      showToast('Reseña eliminada');
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+</script>

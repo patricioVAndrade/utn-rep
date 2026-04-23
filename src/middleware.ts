@@ -79,12 +79,50 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const response = await next();
 
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  let supabaseOrigin = '';
+  if (supabaseUrl) {
+    try {
+      supabaseOrigin = new URL(supabaseUrl).origin;
+    } catch {
+      supabaseOrigin = '';
+    }
+  }
+
+  const connectSrc = [
+    "'self'",
+    supabaseOrigin,
+    'https://vitals.vercel-insights.com',
+    'https://*.vercel-insights.com',
+    'https://va.vercel-scripts.com',
+  ].filter(Boolean).join(' ');
+
+  const csp = [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    "img-src 'self' data: https:",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+    `connect-src ${connectSrc}`,
+    'upgrade-insecure-requests',
+  ].join('; ');
+
   // Security headers
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.headers.set('Content-Security-Policy', csp);
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  response.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+  if (import.meta.env.PROD) {
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
 
   return response;
 });
