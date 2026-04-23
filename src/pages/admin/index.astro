@@ -84,22 +84,15 @@ for (const r of reportesRaw || []) {
 }
 const reportesList = Object.values(reportesGrouped).sort((a: any, b: any) => b.totalReportes - a.totalReportes);
 
-// Profesores
-const { data: profesoresRaw } = await supabaseAdmin
+// Profesores (base)
+const { data: profesoresRaw, error: profesoresError } = await supabaseAdmin
   .from('profesores')
-  .select(`
-    id, nombre_completo,
-    dictado_profesores (
-      dictado_id,
-      dictados (
-        id,
-        cursos ( identificador ),
-        materias ( nombre, nivel )
-      )
-    )
-  `)
+  .select('id, nombre_completo')
   .order('nombre_completo');
-const profesores = profesoresRaw || [];
+const profesoresBase = profesoresRaw || [];
+if (profesoresError) {
+  console.warn('[Admin] profesores query error:', profesoresError.message);
+}
 
 // Materias (para selector de dictados)
 const { data: materiasRaw } = await supabaseAdmin
@@ -117,21 +110,69 @@ const { data: cursosRaw } = await supabaseAdmin
   .order('identificador');
 const cursos = cursosRaw || [];
 
-// Dictados con sus profesores
+// Dictados (base)
 const { data: dictadosRaw, error: dictadosError } = await supabaseAdmin
   .from('dictados')
-  .select(`
-    id, curso_id, materia_id,
-    cursos ( id, identificador, turno ),
-    materias ( id, nombre, nivel ),
-    dictado_profesores (
-      id, profesor_id,
-      profesores ( id, nombre_completo )
-    )
-  `)
+  .select('id, curso_id, materia_id')
   .order('materia_id');
-console.log('[Admin] dictados query result:', { count: dictadosRaw?.length, error: dictadosError?.message });
-const dictados = dictadosRaw || [];
+
+const { data: dictadoProfesoresRaw, error: dictadoProfesoresError } = await supabaseAdmin
+  .from('dictado_profesores')
+  .select('dictado_id, profesor_id');
+
+if (dictadosError) {
+  console.warn('[Admin] dictados query error:', dictadosError.message);
+}
+if (dictadoProfesoresError) {
+  console.warn('[Admin] dictado_profesores query error:', dictadoProfesoresError.message);
+}
+
+const materiasById = new Map(materias.map((m: any) => [m.id, m]));
+const cursosById = new Map(cursos.map((c: any) => [c.id, c]));
+
+const profesoresById = new Map(
+  profesoresBase.map((p: any) => [
+    p.id,
+    { ...p, dictado_profesores: [] },
+  ]),
+);
+
+const dictadosById = new Map(
+  (dictadosRaw || []).map((d: any) => [
+    d.id,
+    {
+      ...d,
+      cursos: cursosById.get(d.curso_id) || null,
+      materias: materiasById.get(d.materia_id) || null,
+      dictado_profesores: [],
+    },
+  ]),
+);
+
+for (const dp of dictadoProfesoresRaw || []) {
+  const dictado = dictadosById.get(dp.dictado_id);
+  const profesor = profesoresById.get(dp.profesor_id);
+  if (!dictado || !profesor) continue;
+
+  dictado.dictado_profesores.push({
+    profesor_id: profesor.id,
+    profesores: { id: profesor.id, nombre_completo: profesor.nombre_completo },
+  });
+
+  profesor.dictado_profesores.push({
+    dictado_id: dictado.id,
+    dictados: {
+      id: dictado.id,
+      cursos: dictado.cursos,
+      materias: dictado.materias,
+    },
+  });
+}
+
+const dictados = Array.from(dictadosById.values());
+const profesores = Array.from(profesoresById.values()).sort((a: any, b: any) =>
+  a.nombre_completo.localeCompare(b.nombre_completo)
+);
 
 // Dictados list for assignment dropdowns
 const dictadosOptions = dictados
