@@ -188,6 +188,7 @@ const dictadosOptions = dictados
     a.materiaNombre.localeCompare(b.materiaNombre) ||
     a.cursoIdentificador.localeCompare(b.cursoIdentificador)
   );
+const dictadosOptionsJSON = JSON.stringify(dictadosOptions);
 
 // Group dictados by materia for the UI
 const dictadosPorMateria: Record<number, { materia: any; dictados: any[] }> = {};
@@ -487,6 +488,9 @@ function tiempoRelativo(fecha: string): string {
         />
       </div>
 
+      <!-- Dictados data for lazy assignment options -->
+      <script id="dictados-data" type="application/json" set:html={dictadosOptionsJSON}></script>
+
       <div class="space-y-3" id="profesores-list">
         {profesores.map((p: any) => {
           const asignacionesDetalle = (p.dictado_profesores || [])
@@ -496,8 +500,8 @@ function tiempoRelativo(fecha: string): string {
             }))
             .filter((a: any) => !!a.dictadoId);
           const asignaciones = asignacionesDetalle.map((a: any) => a.label);
-          const assignedIds = new Set(asignacionesDetalle.map((a: any) => a.dictadoId));
-          const availableDictados = dictadosOptions.filter((d: any) => !assignedIds.has(d.id));
+          const assignedIdsCsv = asignacionesDetalle.map((a: any) => a.dictadoId).join(',');
+          const hasDictados = dictadosOptions.length > 0;
           return (
             <div class="bg-[#242424] rounded-xl border border-neutral-700/60 p-4 profesor-item" data-profesor-id={p.id} data-nombre={p.nombre_completo.toLowerCase()}>
               <div class="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -533,17 +537,17 @@ function tiempoRelativo(fecha: string): string {
                   <select
                     class="profesor-assign-select flex-1 px-3 py-2 rounded-lg border border-neutral-700/60 bg-[#1a1a1a] text-neutral-100 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                     data-profesor-id={p.id}
-                    disabled={availableDictados.length === 0}
+                    data-assigned-ids={assignedIdsCsv}
+                    data-loaded="false"
+                    disabled={!hasDictados}
                   >
-                    <option value="">{availableDictados.length > 0 ? 'Asignar a dictado...' : 'No hay dictados disponibles'}</option>
-                    {availableDictados.map((d: any) => (
-                      <option value={d.id}>{d.label}</option>
-                    ))}
+                    <option value="">{hasDictados ? 'Seleccionar dictado...' : 'No hay dictados disponibles'}</option>
                   </select>
                   <button
                     onclick={`assignProfesorFromList(${p.id})`}
                     class="text-xs bg-green-900/40 hover:bg-green-900/60 text-green-400 px-3 py-2 rounded-lg transition-colors cursor-pointer font-semibold"
-                    disabled={availableDictados.length === 0}
+                    data-action="assign-profesor"
+                    disabled={!hasDictados}
                   >
                     Asignar
                   </button>
@@ -983,6 +987,59 @@ function tiempoRelativo(fecha: string): string {
     return data;
   }
 
+  // ═══════════ DICTADOS (LAZY OPTIONS) ═══════════
+  const dictadosDataEl = document.getElementById('dictados-data');
+  let dictadosOptions = [];
+  try {
+    dictadosOptions = JSON.parse(dictadosDataEl?.textContent || '[]');
+  } catch {
+    dictadosOptions = [];
+  }
+  const dictadosTotal = dictadosOptions.length;
+
+  function loadAssignOptions(select) {
+    if (!select || select.dataset.loaded === 'true') return;
+
+    const container = select.closest('.profesor-item');
+    const assignBtn = container?.querySelector('[data-action="assign-profesor"]');
+    const assignedIds = (select.dataset.assignedIds || '')
+      .split(',')
+      .map((v) => parseInt(v, 10))
+      .filter((v) => Number.isInteger(v));
+    const assignedSet = new Set(assignedIds);
+    const available = dictadosOptions.filter((d) => !assignedSet.has(d.id));
+
+    select.innerHTML = '';
+    if (available.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = dictadosTotal === 0 ? 'No hay dictados disponibles' : 'Sin dictados disponibles';
+      select.appendChild(opt);
+      select.disabled = true;
+      if (assignBtn) assignBtn.disabled = true;
+    } else {
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Asignar a dictado...';
+      select.appendChild(placeholder);
+      available.forEach((d) => {
+        const opt = document.createElement('option');
+        opt.value = String(d.id);
+        opt.textContent = d.label;
+        select.appendChild(opt);
+      });
+      select.disabled = false;
+      if (assignBtn) assignBtn.disabled = false;
+    }
+
+    select.dataset.loaded = 'true';
+  }
+
+  document.querySelectorAll('.profesor-assign-select').forEach((select) => {
+    select.addEventListener('focus', () => loadAssignOptions(select));
+    select.addEventListener('click', () => loadAssignOptions(select));
+  });
+
   // ═══════════ REPORTES ═══════════
   window.dismissReportes = async (resenaId) => {
     if (!confirm('¿Descartar todos los reportes de esta reseña?')) return;
@@ -1087,6 +1144,7 @@ function tiempoRelativo(fecha: string): string {
 
   window.assignProfesorFromList = async (profesorId) => {
     const select = document.querySelector(`.profesor-assign-select[data-profesor-id="${profesorId}"]`);
+    loadAssignOptions(select);
     const dictadoId = parseInt(select?.value || '', 10);
     if (!dictadoId) {
       showToast('Seleccioná un dictado', 'error');
