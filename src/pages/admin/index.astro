@@ -127,31 +127,31 @@ if (dictadoProfesoresError) {
   console.warn('[Admin] dictado_profesores query error:', dictadoProfesoresError.message);
 }
 
-const materiasById = new Map(materias.map((m: any) => [m.id, m]));
-const cursosById = new Map(cursos.map((c: any) => [c.id, c]));
+const materiasById = new Map(materias.map((m: any) => [String(m.id), m]));
+const cursosById = new Map(cursos.map((c: any) => [String(c.id), c]));
 
 const profesoresById = new Map(
   profesoresBase.map((p: any) => [
-    p.id,
+    String(p.id),
     { ...p, dictado_profesores: [] },
   ]),
 );
 
 const dictadosById = new Map(
   (dictadosRaw || []).map((d: any) => [
-    d.id,
+    String(d.id),
     {
       ...d,
-      cursos: cursosById.get(d.curso_id) || null,
-      materias: materiasById.get(d.materia_id) || null,
+      cursos: cursosById.get(String(d.curso_id)) || null,
+      materias: materiasById.get(String(d.materia_id)) || null,
       dictado_profesores: [],
     },
   ]),
 );
 
 for (const dp of dictadoProfesoresRaw || []) {
-  const dictado = dictadosById.get(dp.dictado_id);
-  const profesor = profesoresById.get(dp.profesor_id);
+  const dictado = dictadosById.get(String(dp.dictado_id));
+  const profesor = profesoresById.get(String(dp.profesor_id));
   if (!dictado || !profesor) continue;
 
   dictado.dictado_profesores.push({
@@ -772,7 +772,11 @@ function tiempoRelativo(fecha: string): string {
                     .filter(Boolean);
                   const profIds = profesoresAsignados.map((p: any) => p.id);
                   return (
-                    <div class="bg-[#1a1a1a] rounded-xl border border-neutral-700/40 p-4 dictado-card" data-dictado-id={d.id} data-curso-nombre={(d.cursos?.identificador || '').toLowerCase()}>
+                    <div
+                      class="bg-[#1a1a1a] rounded-xl border border-neutral-700/40 p-4 dictado-card"
+                      data-dictado-id={d.id}
+                      data-curso-nombre={`${d.cursos?.identificador || ''} ${d.materias?.nombre || ''}`.toLowerCase()}
+                    >
                       <!-- Dictado header -->
                       <div class="flex items-center justify-between gap-3 mb-3">
                         <div class="flex items-center gap-2">
