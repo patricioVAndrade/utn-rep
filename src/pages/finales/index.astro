@@ -1,0 +1,378 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import HeaderNav from '../../components/HeaderNav.astro';
+import { supabase } from '../../lib/supabase';
+import { isAdmin } from '../../lib/admin';
+
+const user = Astro.locals.user;
+const userIsAdmin = isAdmin(user?.id);
+
+// Traer las experiencias de finales con el campo user_id y mesa
+const { data: experiencias } = await supabase
+  .from('experiencias_finales')
+  .select(`
+    id,
+    user_id,
+    anio,
+    mesa,
+    profesor_nombre,
+    comentario,
+    created_at,
+    materias ( id, nombre, nivel )
+  `)
+  .order('created_at', { ascending: false });
+
+const listaExperiencias = experiencias || [];
+
+function tiempoRelativo(fecha: string): string {
+  const diff = Date.now() - new Date(fecha).getTime();
+  const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (dias === 0) return 'hoy';
+  if (dias === 1) return 'ayer';
+  if (dias < 30) return `hace ${dias} días`;
+  return `hace ${Math.floor(dias / 30)} meses`;
+}
+---
+
+<Layout title="Experiencias en Finales - UTN REP">
+  <header class="bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md relative overflow-hidden">
+    <div class="absolute inset-0 dot-pattern opacity-30"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-12">
+      <HeaderNav user={user} />
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <span class="text-xs font-bold text-amber-100 uppercase tracking-wider bg-amber-700/40 px-2.5 py-1 rounded-full">¡NUEVA SECCIÓN!</span>
+          <h1 class="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight mt-2">
+            Experiencias de Finales
+          </h1>
+          <p class="text-amber-100 text-sm mt-2 max-w-xl">
+            Enterate de cómo toman los profesores, qué temas entran más seguido y cómo prepararte para rendir.
+          </p>
+        </div>
+        {user ? (
+            <a href="/finales/nuevo" class="bg-white text-amber-900 hover:bg-amber-50 font-bold px-6 py-3.5 rounded-2xl shadow-xl transition-transform active:scale-95 flex items-center justify-center gap-2">
+                ✏️ Compartir mi final
+            </a>
+        ) : (
+            <button id="btn-warning-login-modal" class="bg-white text-amber-900 hover:bg-amber-50 font-bold px-6 py-3.5 rounded-2xl shadow-xl transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+                ✏️ Compartir mi final
+            </button>
+        )}
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <div class="mb-8">
+      <div class="relative">
+        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+        <input 
+          type="text" 
+          id="search-finales"
+          placeholder="Buscar por materia..." 
+          class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-neutral-700 bg-[#242424] text-neutral-100 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all text-base"
+        />
+      </div>
+    </div>
+
+    <div class="space-y-6" id="finales-container">
+      {listaExperiencias.length > 0 ? (
+        listaExperiencias.map((exp: any, idx: number) => {
+          const materiaObj = Array.isArray(exp.materias) ? exp.materias[0] : exp.materias;
+          const isOwner = user?.id === exp.user_id;
+          return (
+            <div 
+              class={`final-card bg-[#242424] rounded-2xl border border-neutral-700/60 p-5 sm:p-6 transition-all ${idx >= 10 ? 'final-extra hidden' : ''}`} 
+              data-materia={materiaObj?.nombre?.toLowerCase()}
+              data-id={exp.id}
+            >
+              <div class="flex flex-wrap items-start justify-between gap-2 border-b border-neutral-700/40 pb-3 mb-4">
+                <div>
+                  <span class="text-xs font-bold text-amber-400 uppercase tracking-wide bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
+                    {materiaObj?.nivel}º Año
+                  </span>
+                  <h2 class="text-lg font-bold text-neutral-100 mt-1">{materiaObj?.nombre}</h2>
+                </div>
+                <div class="text-right text-xs text-neutral-500">
+                  <span>Subido {tiempoRelativo(exp.created_at)}</span>
+                </div>
+              </div>
+
+              <p class="exp-comment text-neutral-300 text-sm leading-relaxed mb-4 whitespace-pre-line italic">"{exp.comentario}"</p>
+
+              <div class="exp-edit-form hidden mb-4">
+                <textarea class="edit-textarea w-full px-3 py-2 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none" rows="4">{exp.comentario}</textarea>
+                <div class="flex gap-2 mt-2">
+                  <button class="save-edit-btn text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-white px-4 py-1.5 rounded-lg transition-colors">Guardar</button>
+                  <button class="cancel-edit-btn text-xs font-semibold text-neutral-400 hover:text-neutral-200 px-3 py-1.5 transition-colors">Cancelar</button>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-4 text-xs text-neutral-400 font-medium border-t border-neutral-700/40 pt-4 items-center justify-between">
+                
+                <div class="flex flex-wrap gap-3">
+                  <span class="flex items-center gap-1.5 bg-neutral-800 px-3 py-1.5 rounded-xl border border-neutral-700/40">
+                    📅 Rendido: <strong class="text-neutral-200">{exp.mesa ? `${exp.mesa} ${exp.anio}` : exp.anio}</strong>
+                  </span>
+                  <span class="flex items-center gap-1.5 bg-neutral-800 px-3 py-1.5 rounded-xl border border-neutral-700/40">
+                    👤 Profesor: <strong class="text-neutral-200">{exp.profesor_nombre || 'No recuerda'}</strong>
+                  </span>
+                </div>
+
+                {(isOwner || userIsAdmin) && (
+                  <div class="flex items-center gap-3">
+                    {isOwner && (
+                      <button class="edit-btn text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Editar
+                      </button>
+                    )}
+                    <button class="delete-btn text-xs text-red-400/70 hover:text-red-400 flex items-center gap-1 transition-colors">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      Eliminar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        <div class="text-center py-12 bg-[#242424] rounded-2xl border border-neutral-700/60">
+          <p class="text-neutral-500">Todavía no hay experiencias cargadas. ¡Sé el primero!</p>
+        </div>
+      )}
+    </div>
+
+    {listaExperiencias.length > 10 && (
+      <div class="text-center mt-8">
+        <button id="show-more-btn" class="text-sm font-semibold text-amber-400 hover:text-amber-300 bg-amber-900/20 hover:bg-amber-900/30 px-6 py-3 rounded-xl transition-colors">
+          Cargar más experiencias
+        </button>
+      </div>
+    )}
+   
+  
+  </main>
+  {!user && (
+    <div id="warning-login-modal" class="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm hidden opacity-0 transition-all duration-300">
+      
+      <div id="warning-login-modal-panel" class="bg-[#1a1a1a] border border-neutral-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 relative">
+        
+        <button id="close-warning-modal-btn" class="absolute top-4 right-4 text-neutral-500 hover:text-white transition-colors cursor-pointer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        
+        <div class="flex flex-col items-center text-center">
+            <div class="mb-4 text-neutral-400">
+              <svg class="w-12 h-12" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"></path>
+              </svg>
+            </div>
+            
+            <h3 class="text-xl font-bold text-white mb-2">Iniciá sesión para compartir tu experiencia</h3>
+            <p class="text-sm text-neutral-400 mb-8 leading-relaxed">
+              Necesitás una cuenta para poder dejar tu opinión. Es rápido y seguro.<br/>
+              Tu nombre no se mostrará si elegís publicar como anónimo.
+            </p>
+            
+            <button id="btn-open-real-login" class="w-full bg-[#f58200] hover:bg-[#e07700] text-white font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path></svg>
+              Iniciar Sesión
+            </button>
+          </div>
+      </div>
+    </div>
+  )}
+</Layout>
+
+<script>
+  // BUSCADOR EN TIEMPO REAL
+  const searchInput = document.getElementById('search-finales') as HTMLInputElement;
+  const cards = document.querySelectorAll('.final-card');
+  const showMoreBtn = document.getElementById('show-more-btn');
+  
+  // --- LÓGICA DEL MODAL DE ADVERTENCIA ---
+  const btnWarningLoginModal = document.getElementById('btn-warning-login-modal');
+  const warningLoginModal = document.getElementById('warning-login-modal');
+  const warningLoginModalPanel = document.getElementById('warning-login-modal-panel');
+  const closeWarningModalBtn = document.getElementById('close-warning-modal-btn');
+  const btnOpenRealLogin = document.getElementById('btn-open-real-login');
+
+  if (btnOpenRealLogin) {
+    btnOpenRealLogin.addEventListener('click', () => {
+      // 1. Ocultamos la ventana de advertencia (usamos ?. para evitar error de null en TS)
+      closeWarningModalBtn?.click();
+      
+      // 2. Buscamos el botón "Iniciar Sesión" del HeaderNav
+      const botones = Array.from(document.querySelectorAll('button, a'));
+      const botonHeader = botones.find(b => 
+        b.textContent?.trim().includes('Iniciar Sesión') && 
+        !b.closest('#warning-login-modal') 
+      ) as HTMLElement | undefined; // <-- Soluciona el error 'Element has no click()'
+      
+      if (botonHeader) {
+        // Le damos 50ms para que la advertencia empiece a cerrarse antes de abrir el real
+        setTimeout(() => botonHeader.click(), 50);
+      } else {
+        window.location.href = '/api/auth/login?provider=google&returnTo=/finales';
+      }
+    });
+  }
+  
+  if (btnWarningLoginModal && warningLoginModal && closeWarningModalBtn && warningLoginModalPanel) {
+
+    document.body.appendChild(warningLoginModal);
+
+    // Abrir Modal de Advertencia
+    btnWarningLoginModal.addEventListener('click', () => {
+      warningLoginModal.classList.remove('hidden');
+      warningLoginModal.classList.add('flex', 'items-center', 'justify-center');
+      setTimeout(() => {
+        warningLoginModal.classList.remove('opacity-0');
+        warningLoginModalPanel.classList.remove('scale-95');
+      }, 10);
+    });
+
+    // Cerrar Modal de Advertencia (con la X)
+    closeWarningModalBtn.addEventListener('click', () => {
+      warningLoginModal.classList.add('opacity-0');
+      warningLoginModalPanel.classList.add('scale-95');
+      setTimeout(() => {
+        warningLoginModal.classList.add('hidden');
+        warningLoginModal.classList.remove('flex', 'items-center', 'justify-center');
+      }, 300);
+    });
+
+    // Cerrar al hacer clic en el fondo negro
+    warningLoginModal.addEventListener('click', (e) => {
+      if (!warningLoginModalPanel.contains(e.target as Node)) {
+        closeWarningModalBtn.click();
+      }
+    });
+  }
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const value = searchInput.value.toLowerCase().trim();
+      let visibleCount = 0;
+      
+      cards.forEach(elemento => {
+        const card = elemento as HTMLElement;
+        const materia = card.getAttribute('data-materia') || '';
+        
+        // Si hay texto en el buscador, ignoramos la paginación para mostrar los resultados de la búsqueda
+        if (value !== '') {
+          if (materia.includes(value)) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
+          }
+          if (showMoreBtn) showMoreBtn.style.display = 'none'; // Ocultamos botón de paginación mientras se busca
+        } else {
+          // Si el buscador está vacío, volvemos al estado de paginación
+          if (card.classList.contains('final-extra')) {
+             card.classList.add('hidden');
+          } else {
+             card.classList.remove('hidden');
+          }
+          if (showMoreBtn) showMoreBtn.style.display = 'inline-block';
+        }
+      });
+    });
+  }
+
+  // LÓGICA DE PAGINACIÓN ("Cargar más")
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener('click', () => {
+      const hiddenCards = document.querySelectorAll('.final-extra.hidden');
+      // Mostrar de a 10
+      for (let i = 0; i < 10 && i < hiddenCards.length; i++) {
+        hiddenCards[i].classList.remove('hidden');
+      }
+      // Ocultar botón si ya no hay más
+      if (document.querySelectorAll('.final-extra.hidden').length === 0) {
+        showMoreBtn.style.display = 'none';
+      }
+    });
+  }
+
+  // LÓGICA DE EDICIÓN Y ELIMINACIÓN
+  cards.forEach(card => {
+    const editBtn = card.querySelector('.edit-btn');
+    const deleteBtn = card.querySelector('.delete-btn');
+    const expComment = card.querySelector('.exp-comment') as HTMLElement;
+    const expEditForm = card.querySelector('.exp-edit-form') as HTMLElement;
+    const textarea = card.querySelector('.edit-textarea') as HTMLTextAreaElement;
+    const saveBtn = card.querySelector('.save-edit-btn');
+    const cancelBtn = card.querySelector('.cancel-edit-btn');
+    const expId = card.getAttribute('data-id');
+
+    // Botón Eliminar
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        if (!confirm('¿Estás seguro de que querés eliminar esta experiencia?')) return;
+        
+        try {
+          const res = await fetch('/api/finales/acciones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accion: 'eliminar', id: expId })
+          });
+          if (res.ok) {
+            card.remove(); // Desaparece la tarjeta visualmente al instante
+          } else {
+            alert('Error al eliminar.');
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      });
+    }
+
+    // Botón Editar -> Abrir formulario
+    if (editBtn && expEditForm) {
+      editBtn.addEventListener('click', () => {
+        expComment.classList.add('hidden');
+        expEditForm.classList.remove('hidden');
+      });
+    }
+
+    // Botón Cancelar
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        expEditForm.classList.add('hidden');
+        expComment.classList.remove('hidden');
+        textarea.value = expComment.textContent?.replace(/"/g, '') || ''; // resetear texto
+      });
+    }
+
+    // Botón Guardar
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        const newComentario = textarea.value;
+        try {
+          const res = await fetch('/api/finales/acciones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accion: 'editar', id: expId, comentario: newComentario })
+          });
+          
+          if (res.ok) {
+            // Actualizar vista
+            expComment.textContent = `"${newComentario}"`;
+            expEditForm.classList.add('hidden');
+            expComment.classList.remove('hidden');
+          } else {
+            const data = await res.json();
+            alert(data.error || 'Error al editar.');
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      });
+    }
+  });
+</script>

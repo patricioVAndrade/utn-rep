@@ -14,9 +14,16 @@ const { data: dictado, error } = await supabase
   .from('dictados')
   .select(`
     id, curso_id, materia_id,
+    es_contracuatrimestral,
+    periodo_dictado,        
+    es_intensivo,
+    updated_at,
+    created_at,           
     cursos ( identificador, anio_carrera, turno ),
-    materias ( id, nombre, nivel ),
+    materias ( id, nombre, nivel, es_electiva, puntos_electiva ),
     dictado_profesores (
+      updated_at,
+      created_at,
       profesores ( id, nombre_completo )
     )
   `)
@@ -26,6 +33,67 @@ const { data: dictado, error } = await supabase
 if (error || !dictado) {
   return Astro.redirect('/404');
 }
+if (error) {
+  console.error("ERROR DETALLADO DE SUPABASE:", error);
+}
+function tiempoRelativo(fecha: string): string {
+  const diff = Date.now() - new Date(fecha).getTime();
+  const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (dias === 0) return 'Hoy';
+  if (dias === 1) return 'Ayer';
+  if (dias < 30) return `Hace ${dias} días`;
+  if (dias < 365) return `Hace ${Math.floor(dias / 30)} mes${Math.floor(dias / 30) > 1 ? 'es' : ''}`;
+  return `Hace ${Math.floor(dias / 365)} año${Math.floor(dias / 365) > 1 ? 's' : ''}`;
+}
+
+// ── CALCULAR ÚLTIMA ACTUALIZACIÓN (Ignorando reseñas) ──
+const fechas: string[] = [dictado?.updated_at, dictado?.created_at].filter(Boolean) as string[];
+
+// Si se modificaron o agregaron profesores, también lo tenemos en cuenta
+if (dictado?.dictado_profesores) {
+  dictado.dictado_profesores.forEach((dp: any) => {
+    if (dp.updated_at) fechas.push(dp.updated_at);
+    if (dp.created_at) fechas.push(dp.created_at);
+  });
+}
+
+// Obtenemos la fecha más reciente de todas las recolectadas
+const fechaActualizacion = fechas.length > 0 
+  ? new Date(Math.max(...fechas.map(f => new Date(f).getTime()))).toISOString()
+  : null;
+
+
+
+const ultimaActualizacionStr = fechaActualizacion ? tiempoRelativo(fechaActualizacion) : null;
+
+const curso = Array.isArray((dictado as any).cursos) ? (dictado as any).cursos[0] : (dictado as any).cursos;
+const materia = Array.isArray((dictado as any).materias) ? (dictado as any).materias[0] : (dictado as any).materias;
+const dictadoProfesores = Array.isArray((dictado as any).dictado_profesores) ? (dictado as any).dictado_profesores : [];
+
+function getCursadaInfo(cursoData: any) {
+  const periodo = cursoData?.periodo_dictado;
+  const esAnual = periodo === 'ANUAL';
+  const esContracuatrimestral = Boolean(cursoData?.es_contracuatrimestral) && !esAnual;
+  const esIntensivo = Boolean(cursoData?.es_intensivo);
+
+  const label = periodo === 'PRIMER_CUATRIMESTRE'
+    ? 'Dictado en el primer cuatrimestre'
+    : periodo === 'SEGUNDO_CUATRIMESTRE'
+      ? 'Dictado en el segundo cuatrimestre'
+      : periodo === 'ANUAL'
+        ? 'Dictado anual'
+        : 'Periodo de dictado sin definir';
+
+  const description = periodo === 'ANUAL'
+    ? 'Esta materia se cursa de forma anual, por lo que no corresponde marcarla como contracuatrimestral.'
+    : esContracuatrimestral
+      ? 'Se dicta en el cuatrimestre contrario al normal para esta materia.'
+      : 'Se desarrolla en el cuatrimestre indicado para esta cursada.';
+
+  return { label, description, esAnual, esContracuatrimestral, esIntensivo };
+}
+
+const cursadaInfo = getCursadaInfo(curso);
 
 // Traer reseñas
 const { data: resenas } = await supabase
@@ -59,48 +127,67 @@ const nivelColors: Record<number, { bg: string; light: string; accent: string; b
   5: { bg: "from-purple-500 to-purple-600", light: "text-purple-200", accent: "bg-purple-900/30 text-purple-400", badge: "bg-purple-500" },
 };
 
-const nivel = dictado?.materias?.nivel || 1;
+const nivel = materia?.nivel || 1;
 const colors = nivelColors[nivel] || nivelColors[1];
 
 function estrellas(n: number): string {
   return '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
 }
 
-function tiempoRelativo(fecha: string): string {
-  const diff = Date.now() - new Date(fecha).getTime();
-  const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (dias === 0) return 'Hoy';
-  if (dias === 1) return 'Ayer';
-  if (dias < 30) return `Hace ${dias} días`;
-  if (dias < 365) return `Hace ${Math.floor(dias / 30)} mes${Math.floor(dias / 30) > 1 ? 'es' : ''}`;
-  return `Hace ${Math.floor(dias / 365)} año${Math.floor(dias / 365) > 1 ? 's' : ''}`;
-}
 ---
 
-<Layout title={`${dictado?.cursos?.identificador} - ${dictado?.materias?.nombre} - UTN REP`} hasFloatingButton={totalResenas > 0}>
+<Layout title={`${curso?.identificador || ''} - ${materia?.nombre || ''} - UTN REP`} hasFloatingButton={totalResenas > 0}>
 
   <header class={`bg-gradient-to-r ${colors.bg} text-white relative overflow-hidden`}>
     <div class="absolute inset-0 dot-pattern opacity-30"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-12">
       <HeaderNav user={user} />
-      <a href={`/materia/${dictado?.materias?.id}?from=nivel`} class={`inline-flex items-center gap-2 ${colors.light} hover:text-white mb-2 transition-colors text-sm`}>
+      <a href={`/materia/${materia?.id}?from=nivel`} class={`inline-flex items-center gap-2 ${colors.light} hover:text-white mb-2 transition-colors text-sm`}>
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
         </svg>
-        Volver a {dictado?.materias?.nombre}
+        Volver a {materia?.nombre}
       </a>
       
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <span class={`text-sm font-medium ${colors.light} uppercase tracking-wider`}>
-            {dictado?.materias?.nombre} · {nivel}º Año
+            {materia?.nombre} · {nivel}º Año
           </span>
           <h1 class="text-4xl sm:text-5xl lg:text-6xl font-heading font-extrabold tracking-tight mt-1">
-            {dictado?.cursos?.identificador}
+            {curso?.identificador}
           </h1>
-          <span class="inline-block mt-2 text-sm font-semibold bg-white/20 backdrop-blur px-3 py-1 rounded-lg uppercase tracking-wide">
-            Turno {dictado?.cursos?.turno}
-          </span>
+          <div class="flex flex-wrap items-center gap-2 mt-2">
+            <span class="inline-block text-sm font-semibold bg-white/20 backdrop-blur px-3 py-1 rounded-lg uppercase tracking-wide">
+              Turno {curso?.turno}
+            </span>
+            {materia?.es_electiva && (
+            <span class="inline-flex items-center gap-1 text-sm font-semibold bg-purple-400/20 text-purple-100 px-3 py-1 rounded-lg backdrop-blur">
+              Electiva ({materia?.puntos_electiva || 0} pts)
+            </span>
+            )}
+            {cursadaInfo.esContracuatrimestral && (
+              <span class="inline-flex items-center gap-1 text-sm font-semibold bg-amber-400/20 text-amber-100 px-3 py-1 rounded-lg backdrop-blur" title="Se dicta en el cuatrimestre contrario al normal">
+                Contracuatrimestre
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/20 text-[11px] font-bold">i</span>
+              </span>
+            )}
+            {!cursadaInfo.esAnual && curso?.periodo_dictado && (
+              <span class="inline-flex items-center gap-1 text-sm font-semibold bg-white/15 text-white/90 px-3 py-1 rounded-lg backdrop-blur">
+                {cursadaInfo.label}
+              </span>
+            )}
+            {cursadaInfo.esAnual && (
+              <span class="inline-flex items-center gap-1 text-sm font-semibold bg-purple-400/20 text-purple-100 px-3 py-1 rounded-lg backdrop-blur">
+                Anual
+              </span>
+            )}
+            {cursadaInfo.esIntensivo && (
+              <span class="inline-flex items-center gap-1 text-sm font-semibold bg-cyan-400/20 text-cyan-100 px-3 py-1 rounded-lg backdrop-blur">
+                Intensivo
+              </span>
+            )}
+          </div>
         </div>
         
         {totalResenas > 0 && (
@@ -123,13 +210,67 @@ function tiempoRelativo(fecha: string): string {
       <!-- Sidebar -->
       <div class="lg:col-span-1 space-y-6">
 
+        <!-- Información -->
+        <section class="mb-8">
+          <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
+            <h2 class="text-xl sm:text-2xl font-heading font-bold text-neutral-100 mb-4">Información de la Cátedra</h2>
+            
+            {(!materia?.es_electiva && !dictado?.periodo_dictado && !dictado?.es_intensivo && !dictado?.es_contracuatrimestral) ? (
+              <p class="text-sm text-neutral-500 italic">No hay información de cursada cargada para esta cátedra.</p>
+            ) : (
+              <div class="flex flex-wrap gap-2">
+                {materia?.es_electiva && (
+                  <span class="inline-flex items-center gap-1 text-sm font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-full shrink-0">
+                    Electiva ({materia?.puntos_electiva || 0} pts)
+                  </span>
+                )}
+                {dictado?.periodo_dictado === 'PRIMER_CUATRIMESTRE' && (
+                  <span class="inline-flex items-center gap-1 text-sm font-semibold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-full shrink-0">
+                    1° cuatrimestre
+                  </span>
+                )}
+                {dictado?.periodo_dictado === 'SEGUNDO_CUATRIMESTRE' && (
+                  <span class="inline-flex items-center gap-1 text-sm font-semibold text-green-300 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-full shrink-0">
+                    2° cuatrimestre
+                  </span>
+                )}
+                {dictado?.periodo_dictado === 'ANUAL' && (
+                  <span class="inline-flex items-center gap-1 text-sm font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-full shrink-0">
+                    Anual
+                  </span>
+                )}
+                {dictado?.es_intensivo && (
+                  <span class="inline-flex items-center gap-1 text-sm font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full shrink-0">
+                    Intensivo
+                  </span>
+                )}
+                {dictado?.es_contracuatrimestral && (
+                  <span class="inline-flex items-center gap-1 text-sm font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full shrink-0" title="Se dicta en el cuatrimestre contrario al normal">
+                    Contracuatrimestre
+                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500/20 text-[10px] font-bold">i</span>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {ultimaActualizacionStr && (
+              <div class="mt-5 pt-4 border-t border-neutral-700/40 flex items-center gap-2 text-xs text-neutral-500 font-medium">
+                <svg class="w-4 h-4 text-neutral-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Información actualizada {ultimaActualizacionStr}</span>
+              </div>
+            )}
+          </div>
+        </section>
+
         <!-- Equipo Docente -->
         <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
           <h3 class="font-heading font-bold text-neutral-100 mb-4 flex items-center gap-2">
             <span class="text-lg"><svg class="w-5 h-5 text-neutral-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></span> Equipo Docente
           </h3>
           <ul class="space-y-3">
-            {dictado?.dictado_profesores?.map((dp: any) => (
+            {dictadoProfesores.map((dp: any) => (
               <li class="flex items-center gap-3">
                 <div class={`w-9 h-9 ${colors.badge} rounded-full flex items-center justify-center text-white font-bold text-sm`}>
                   {dp.profesores.nombre_completo.charAt(0)}
@@ -137,7 +278,7 @@ function tiempoRelativo(fecha: string): string {
                 <span class="text-sm font-medium text-neutral-300">{dp.profesores.nombre_completo}</span>
               </li>
             ))}
-            {(!dictado?.dictado_profesores || dictado.dictado_profesores.length === 0) && (
+            {dictadoProfesores.length === 0 && (
               <li class="text-neutral-500 italic text-sm">Sin profesores asignados</li>
             )}
           </ul>
@@ -215,6 +356,7 @@ function tiempoRelativo(fecha: string): string {
                    data-rating={resena.calificacion_general}
                    data-id={resena.id}
                    data-user-id={resena.user_id}>
+                
                 <div class="flex items-start justify-between gap-4 mb-3">
                   <div class="flex items-center gap-3">
                     <div class={`w-10 h-10 ${resena.es_anonima ? 'bg-neutral-700' : colors.badge} rounded-full flex items-center justify-center text-white font-bold text-sm`}>
@@ -226,10 +368,28 @@ function tiempoRelativo(fecha: string): string {
                     </div>
                     <div>
                       <div class="flex items-center gap-1.5">
-                        <p class="font-semibold text-neutral-100 text-sm">
-                          {resena.es_anonima ? 'Anónimo' : (resena.nombre_usuario || 'Estudiante')}
-                          {resena.es_anonima && userIsAdmin && (
-                            <span class="text-[10px] text-red-400/70 font-normal ml-1" title="Visible solo para admin">({resena.nombre_usuario})</span>
+                        <p class="font-semibold text-neutral-100 text-sm flex items-center gap-2 flex-wrap">
+                          <span>
+                            {resena.es_anonima ? 'Anónimo' : (resena.nombre_usuario || 'Estudiante')}
+                            {resena.es_anonima && userIsAdmin && (
+                              <span class="text-[10px] text-red-400/70 font-normal ml-1" title="Visible solo para admin">({resena.nombre_usuario})</span>
+                            )}
+                          </span>
+                          
+                          {resena.condicion_final === 'PROMOCIONADO' && (
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-900/30 text-green-400 border border-green-800/50 uppercase tracking-wide">
+                              Promocionado
+                            </span>
+                          )}
+                          {resena.condicion_final === 'REGULAR' && (
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-900/30 text-yellow-400 border border-yellow-800/50 uppercase tracking-wide">
+                              Regular
+                            </span>
+                          )}
+                          {resena.condicion_final === 'LIBRE' && (
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-900/30 text-red-400 border border-red-800/50 uppercase tracking-wide">
+                              Libre
+                            </span>
                           )}
                         </p>
                         {resena.es_alumno_utn && (
@@ -239,7 +399,7 @@ function tiempoRelativo(fecha: string): string {
                           </span>
                         )}
                       </div>
-                      <p class="text-xs text-neutral-500">
+                      <p class="text-xs text-neutral-500 mt-0.5">
                         {resena.anio_cursado ? `Cursó en ${resena.anio_cursado}` : ''}
                         {resena.anio_cursado && resena.created_at ? ' · ' : ''}
                         {resena.created_at ? tiempoRelativo(resena.created_at) : ''}
@@ -258,7 +418,6 @@ function tiempoRelativo(fecha: string): string {
                   </p>
                 )}
 
-                <!-- Edit form (hidden) -->
                 <div class="review-edit-form hidden mt-3">
                   <textarea class="edit-textarea w-full px-3 py-2 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50 resize-none" rows="3">{resena.comentario}</textarea>
                   <div class="flex gap-2 mt-2">
@@ -267,8 +426,8 @@ function tiempoRelativo(fecha: string): string {
                   </div>
                 </div>
 
-                <!-- Actions -->
                 <div class="flex items-center justify-between mt-3 pt-3 border-t border-neutral-700/40">
+                  
                   {(user?.id === resena.user_id || userIsAdmin) ? (
                     <div class="flex items-center gap-3">
                       {user?.id === resena.user_id && (
@@ -285,12 +444,29 @@ function tiempoRelativo(fecha: string): string {
                   ) : (
                     <div></div>
                   )}
-                  {user && user.id !== resena.user_id && (
-                    <button class="report-btn text-xs text-neutral-600 hover:text-red-400 flex items-center gap-1 cursor-pointer transition-colors" title="Reportar reseña">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
-                      Reportar
+
+                  <div class="flex items-center gap-3">
+                    
+                    <button 
+                      class="btn-votar flex items-center gap-1.5 bg-[#2a2a2a] hover:bg-[#333333] text-neutral-400 px-2.5 py-1.5 rounded-lg transition-colors border border-neutral-700/50 active:scale-95 text-xs font-semibold"
+                      data-id={resena.id}
+                      data-votos={resena.votos_utilidad || 0}
+                      title="Marcar como útil"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                      </svg>
+                      <span class="votos-count">{resena.votos_utilidad || 0}</span>
                     </button>
-                  )}
+
+                    {user && user.id !== resena.user_id && (
+                      <button class="report-btn text-xs text-neutral-600 hover:text-red-400 flex items-center gap-1 cursor-pointer transition-colors" title="Reportar reseña">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
+                        Reportar
+                      </button>
+                    )}
+                  </div>
+
                 </div>
               </div>
             ))}
@@ -339,8 +515,12 @@ function tiempoRelativo(fecha: string): string {
   )}
 
   <script>
+    function getErrorMessage(err: unknown): string {
+      return err instanceof Error ? err.message : 'Error desconocido';
+    }
+
     // ========== PAGINATION ==========
-    const showMoreBtn = document.getElementById('show-more-btn');
+    const showMoreBtn = document.getElementById('show-more-btn') as HTMLButtonElement | null;
     if (showMoreBtn) {
       showMoreBtn.addEventListener('click', () => {
         document.querySelectorAll('.review-extra').forEach(el => {
@@ -351,8 +531,8 @@ function tiempoRelativo(fecha: string): string {
     }
 
     // ========== SORT ==========
-    const sortSelect = document.getElementById('sort-select');
-    const reviewsList = document.getElementById('reviews-list');
+    const sortSelect = document.getElementById('sort-select') as HTMLSelectElement | null;
+    const reviewsList = document.getElementById('reviews-list') as HTMLElement | null;
     
     if (sortSelect && reviewsList) {
       sortSelect.addEventListener('change', () => {
@@ -384,34 +564,34 @@ function tiempoRelativo(fecha: string): string {
     }
 
     // ========== EDIT ==========
-    document.querySelectorAll('.edit-btn').forEach(btn => {
+    document.querySelectorAll('.edit-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const card = btn.closest('.review-card');
+        const card = btn.closest('.review-card') as HTMLElement | null;
         if (!card) return;
-        const comment = card.querySelector('.review-comment');
-        const editForm = card.querySelector('.review-edit-form');
+        const comment = card.querySelector('.review-comment') as HTMLElement | null;
+        const editForm = card.querySelector('.review-edit-form') as HTMLElement | null;
         if (comment) comment.classList.add('hidden');
         if (editForm) editForm.classList.remove('hidden');
       });
     });
 
-    document.querySelectorAll('.cancel-edit-btn').forEach(btn => {
+    document.querySelectorAll('.cancel-edit-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const card = btn.closest('.review-card');
+        const card = btn.closest('.review-card') as HTMLElement | null;
         if (!card) return;
-        const comment = card.querySelector('.review-comment');
-        const editForm = card.querySelector('.review-edit-form');
+        const comment = card.querySelector('.review-comment') as HTMLElement | null;
+        const editForm = card.querySelector('.review-edit-form') as HTMLElement | null;
         if (comment) comment.classList.remove('hidden');
         if (editForm) editForm.classList.add('hidden');
       });
     });
 
-    document.querySelectorAll('.save-edit-btn').forEach(btn => {
+    document.querySelectorAll('.save-edit-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const card = btn.closest('.review-card');
+        const card = btn.closest('.review-card') as HTMLElement | null;
         if (!card) return;
         const resenaId = card.getAttribute('data-id');
-        const textarea = card.querySelector('.edit-textarea');
+        const textarea = card.querySelector('.edit-textarea') as HTMLTextAreaElement | null;
         const newComment = textarea?.value?.trim();
 
         if (!newComment || newComment.length < 10) {
@@ -419,7 +599,7 @@ function tiempoRelativo(fecha: string): string {
           return;
         }
 
-        btn.disabled = true;
+        (btn as HTMLButtonElement).disabled = true;
         btn.textContent = 'Guardando...';
 
         try {
@@ -434,31 +614,31 @@ function tiempoRelativo(fecha: string): string {
           if (!res.ok) throw new Error(data.error || 'Error');
 
           // Update the displayed comment
-          const comment = card.querySelector('.review-comment');
+          const comment = card.querySelector('.review-comment') as HTMLElement | null;
           if (comment) {
             comment.textContent = newComment;
             comment.classList.remove('hidden');
           }
           card.querySelector('.review-edit-form')?.classList.add('hidden');
         } catch (err) {
-          alert(err.message || 'No se pudo guardar.');
+          alert(getErrorMessage(err));
         } finally {
-          btn.disabled = false;
+          (btn as HTMLButtonElement).disabled = false;
           btn.textContent = 'Guardar';
         }
       });
     });
 
     // ========== DELETE ==========
-    document.querySelectorAll('.delete-btn').forEach(btn => {
+    document.querySelectorAll('.delete-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         if (!confirm('¿Seguro que querés eliminar esta reseña? Esta acción no se puede deshacer.')) return;
 
-        const card = btn.closest('.review-card');
+        const card = btn.closest('.review-card') as HTMLElement | null;
         if (!card) return;
         const resenaId = card.getAttribute('data-id');
 
-        btn.disabled = true;
+        (btn as HTMLButtonElement).disabled = true;
 
         try {
           const res = await fetch('/api/resenas/' + resenaId, {
@@ -476,22 +656,22 @@ function tiempoRelativo(fecha: string): string {
           card.style.transform = 'scale(0.95)';
           setTimeout(() => card.remove(), 300);
         } catch (err) {
-          alert(err.message || 'No se pudo eliminar.');
-          btn.disabled = false;
+          alert(getErrorMessage(err));
+          (btn as HTMLButtonElement).disabled = false;
         }
       });
     });
 
     // ========== REPORT ==========
-    document.querySelectorAll('.report-btn').forEach(btn => {
+    document.querySelectorAll('.report-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const card = btn.closest('.review-card');
+        const card = btn.closest('.review-card') as HTMLElement | null;
         if (!card) return;
         const resenaId = parseInt(card.getAttribute('data-id') || '0');
 
         if (!confirm('¿Querés reportar esta reseña como inapropiada?')) return;
 
-        btn.disabled = true;
+        (btn as HTMLButtonElement).disabled = true;
 
         try {
           const res = await fetch('/api/reportes', {
@@ -505,11 +685,79 @@ function tiempoRelativo(fecha: string): string {
           btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg> Reportada';
           btn.classList.remove('text-neutral-600', 'hover:text-red-400');
           btn.classList.add('text-neutral-500');
-          btn.disabled = true;
+          (btn as HTMLButtonElement).disabled = true;
         } catch (err) {
-          alert(err.message || 'No se pudo reportar.');
-          btn.disabled = false;
+          alert(getErrorMessage(err));
+          (btn as HTMLButtonElement).disabled = false;
         }
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const botonesVotar = document.querySelectorAll('.btn-votar');
+
+      // Cargamos los IDs de las reseñas que el usuario ya votó en este dispositivo
+      const votosGuardados: string[] = JSON.parse(localStorage.getItem('utn_votos') || '[]');
+
+      botonesVotar.forEach((elemento) => {
+        const btn = elemento as HTMLButtonElement; 
+        const id = btn.getAttribute('data-id');
+
+        if (!id) return;
+
+        const countSpan = btn.querySelector('.votos-count');
+        const icon = btn.querySelector('svg');
+
+        // Estado inicial: si ya la votó antes, la mostramos iluminada en amarillo
+        if (votosGuardados.includes(id)) {
+          btn.classList.add('bg-amber-500/10', 'text-amber-400', 'border-amber-500/30');
+          btn.classList.remove('bg-[#2a2a2a]', 'text-neutral-400', 'border-neutral-700/50');
+          if (icon) icon.setAttribute('fill', 'currentColor');
+        }
+
+        btn.addEventListener('click', async () => {
+          const yaVoto = votosGuardados.includes(id);
+          let accion = 'votar';
+          const currentVotos = parseInt(countSpan?.textContent || '0') || 0;
+
+          if (yaVoto) {
+            // --- DESVOTAR --- (Quitar me gusta)
+            accion = 'desvotar';
+            const index = votosGuardados.indexOf(id);
+            if (index > -1) votosGuardados.splice(index, 1);
+
+            // UI: Volver el botón a su estado neutro y restar 1
+            if (countSpan) countSpan.textContent = Math.max(0, currentVotos - 1).toString();
+            btn.classList.remove('bg-amber-500/10', 'text-amber-400', 'border-amber-500/30');
+            btn.classList.add('bg-[#2a2a2a]', 'text-neutral-400', 'border-neutral-700/50');
+            if (icon) icon.setAttribute('fill', 'none');
+          } else {
+            // --- VOTAR --- (Dar me gusta)
+            accion = 'votar';
+            votosGuardados.push(id);
+
+            // UI: Pintar el botón de amarillo y sumar 1
+            if (countSpan) countSpan.textContent = (currentVotos + 1).toString();
+            btn.classList.add('bg-amber-500/10', 'text-amber-400', 'border-amber-500/30');
+            btn.classList.remove('bg-[#2a2a2a]', 'text-neutral-400', 'border-neutral-700/50');
+            if (icon) icon.setAttribute('fill', 'currentColor');
+          }
+
+          // Guardar actualización de estado localmente
+          localStorage.setItem('utn_votos', JSON.stringify(votosGuardados));
+
+          // Enviar la petición asincrónica al backend
+          try {
+            await fetch('/api/resenas/votar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ resena_id: id, accion })
+            });
+          } catch (error) {
+            console.error('Error al registrar la acción de voto:', error);
+          }
+        });
       });
     });
   </script>

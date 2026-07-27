@@ -1,0 +1,186 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import HeaderNav from '../../components/HeaderNav.astro';
+import { supabase } from '../../lib/supabase';
+
+const user = Astro.locals.user;
+
+// Redirigir si no está logueado
+if (!user) {
+  return Astro.redirect('/?auth_error=login_required');
+}
+
+// 1. Traer la lista de materias
+const { data: materias } = await supabase
+  .from('materias')
+  .select('id, nombre, nivel')
+  .order('nivel', { ascending: true })
+  .order('nombre', { ascending: true });
+
+const listaMaterias = materias || [];
+
+// 2. Traer la lista de profesores
+const { data: profesores } = await supabase
+  .from('profesores')
+  .select('id, nombre_completo')
+  .order('nombre_completo', { ascending: true });
+
+const listaProfesores = profesores || [];
+
+// 3. Generar años dinámicamente (Desde el actual hasta 2015)
+const currentYear = new Date().getFullYear();
+const aniosDisponibles = Array.from({ length: currentYear - 2014 }, (_, i) => currentYear - i);
+---
+
+<Layout title="Compartir Experiencia de Final - UTN REP">
+  <main class="max-w-xl mx-auto px-4 py-8">
+    <div class="mb-6">
+      <a href="/finales" class="text-amber-400 hover:text-amber-300 font-semibold text-sm flex items-center gap-1">
+        ← Volver a finales
+      </a>
+    </div>
+
+    <div class="bg-[#242424] rounded-3xl border border-neutral-700/60 p-6 sm:p-8 shadow-xl">
+      <h1 class="text-2xl font-heading font-extrabold text-neutral-100 mb-2">Compartí tu Experiencia</h1>
+      <p class="text-sm text-neutral-400 mb-6">Contale a otros estudiantes cómo fue tu mesa de examen, qué temas te preguntaron y qué te pareció el final.</p>
+
+      <form id="final-form" class="space-y-5">
+        <div>
+          <label class="block text-sm font-semibold text-neutral-300 mb-1.5">Materia *</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-neutral-500">🔍</span>
+            <input 
+              type="text" 
+              id="materia_search" 
+              list="lista-materias" 
+              autocomplete="off" 
+              required 
+              placeholder="Escribí para buscar la materia..." 
+              class="w-full pl-10 px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            />
+            <datalist id="lista-materias">
+              {listaMaterias.map((m: any) => (
+                <option data-id={m.id} value={`${m.nombre} (${m.nivel}º Año)`}></option>
+              ))}
+            </datalist>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-neutral-300 mb-1.5">¿Cuándo rendiste? *</label>
+            <select id="anio" required class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+              <option value="" disabled selected>Elegí el año...</option>
+              {aniosDisponibles.map((anio) => (
+                <option value={anio}>{anio}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-neutral-300 mb-1.5">Mesa *</label>
+            <select id="mesa" required class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+              <option value="" disabled selected>Elegí la mesa...</option>
+              <option value="Diciembre">Diciembre</option>
+              <option value="Febrero">Febrero / Marzo</option>
+              <option value="Julio">Julio</option>
+              <option value="Especial">Mesa Especial</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-neutral-300 mb-1.5">Profesor (Opcional)</label>
+            <select id="profesor" class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+              <option value="" selected>No recuerdo</option>
+              {listaProfesores.map((p: any) => (
+                <option value={p.nombre_completo}>{p.nombre_completo}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-neutral-300 mb-1.5">Tu Experiencia *</label>
+          <textarea 
+            id="comentario" 
+            required 
+            rows="5"
+            placeholder="¿Cómo fue la mesa? ¿Fue mas complicado el práctico o el teorico? ¿Qué temas salieron?" 
+            class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
+          ></textarea>
+          <span class="text-neutral-500 text-[11px] block mt-1 text-right">Mínimo 10 caracteres.</span>
+        </div>
+
+        <div id="form-error" class="text-red-400 text-xs font-medium hidden"></div>
+
+        <button 
+          type="submit" 
+          id="submit-btn"
+          class="w-full bg-amber-500 hover:bg-amber-400 text-neutral-900 font-bold py-3.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 text-sm"
+        >
+           Publicar Experiencia
+        </button>
+      </form>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const form = document.getElementById('final-form') as HTMLFormElement;
+  const errorDiv = document.getElementById('form-error') as HTMLDivElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+  const searchInput = document.getElementById('materia_search') as HTMLInputElement;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorDiv.classList.add('hidden');
+    
+    // Validar el datalist para obtener el ID real de la materia
+    let materia_id = '';
+    const options = document.querySelectorAll('#lista-materias option');
+    for (const option of Array.from(options)) {
+      const opt = option as HTMLOptionElement;
+      if (opt.value === searchInput.value) {
+        materia_id = opt.getAttribute('data-id') || '';
+        break;
+      }
+    }
+
+    if (!materia_id) {
+      errorDiv.textContent = 'Por favor, seleccioná una materia válida de la lista.';
+      errorDiv.classList.remove('hidden');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
+
+    const anio = (document.getElementById('anio') as HTMLSelectElement).value;
+    const mesa = (document.getElementById('mesa') as HTMLSelectElement).value;
+    const profesor_nombre = (document.getElementById('profesor') as HTMLSelectElement).value;
+    const comentario = (document.getElementById('comentario') as HTMLTextAreaElement).value;
+
+    try {
+      const response = await fetch('/api/finales/crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materia_id, anio, mesa, profesor_nombre, comentario })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Ocurrió un error al guardar.');
+      }
+
+      // Redirigimos al dashboard con éxito
+      window.location.href = '/finales';
+
+    } catch (err: any) {
+      errorDiv.textContent = err.message;
+      errorDiv.classList.remove('hidden');
+      submitBtn.disabled = false;
+      submitBtn.textContent =  'Publicar Experiencia';
+    }
+  });
+</script>

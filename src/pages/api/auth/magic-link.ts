@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../../lib/supabase';
+import { checkRateLimit } from '../../../lib/rate-limit';
 
 // ── Dominios de email permitidos ──
 const ALLOWED_DOMAINS = new Set([
@@ -47,26 +48,7 @@ function validarNombre(nombre: string): string | null {
 }
 
 // ── Rate limit en memoria (por IP) ──
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hora
-const RATE_LIMIT_MAX = 3; // máx 3 magic links por hora por IP
 
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    return true;
-  }
-
-  if (entry.count >= RATE_LIMIT_MAX) {
-    return false;
-  }
-
-  entry.count++;
-  return true;
-}
 
 /**
  * POST /api/auth/magic-link
@@ -75,7 +57,8 @@ function checkRateLimit(ip: string): boolean {
 export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
   // 1. Rate limit
   const ip = clientAddress || request.headers.get('x-forwarded-for') || 'unknown';
-  if (!checkRateLimit(ip)) {
+// Limite: 3 magic links por hora (3600000 ms)
+  if (!checkRateLimit(ip, 3, 60 * 60 * 1000)) {
     return new Response(JSON.stringify({
       error: 'Demasiados intentos. Esperá un rato antes de intentar de nuevo.'
     }), {

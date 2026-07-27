@@ -97,7 +97,7 @@ if (profesoresError) {
 // Materias (para selector de dictados)
 const { data: materiasRaw } = await supabaseAdmin
   .from('materias')
-  .select('id, nombre, nivel')
+  .select('id, nombre, nivel, es_electiva, puntos_electiva')
   .order('nivel')
   .order('nombre');
 const materias = materiasRaw || [];
@@ -113,7 +113,7 @@ const cursos = cursosRaw || [];
 // Dictados (base)
 const { data: dictadosRaw, error: dictadosError } = await supabaseAdmin
   .from('dictados')
-  .select('id, curso_id, materia_id')
+  .select('id, curso_id, materia_id, es_contracuatrimestral, periodo_dictado, es_intensivo')
   .order('materia_id');
 
 const { data: dictadoProfesoresRaw, error: dictadoProfesoresError } = await supabaseAdmin
@@ -226,8 +226,9 @@ const dictadoNivelBadge: Record<number, string> = {
 const { data: ultimasResenas } = await supabaseAdmin
   .from('resenas')
   .select(`
-    id, comentario, calificacion_general, nombre_usuario, es_anonima, created_at, user_id,
+    id, comentario, calificacion_general, nombre_usuario, es_anonima, created_at, user_id, dictado_id,
     dictados (
+      id,
       cursos ( identificador ),
       materias ( nombre )
     )
@@ -356,7 +357,7 @@ function tiempoRelativo(fecha: string): string {
               </p>
             </div>
             <div class="flex gap-2 flex-shrink-0">
-              <a href={`/dictado/${r.dictados?.id || ''}`} class="text-xs bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-3 py-1.5 rounded-lg transition-colors">
+              <a href={`/dictado/${r.dictado_id ?? r.dictados?.id ?? ''}`} class="text-xs bg-neutral-700 hover:bg-neutral-600 text-neutral-300 px-3 py-1.5 rounded-lg transition-colors">
                 Ver dictado
               </a>
               <button onclick={`adminDeleteResena(${r.id})`} class="text-xs bg-red-900/30 hover:bg-red-900/50 text-red-400 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
@@ -437,7 +438,7 @@ function tiempoRelativo(fecha: string): string {
                   Eliminar reseña
                 </button>
                 <a
-                  href={`/dictado/${item.resena?.dictados?.id || ''}`}
+                  href={`/dictado/${item.resena?.dictado_id ?? item.resena?.dictados?.id ?? ''}`}
                   class="text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-400 px-4 py-2 rounded-xl transition-colors ml-auto"
                 >
                   Ver en contexto →
@@ -656,6 +657,17 @@ function tiempoRelativo(fecha: string): string {
             </select>
           </div>
         </div>
+
+        <div class="mb-4 p-3 bg-neutral-800/50 rounded-xl border border-neutral-700/50">
+          <label class="flex items-center gap-2 cursor-pointer group">
+            <input type="checkbox" id="new-materia-electiva" class="w-4 h-4 rounded border-neutral-600 bg-[#1a1a1a] text-amber-500 focus:ring-amber-400/50 transition-all cursor-pointer" onchange="document.getElementById('new-materia-puntos-container').classList.toggle('hidden', !this.checked)" />
+            <span class="text-sm font-semibold text-neutral-300 group-hover:text-amber-400 transition-colors select-none">Es materia electiva</span>
+          </label>
+          <div id="new-materia-puntos-container" class="hidden mt-3 pt-3 border-t border-neutral-700/50">
+            <label class="block text-xs font-semibold text-neutral-400 mb-1">Puntos que otorga</label>
+            <input type="number" id="new-materia-puntos" placeholder="Ej: 3" min="0" value="0" class="w-full sm:w-1/3 px-4 py-2 rounded-xl border border-neutral-600 bg-[#1a1a1a] text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50" />
+          </div>
+        </div>
         <div class="flex gap-3">
           <button onclick="createMateria()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer text-sm">
             Crear
@@ -670,7 +682,7 @@ function tiempoRelativo(fecha: string): string {
       <!-- Formulario crear curso -->
       <div id="create-curso-form" class="hidden bg-[#242424] rounded-2xl border border-amber-500/30 p-5 mb-6">
         <h3 class="font-heading font-bold text-white mb-3">Nuevo Curso</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-3">
           <div>
             <label class="block text-xs font-semibold text-neutral-400 mb-1">Identificador</label>
             <input
@@ -755,6 +767,11 @@ function tiempoRelativo(fecha: string): string {
                     {nivel}°
                   </span>
                   <span class="font-heading font-bold text-white text-base">{group.materia?.nombre}</span>
+                  {group.materia?.es_electiva && (
+                  <span class="bg-purple-900/40 text-purple-300 border border-purple-700/50 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                    Electiva ({group.materia?.puntos_electiva || 0} pts)
+                  </span>
+                  )}
                   <span class="text-xs text-neutral-500 bg-neutral-800 px-2 py-0.5 rounded-full">
                     {group.dictados.length} dictado{group.dictados.length !== 1 ? 's' : ''}
                   </span>
@@ -779,11 +796,37 @@ function tiempoRelativo(fecha: string): string {
                     >
                       <!-- Dictado header -->
                       <div class="flex items-center justify-between gap-3 mb-3">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                           <span class="text-base font-heading font-bold text-white">{d.cursos?.identificador}</span>
                           <span class="text-xs bg-neutral-700/80 text-neutral-400 px-2 py-0.5 rounded-md">
                             Turno {d.cursos?.turno}
                           </span>
+                          {d.periodo_dictado === 'PRIMER_CUATRIMESTRE' && (
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                              1° cuatrimestre
+                            </span>
+                          )}
+                          {d.periodo_dictado === 'SEGUNDO_CUATRIMESTRE' && (
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-green-300 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-full">
+                              2° cuatrimestre
+                            </span>
+                          )}
+                          {d.periodo_dictado === 'ANUAL' && (
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full">
+                              Anual
+                            </span>
+                          )}
+                          {d.es_intensivo && (
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                              Intensivo
+                            </span>
+                          )}
+                          {d.es_contracuatrimestral && (
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full" title="Se dicta en el cuatrimestre contrario al normal">
+                              Contracuatrimestre
+                              <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500/20 text-[10px] font-bold">i</span>
+                            </span>
+                          )}
                         </div>
                         <div class="flex items-center gap-2">
                           <a href={`/dictado/${d.id}`} class="text-xs text-neutral-500 hover:text-neutral-300 transition-colors" title="Ver página">
@@ -800,6 +843,47 @@ function tiempoRelativo(fecha: string): string {
                               <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
                           </button>
+                        </div>
+                      </div>
+
+                      <!-- Configuración de dictado -->
+                      <div class="bg-neutral-800/40 rounded-lg p-3 space-y-2">
+                        <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Configuración</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label class="text-[11px] text-neutral-500 block mb-1">Período de dictado</label>
+                            <select 
+                              id={`periodo-dictado-${d.id}`}
+                              class="w-full px-2 py-1.5 rounded-md border border-neutral-700/60 bg-[#1a1a1a] text-neutral-100 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                              onchange={`updateDictadoPeriodo(${d.id})`}
+                            >
+                              <option value="">Sin definir</option>
+                              <option value="PRIMER_CUATRIMESTRE" selected={d.periodo_dictado === 'PRIMER_CUATRIMESTRE'}>1° Cuatrimestre</option>
+                              <option value="SEGUNDO_CUATRIMESTRE" selected={d.periodo_dictado === 'SEGUNDO_CUATRIMESTRE'}>2° Cuatrimestre</option>
+                              <option value="ANUAL" selected={d.periodo_dictado === 'ANUAL'}>Anual</option>
+                            </select>
+                          </div>
+                          <div class="flex items-end gap-2">
+                            <label class="flex items-center gap-2 flex-1 px-2 py-1.5 rounded-md border border-neutral-700/60 bg-[#1a1a1a] text-xs text-neutral-100 cursor-pointer hover:bg-neutral-800/50 transition-colors">
+                              <input 
+                                type="checkbox" 
+                                class="h-3 w-3 rounded border-neutral-600 bg-transparent text-amber-500 focus:ring-amber-400/50"
+                                checked={d.es_intensivo}
+                                onchange={`updateDictadoIntensivo(this, ${d.id})`}
+                              />
+                              <span>Intensivo</span>
+                            </label>
+                            <label class="flex items-center gap-2 flex-1 px-2 py-1.5 rounded-md border border-neutral-700/60 bg-[#1a1a1a] text-xs text-neutral-100 cursor-pointer hover:bg-neutral-800/50 transition-colors" title={d.periodo_dictado === 'ANUAL' ? 'Las materias anuales no pueden ser contracuatrimestrales' : ''}>
+                              <input 
+                                type="checkbox" 
+                                class="h-3 w-3 rounded border-neutral-600 bg-transparent text-amber-500 focus:ring-amber-400/50"
+                                checked={d.es_contracuatrimestral}
+                                disabled={d.periodo_dictado === 'ANUAL'}
+                                onchange={`updateDictadoContracuatrimestral(this, ${d.id})`}
+                              />
+                              <span>Contracuatrimestre</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
 
@@ -1218,18 +1302,31 @@ function tiempoRelativo(fecha: string): string {
     document.getElementById('create-materia-form')?.classList.add('hidden');
     const nombre = document.getElementById('new-materia-nombre');
     const nivel = document.getElementById('new-materia-nivel');
+    const electiva = document.getElementById('new-materia-electiva');
+    const puntos = document.getElementById('new-materia-puntos');
+    
     if (nombre) nombre.value = '';
     if (nivel) nivel.value = '';
+    if (electiva) {
+      electiva.checked = false;
+      document.getElementById('new-materia-puntos-container')?.classList.add('hidden');
+    }
+    if (puntos) puntos.value = '0';
   };
 
   window.createMateria = async () => {
     const nombreInput = document.getElementById('new-materia-nombre');
     const nivelSelect = document.getElementById('new-materia-nivel');
+    const electivaCheck = document.getElementById('new-materia-electiva');
+    const puntosInput = document.getElementById('new-materia-puntos');
     const msg = document.getElementById('create-materia-msg');
+    
     if (!nombreInput || !nivelSelect || !msg) return;
 
     const nombre = nombreInput.value.trim();
     const nivel = parseInt(nivelSelect.value, 10);
+    const es_electiva = electivaCheck ? electivaCheck.checked : false;
+    const puntos_electiva = puntosInput ? parseInt(puntosInput.value, 10) : 0;
 
     if (!nombre || nombre.length < 2) {
       msg.className = 'text-sm mt-2 text-red-400';
@@ -1247,7 +1344,13 @@ function tiempoRelativo(fecha: string): string {
     try {
       await adminFetch('/api/admin/materias', {
         method: 'POST',
-        body: JSON.stringify({ action: 'create', nombre, nivel }),
+        body: JSON.stringify({ 
+          action: 'create', 
+          nombre, 
+          nivel,
+          es_electiva,
+          puntos_electiva
+        }),
       });
       showToast('Materia creada');
       setTimeout(() => location.reload(), 500);
@@ -1312,6 +1415,58 @@ function tiempoRelativo(fecha: string): string {
     }
   };
 
+  window.updateDictadoContracuatrimestral = async (checkbox, dictadoId) => {
+    if (!checkbox) return;
+    try {
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          action: 'update', 
+          dictado_id: dictadoId, 
+          es_contracuatrimestral: checkbox.checked 
+        }),
+      });
+      showToast('Configuración actualizada');
+    } catch (e) {
+      showToast(e.message, 'error');
+      checkbox.checked = !checkbox.checked; // Revierte el check visual si la API falla
+    }
+  };
+
+  window.updateDictadoPeriodo = async (dictadoId) => {
+    const select = document.getElementById(`periodo-dictado-${dictadoId}`);
+    if (!select) return;
+    const periodo = select.value || null;
+    try {
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'update', dictado_id: dictadoId, periodo_dictado: periodo }),
+      });
+      showToast('Período actualizado');
+      //setTimeout(() => location.reload(), 500);
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  window.updateDictadoIntensivo = async (checkbox, dictadoId) => {
+    if (!checkbox) return;
+    try {
+      await adminFetch('/api/admin/dictados', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          action: 'update', 
+          dictado_id: dictadoId, 
+          es_intensivo: checkbox.checked 
+        }),
+      });
+      showToast('Configuración actualizada');
+    } catch (e) {
+      showToast(e.message, 'error');
+      checkbox.checked = !checkbox.checked; // Revierte el check visual si la API falla
+    }
+  };
+
   window.createDictado = async () => {
     const materiaSelect = document.getElementById('new-dictado-materia');
     const cursoSelect = document.getElementById('new-dictado-curso');
@@ -1367,6 +1522,7 @@ function tiempoRelativo(fecha: string): string {
   window.assignProfesorToDictado = async (dictadoId) => {
     const select = document.querySelector(`.assign-profesor-select[data-dictado-id="${dictadoId}"]`);
     const profesorId = parseInt(select?.value || '', 10);
+    
     if (!profesorId) {
       showToast('Seleccioná un profesor', 'error');
       return;
@@ -1378,7 +1534,23 @@ function tiempoRelativo(fecha: string): string {
         body: JSON.stringify({ action: 'assign_profesor', dictado_id: dictadoId, profesor_id: profesorId }),
       });
       showToast('Profesor asignado');
-      setTimeout(() => location.reload(), 500);
+
+      // --- MAGIA SIN RECARGAR ---
+      const option = select.querySelector(`option[value="${profesorId}"]`);
+      if (option) {
+        option.style.display = 'none'; // Ocultamos al profe del desplegable para que no lo elijas 2 veces
+        select.value = ''; // Reseteamos el selector
+        
+        // Animamos el botón de "Agregar" para dar feedback visual
+        const btn = select.nextElementSibling;
+        const oldText = btn.textContent;
+        btn.textContent = '¡Agregado!';
+        btn.classList.add('bg-green-600', 'text-white');
+        setTimeout(() => {
+          btn.textContent = oldText;
+          btn.classList.remove('bg-green-600', 'text-white');
+        }, 1500);
+      }
     } catch (e) {
       showToast(e.message, 'error');
     }
@@ -1392,7 +1564,14 @@ function tiempoRelativo(fecha: string): string {
         body: JSON.stringify({ action: 'remove_profesor', dictado_id: dictadoId, profesor_id: profesorId }),
       });
       showToast(`"${nombre}" removido del dictado`);
-      setTimeout(() => location.reload(), 500);
+
+      // --- MAGIA SIN RECARGAR ---
+      // Buscamos el botón específico que tocaste usando su atributo onclick
+      const btns = document.querySelectorAll(`button[onclick*="removeProfesorFromDictado(${dictadoId}, ${profesorId}"]`);
+      if (btns.length > 0) {
+        const row = btns[0].closest('.group'); // Buscamos la fila entera del profesor
+        if (row) row.style.display = 'none';   // La ocultamos al instante
+      }
     } catch (e) {
       showToast(e.message, 'error');
     }
@@ -1455,24 +1634,15 @@ function tiempoRelativo(fecha: string): string {
 
   // Swap professor: remove old, then prompt to pick new one
   window.swapProfesor = async (dictadoId, oldProfesorId, oldNombre) => {
-    // Load profesores list from embedded JSON
     let allProfesores = [];
     try {
       const dataEl = document.getElementById('profesores-data');
       if (dataEl) allProfesores = JSON.parse(dataEl.textContent || '[]');
-    } catch {
-      // ignore
-    }
+    } catch { }
 
-    // Build options excluding the current professor
-    const options = allProfesores
-      .filter((p) => p.id !== oldProfesorId)
-      .map((p) => p.nombre)
-      .join('\n');
-
-    const newNombre = prompt(
-      `Cambiar a "${oldNombre}" por otro profesor.\n\nEscribí el nombre exacto del nuevo profesor:\n\n${options}`
-    );
+    const options = allProfesores.filter((p) => p.id !== oldProfesorId).map((p) => p.nombre).join('\n');
+    const newNombre = prompt(`Cambiar a "${oldNombre}" por otro profesor.\n\nEscribí el nombre exacto:\n\n${options}`);
+    
     if (!newNombre) return;
 
     const newProf = allProfesores.find((p) => p.nombre.toLowerCase() === newNombre.trim().toLowerCase());
@@ -1482,18 +1652,33 @@ function tiempoRelativo(fecha: string): string {
     }
 
     try {
-      // Remove old
       await adminFetch('/api/admin/dictados', {
         method: 'POST',
         body: JSON.stringify({ action: 'remove_profesor', dictado_id: dictadoId, profesor_id: oldProfesorId }),
       });
-      // Assign new
       await adminFetch('/api/admin/dictados', {
         method: 'POST',
         body: JSON.stringify({ action: 'assign_profesor', dictado_id: dictadoId, profesor_id: newProf.id }),
       });
       showToast(`Cambiado: "${oldNombre}" → "${newProf.nombre}"`);
-      setTimeout(() => location.reload(), 500);
+
+      // --- MAGIA SIN RECARGAR ---
+      const btns = document.querySelectorAll(`button[onclick*="swapProfesor(${dictadoId}, ${oldProfesorId}"]`);
+      if (btns.length > 0) {
+        const row = btns[0].closest('.group');
+        if (row) {
+          // Cambiamos el texto y la inicial por el nuevo profe
+          const nameSpan = row.querySelector('.text-neutral-200');
+          if (nameSpan) nameSpan.textContent = newProf.nombre;
+          const badge = row.querySelector('.rounded-full');
+          if (badge) badge.textContent = newProf.nombre.charAt(0);
+          
+          // Actualizamos los botones para que sigan funcionando si lo querés volver a borrar/cambiar
+          btns[0].setAttribute('onclick', `swapProfesor(${dictadoId}, ${newProf.id}, '${newProf.nombre.replace(/'/g, "\\'")}')`);
+          const removeBtn = row.querySelector(`button[onclick*="removeProfesorFromDictado"]`);
+          if (removeBtn) removeBtn.setAttribute('onclick', `removeProfesorFromDictado(${dictadoId}, ${newProf.id}, '${newProf.nombre.replace(/'/g, "\\'")}')`);
+        }
+      }
     } catch (e) {
       showToast(e.message, 'error');
     }

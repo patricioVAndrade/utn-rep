@@ -227,6 +227,22 @@ const currentYear = new Date().getFullYear();
         </select>
       </div>
 
+      <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-4 flex items-center gap-2">
+          <span class="bg-purple-900/30 text-purple-400 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg></span>
+          ¿En qué condición quedaste? (Opcional)
+        </h2>
+        <select 
+          id="condicion-final" 
+          class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#242424] text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all"
+        >
+          <option value="">Prefiero no contestar</option>
+          <option value="PROMOCIONADO">Promocionado (Aprobación Directa)</option>
+          <option value="REGULAR">Regular</option>
+          <option value="LIBRE">Libre</option>
+        </select>
+      </div>
+
       <!-- Comentario -->
       <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
         <h2 class="font-heading font-bold text-lg text-neutral-100 mb-4 flex items-center gap-2">
@@ -416,6 +432,8 @@ const currentYear = new Date().getFullYear();
       btnSubmit.disabled = true;
       btnSubmit.innerHTML = '<span class="animate-spin inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full"></span> Enviando...';
 
+      const condicionFinal = document.getElementById('condicion-final').value || null;
+
       try {
         const res = await fetch('/api/resenas', {
           method: 'POST',
@@ -425,7 +443,8 @@ const currentYear = new Date().getFullYear();
             calificacion_general: calificacion,
             anio_cursado: anio,
             comentario: comentario,
-            es_anonima: document.getElementById('es-anonima')?.checked || false
+            es_anonima: document.getElementById('es-anonima')?.checked || false,
+            condicion_final: condicionFinal
           })
         });
 

@@ -86,7 +86,7 @@ const siteURL = Astro.url.origin;
           </div>
         </div>
         <div class="border-t border-neutral-800 mt-6 pt-6 text-center text-xs">
-          <p>Hecho por <span class="text-neutral-300 font-medium">Patricio Valentín Andrade</span> &mdash; {new Date().getFullYear()}</p>
+          <p>Desarrollado por <span class="text-neutral-300 font-medium">Patricio Valentín Andrade</span> &mdash; {new Date().getFullYear()}</p>
         </div>
       </div>
     </footer>
@@ -105,8 +105,8 @@ const siteURL = Astro.url.origin;
     if (!modal) return;
 
     function openModal() {
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      modal?.classList.remove('hidden');
+      modal?.classList.add('flex');
 
       // Save the current page URL for post-login redirect
       const currentPage = window.location.pathname + window.location.search;
@@ -126,8 +126,8 @@ const siteURL = Astro.url.origin;
     }
 
     function closeModal() {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
+      modal?.classList.add('hidden');
+      modal?.classList.remove('flex');
     }
 
     loginBtn?.addEventListener('click', openModal);

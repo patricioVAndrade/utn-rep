@@ -27,6 +27,9 @@ const { data: dictados } = await supabase
   .from('dictados')
   .select(`
     id,
+    es_contracuatrimestral,
+    periodo_dictado,
+    es_intensivo,
     cursos ( identificador, turno ),
     dictado_profesores (
       profesores ( nombre_completo )
@@ -34,15 +37,29 @@ const { data: dictados } = await supabase
   `)
   .eq('materia_id', id);
 
-const dictadosOrdenados = dictados?.sort((a, b) => {
-  // Natural sort: extract numeric part after letter (e.g. "2K10" → 10)
-  const numA = parseInt(a.cursos.identificador.replace(/\D+/g, '').slice(1) || '0');
-  const numB = parseInt(b.cursos.identificador.replace(/\D+/g, '').slice(1) || '0');
-  const prefixA = a.cursos.identificador.replace(/\d+$/, '');
-  const prefixB = b.cursos.identificador.replace(/\d+$/, '');
-  if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
-  return numA - numB;
-}) || [];
+function normalizeCurso(curso: any) {
+  if (Array.isArray(curso)) return curso[0] || null;
+  return curso || null;
+}
+
+const dictadosOrdenados = (dictados || [])
+  .map((dictado: any) => ({
+    ...dictado,
+    cursos: normalizeCurso(dictado.cursos),
+  }))
+  .sort((a: any, b: any) => {
+    // Natural sort: extract numeric part after letter (e.g. "2K10" → 10)
+    const cursoA = normalizeCurso(a.cursos);
+    const cursoB = normalizeCurso(b.cursos);
+    const identificadorA = cursoA?.identificador || '';
+    const identificadorB = cursoB?.identificador || '';
+    const numA = parseInt(identificadorA.replace(/\D+/g, '').slice(1) || '0');
+    const numB = parseInt(identificadorB.replace(/\D+/g, '').slice(1) || '0');
+    const prefixA = identificadorA.replace(/\d+$/, '');
+    const prefixB = identificadorB.replace(/\d+$/, '');
+    if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
+    return numA - numB;
+  });
 
 // Traer reseñas y calcular estadísticas reales
 const dictadoIds = dictados?.map(d => d.id) || [];
@@ -90,6 +107,8 @@ const nivelColors: Record<number, { bg: string; light: string; accent: string }>
 const nivel = materia?.nivel || 1;
 const colors = nivelColors[nivel] || nivelColors[1];
 
+
+
 const backLink = from === 'nivel' ? `/nivel/${nivel}` : '/';
 const backLabel = from === 'nivel' ? `${nivel}º Año` : 'Inicio';
 
@@ -116,6 +135,11 @@ function tiempoRelativo(fecha: string): string {
           <h1 class="text-3xl sm:text-4xl lg:text-5xl font-heading font-extrabold tracking-tight mt-1">
             {materia?.nombre}
           </h1>
+          {materia.es_electiva && (
+            <span class="inline-flex items-center gap-1 text-xs font-bold bg-purple-900/40 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full uppercase tracking-wider">
+              Electiva ({materia.puntos_electiva || 0} pts)
+            </span>
+          )}
         </div>
         <div class="flex items-center gap-4 bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm">
           <div class="text-right">
@@ -129,6 +153,8 @@ function tiempoRelativo(fecha: string): string {
 
   <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
     
+    
+
     <!-- Cátedras -->
     <section class="mb-12">
       <h2 class="text-xl sm:text-2xl font-heading font-bold text-neutral-100 mb-6 flex items-center gap-3">
@@ -138,14 +164,43 @@ function tiempoRelativo(fecha: string): string {
       
       {dictadosOrdenados.length > 0 ? (
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {dictadosOrdenados.map((dictado) => {
+          {dictadosOrdenados.map((dictado: any) => {
+            const curso = normalizeCurso(dictado.cursos);
             const stats = dictadoStats[dictado.id] || { promedio: "0.0", count: 0 };
             return (
               <a href={`/dictado/${dictado.id}`} class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5 sm:p-6 hover:shadow-xl hover:-translate-y-1 hover:border-amber-300 transition-all duration-300 flex flex-col">
-                <div class="flex justify-between items-start mb-3">
-                  <h3 class="font-heading font-extrabold text-2xl text-white">{dictado.cursos.identificador}</h3>
+                <div class="flex justify-between items-start mb-3 gap-2">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-heading font-extrabold text-2xl text-white">{curso?.identificador || 'Curso'}</h3>
+                    {dictado.periodo_dictado === 'PRIMER_CUATRIMESTRE' && (
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-1 rounded-full">
+                        1° cuatrimestre
+                      </span>
+                    )}
+                    {dictado.periodo_dictado === 'SEGUNDO_CUATRIMESTRE' && (
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-green-300 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-full">
+                        2° cuatrimestre
+                      </span>
+                    )}
+                    {dictado.periodo_dictado === 'ANUAL' && (
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-1 rounded-full">
+                        Anual
+                      </span>
+                    )}
+                    {dictado.es_intensivo && (
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full">
+                        Intensivo
+                      </span>
+                    )}
+                    {dictado.es_contracuatrimestral && (
+                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full" title="Se dicta en el cuatrimestre contrario al normal">
+                        Contracuatrimestre
+                        <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500/20 text-[10px] font-bold">i</span>
+                      </span>
+                    )}
+                  </div>
                   <span class={`text-xs font-bold ${colors.accent} px-3 py-1 rounded-lg uppercase tracking-wide`}>
-                    {dictado.cursos.turno}
+                    {curso?.turno || 'SIN TURNO'}
                   </span>
                 </div>
                 
@@ -202,8 +257,8 @@ function tiempoRelativo(fecha: string): string {
       {resenas.length > 0 ? (
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           {resenas.slice(0, 6).map((resena: any) => {
-            const dictadoInfo = dictadosOrdenados.find(d => d.id === resena.dictado_id);
-            const cursoNombre = dictadoInfo ? dictadoInfo.cursos.identificador : 'Curso';
+            const dictadoInfo = dictadosOrdenados.find((d: any) => d.id === resena.dictado_id);
+            const cursoNombre = normalizeCurso(dictadoInfo?.cursos)?.identificador || 'Curso';
             return (
               <div class="bg-[#242424] p-6 rounded-2xl border border-neutral-700/60 shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex justify-between items-start mb-3">
@@ -240,12 +295,16 @@ function tiempoRelativo(fecha: string): string {
                   </span>
                 </div>
                 <p class="text-neutral-300 font-medium italic mb-4">"{resena.comentario}"</p>
-                <div class="text-xs text-neutral-500 font-medium flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  Cursado en {resena.anio_cursado}
-                  {resena.created_at && ` · ${tiempoRelativo(resena.created_at)}`}
+                <div class="flex items-center justify-between mt-4 pt-4 border-t border-neutral-700/50">
+                  <div class="text-xs text-neutral-500 font-medium flex items-center gap-2 mt-4 pt-4 border-t border-neutral-700/50">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                      Cursado en {resena.anio_cursado}
+                      {resena.created_at && ` · ${tiempoRelativo(resena.created_at)}`}
+                  </div>
+                  
+                  
                 </div>
-              </div>
+            </div>
             );
           })}
         </div>
@@ -271,6 +330,8 @@ function tiempoRelativo(fecha: string): string {
       </a>
     </div>
 
+  
   </main>
+  
 
 </Layout>

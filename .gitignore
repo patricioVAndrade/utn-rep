@@ -47,3 +47,17 @@ supabase-security-setup.sql
 # ── OG image generator (temp) ─────────────────────
 public/og-image.html
 .vscode/
+
+ideas_list.txt
+
+# Ignorar panel de administración
+src/pages/admin/
+src/pages/api/admin/
+src/lib/supabase-admin.ts
+src/lib/admin-guards.ts
+src/lib/admin.ts
+src/lib/supabase.ts
+src/lib/rate-limit.ts
+src/lib/cache.ts
+
+admin-setup.sql

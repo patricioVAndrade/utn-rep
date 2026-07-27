@@ -11,8 +11,9 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
   const error_param = url.searchParams.get('error');
   const error_description = url.searchParams.get('error_description');
 
-  // Read returnTo from the callback URL query params
-  const returnTo = url.searchParams.get('returnTo') || '/';
+  // Read returnTo from cookie (set by Layout.astro JS and/or login.ts)
+  const returnToCookie = cookies.get('auth_returnTo')?.value;
+  const returnTo = returnToCookie ? decodeURIComponent(returnToCookie) : (url.searchParams.get('returnTo') || '/');
 
   if (error_param) {
     console.error('[Auth Callback] Provider error:', error_param, error_description);
@@ -23,8 +24,14 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
   }
 
   if (!code) {
-    console.error('[Auth Callback] No code in URL. Search params:', url.search);
-    return new Response(null, { status: 302, headers: { Location: '/?auth_error=missing_code' } });
+    // No code — the session might have been established by the middleware already
+    // (Supabase sometimes redirects to Site URL instead of callback URL).
+    // Just redirect to the intended destination silently.
+    console.warn('[Auth Callback] No code in URL (likely handled by middleware). Redirecting to:', returnTo);
+    const destination = returnTo.startsWith('/') ? returnTo : '/';
+    // Clean up the returnTo cookie
+    cookies.delete('auth_returnTo', { path: '/' });
+    return new Response(null, { status: 302, headers: { Location: destination } });
   }
 
   console.log('[Auth Callback] Got code, exchanging for session...');
@@ -39,6 +46,9 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
   }
 
   console.log('[Auth Callback] Session established! returnTo:', returnTo);
+
+  // Clean up the returnTo cookie
+  responseCookies.push({ name: 'auth_returnTo', value: '', options: { path: '/', maxAge: 0, sameSite: 'lax' as const } });
 
   // Validate returnTo is a relative path (prevent open redirect)
   const destination = returnTo.startsWith('/') ? returnTo : '/';

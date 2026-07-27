@@ -10,6 +10,7 @@ function json(data: Record<string, any>, status = 200) {
 }
 
 const ALLOWED_TURNOS = new Set(['MAÑANA', 'TARDE', 'NOCHE', 'INDEFINIDO']);
+const ALLOWED_PERIODOS = new Set(['PRIMER_CUATRIMESTRE', 'SEGUNDO_CUATRIMESTRE', 'ANUAL']);
 
 function normalizeTurno(turno: string): string {
   const trimmed = turno.trim().toUpperCase();
@@ -22,6 +23,20 @@ function inferAnioCarrera(identificador: string): number | null {
   if (!match) return null;
   const num = Number(match[0]);
   return Number.isInteger(num) ? num : null;
+}
+
+function normalizePeriodo(periodo: unknown): string | null {
+  if (typeof periodo !== 'string') return null;
+  const trimmed = periodo.trim().toUpperCase();
+  if (!trimmed) return null;
+  if (trimmed === 'PRIMER CUATRIMESTRE' || trimmed === '1ER CUATRIMESTRE' || trimmed === '1ER_CUATRIMESTRE' || trimmed === 'PRIMER_CUATRIMESTRE') return 'PRIMER_CUATRIMESTRE';
+  if (trimmed === 'SEGUNDO CUATRIMESTRE' || trimmed === '2DO CUATRIMESTRE' || trimmed === '2DO_CUATRIMESTRE' || trimmed === 'SEGUNDO_CUATRIMESTRE') return 'SEGUNDO_CUATRIMESTRE';
+  if (trimmed === 'ANUAL') return 'ANUAL';
+  return null;
+}
+
+function normalizeBoolean(value: unknown): boolean {
+  return value === true || value === 'true' || value === 1 || value === '1';
 }
 
 /**
@@ -92,5 +107,5 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return json({ success: true, data }, 201);
   }
 
-  return json({ error: 'Acción no válida. Usa "create".' }, 400);
+  return json({ error: 'Acción no válida. Solo "create" está soportado.' }, 400);
 };
