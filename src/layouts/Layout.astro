@@ -30,7 +30,6 @@ const siteURL = Astro.url.origin;
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="canonical" href={canonicalURL} />
-    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:title" content={title} />
@@ -40,7 +39,6 @@ const siteURL = Astro.url.origin;
     <meta property="og:image" content={`${siteURL}/og-image.png`} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
@@ -49,7 +47,6 @@ const siteURL = Astro.url.origin;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <title>{title}</title>
-    <!-- JSON-LD Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "WebSite",
@@ -65,11 +62,21 @@ const siteURL = Astro.url.origin;
   </head>
   <body class="bg-[#1a1a1a] text-neutral-300 antialiased min-h-screen flex flex-col" style="font-family: 'Inter', system-ui, sans-serif;">
     
+    <div class="bg-amber-500/10 border-b border-amber-500/20 text-amber-400 px-4 py-2.5 text-center text-sm sm:text-base flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 relative z-50">
+      <div class="flex items-center gap-2 font-medium">
+        
+        <span><strong>¡Versión 2.0 (Beta)!</strong> Agregamos nuevas caracteristicas.</span>
+      </div>
+      <div class="inline-flex items-center gap-1.5 text-amber-300/90 text-sm">
+        ¿Encontraste un error? Escribime a: 
+        <code class="bg-amber-500/20 text-white px-2 py-0.5 rounded font-bold select-all cursor-copy transition-colors hover:bg-amber-500/30" title="Hacé clic para seleccionar">patriciovandrade@gmail.com</code>
+      </div>
+    </div>
+
     <slot />
 
     <Analytics />
 
-    <!-- Footer -->
     <footer class={`bg-[#111111] text-neutral-500 mt-auto ${hasFloatingButton ? 'pb-24 sm:pb-8' : ''}`}>
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -264,7 +271,6 @@ const siteURL = Astro.url.origin;
   initLoginModal();
 </script>
 
-<!-- Post-login redirect fallback (only if server-side cookie redirect didn't fire) -->
 <script>
   try {
     const returnTo = localStorage.getItem('auth_returnTo');
