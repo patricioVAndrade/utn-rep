@@ -64,7 +64,6 @@ const siteURL = Astro.url.origin;
     
     <div class="bg-amber-500/10 border-b border-amber-500/20 text-amber-400 px-4 py-2.5 text-center text-sm sm:text-base flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 relative z-50">
       <div class="flex items-center gap-2 font-medium">
-        
         <span><strong>¡Versión 2.0 (Beta)!</strong> Agregamos nuevas caracteristicas.</span>
       </div>
       <div class="inline-flex items-center gap-1.5 text-amber-300/90 text-sm">
@@ -77,6 +76,15 @@ const siteURL = Astro.url.origin;
 
     <Analytics />
 
+    <a 
+      href="https://cafecito.app/utnrep" 
+      target="_blank" 
+      rel="noopener noreferrer" 
+      class="cafecito-btn fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 bg-[#FFB000] text-black font-bold rounded-full shadow-lg transition-transform duration-300 hover:scale-105 px-3 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm border border-[#e69f00]"
+    >
+      <span class="text-base sm:text-lg">☕</span>
+      <span>Invitame un cafecito</span>
+    </a>
     <footer class={`bg-[#111111] text-neutral-500 mt-auto ${hasFloatingButton ? 'pb-24 sm:pb-8' : ''}`}>
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -101,6 +109,22 @@ const siteURL = Astro.url.origin;
   </body>
 </html>
 
+<style>
+  .cafecito-btn {
+    animation: cafecito-glow 2.5s ease-in-out infinite alternate; /* Lo hice apenas más lento (2.5s) para que relaje más */
+  }
+
+  @keyframes cafecito-glow {
+    0% {
+      /* Brillo mínimo: muy cerquita del botón y casi transparente */
+      box-shadow: 0 0 4px 0px rgba(255, 176, 0, 0.2);
+    }
+    100% {
+      /* Brillo máximo: se expande menos y es menos opaco que antes */
+      box-shadow: 0 0 10px 2px rgba(255, 176, 0, 0.5);
+    }
+  }
+</style>
 <script>
   // ========== LOGIN MODAL ==========
   function initLoginModal() {
