@@ -107,8 +107,6 @@ const nivelColors: Record<number, { bg: string; light: string; accent: string }>
 const nivel = materia?.nivel || 1;
 const colors = nivelColors[nivel] || nivelColors[1];
 
-
-
 const backLink = from === 'nivel' ? `/nivel/${nivel}` : '/';
 const backLabel = from === 'nivel' ? `${nivel}º Año` : 'Inicio';
 
@@ -121,9 +119,45 @@ function tiempoRelativo(fecha: string): string {
   if (dias < 365) return `Hace ${Math.floor(dias / 30)} mes${Math.floor(dias / 30) > 1 ? 'es' : ''}`;
   return `Hace ${Math.floor(dias / 365)} año${Math.floor(dias / 365) > 1 ? 's' : ''}`;
 }
+
+// ==========================================
+// CONFIGURACIÓN SEO Y DATOS ESTRUCTURADOS
+// ==========================================
+const seoTitle = `Reseñas de ${materia?.nombre} - UTN FRC`;
+const seoDescription = `Leé opiniones, calificaciones y recomendaciones para cursar ${materia?.nombre} en Ingeniería en Sistemas de la UTN FRC. Enterate qué profesores son los mejores y cómo son los finales.`;
+
+// Armamos el schema de Google agregándole también las estrellas si es que tiene reseñas
+const schemaObject: any = {
+  "@context": "https://schema.org/",
+  "@type": "Course",
+  "name": `${materia?.nombre} - UTN FRC`,
+  "description": seoDescription,
+  "provider": {
+    "@type": "Organization",
+    "name": "UTN FRC",
+    "sameAs": "https://frc.utn.edu.ar/"
+  }
+};
+
+// Si la materia tiene reseñas, le agregamos las "estrellitas" para que salgan en Google
+if (resenas.length > 0) {
+  schemaObject.aggregateRating = {
+    "@type": "AggregateRating",
+    "ratingValue": promedioGeneral,
+    "reviewCount": resenas.length.toString()
+  };
+}
+
+const schemaMateria = JSON.stringify(schemaObject);
+// ==========================================
 ---
 
-<Layout title={`${materia?.nombre} - UTN REP`} hasFloatingButton={true}>
+<Layout 
+  title={seoTitle}
+  description={seoDescription}
+  schema={schemaMateria}
+  hasFloatingButton={true}
+>
     
   <header class={`bg-gradient-to-r ${colors.bg} text-white shadow-md relative overflow-hidden`}>
     <div class="absolute inset-0 dot-pattern opacity-30"></div>
@@ -155,7 +189,6 @@ function tiempoRelativo(fecha: string): string {
     
     
 
-    <!-- Cátedras -->
     <section class="mb-12">
       <h2 class="text-xl sm:text-2xl font-heading font-bold text-neutral-100 mb-6 flex items-center gap-3">
         <span class="bg-neutral-700 text-neutral-300 p-2 rounded-xl shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg></span>
@@ -247,7 +280,6 @@ function tiempoRelativo(fecha: string): string {
       )}
     </section>
 
-    <!-- Opiniones Recientes -->
     <section class="mb-24">
       <h2 class="text-xl sm:text-2xl font-heading font-bold text-neutral-100 mb-6 flex items-center gap-3">
         <span class="bg-amber-900/30 text-amber-400 p-2 rounded-xl shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></span>
@@ -319,7 +351,6 @@ function tiempoRelativo(fecha: string): string {
       )}
     </section>
 
-    <!-- Botón flotante -->
     <div class="fixed bottom-6 left-4 right-4 sm:left-auto sm:right-8 sm:w-auto z-20">
       <a href={`/nueva-resena?materia=${id}&from=/materia/${id}`} class={`w-full sm:w-auto bg-gradient-to-r ${colors.bg} hover:opacity-90 text-white font-bold text-base sm:text-lg px-8 py-4 rounded-2xl shadow-xl shadow-blue-900/20 transition-all active:scale-95 flex items-center justify-center gap-2`}>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
@@ -333,5 +364,4 @@ function tiempoRelativo(fecha: string): string {
   
   </main>
   
-
 </Layout>

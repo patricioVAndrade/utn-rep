@@ -5,6 +5,10 @@ import Analytics from '@vercel/analytics/astro'
 interface Props {
   title: string;
   description?: string;
+  /** Imagen para previsualización en WhatsApp/Twitter (opcional) */
+  ogImage?: string;
+  /** JSON-LD (Datos Estructurados) en formato string para Google (opcional) */
+  schema?: string;
   /** Extra padding en el footer para botones flotantes */
   hasFloatingButton?: boolean;
 }
@@ -12,12 +16,16 @@ interface Props {
 const {
   title,
   description = 'Reseñas reales de materias, cátedras y profesores de Ingeniería en Sistemas — UTN FRC. Elegí mejor tu cursada.',
+  ogImage = '/og-image.png',
+  schema,
   hasFloatingButton = false,
 } = Astro.props;
+
 const canonicalURL = Astro.url.href;
 const siteURL = Astro.url.origin;
----
 
+const ogImageUrl = new URL(ogImage, siteURL).href;
+---
 <html lang="es">
   <head>
     <meta charset="utf-8" />
@@ -30,23 +38,27 @@ const siteURL = Astro.url.origin;
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="canonical" href={canonicalURL} />
+    
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:locale" content="es_AR" />
     <meta property="og:site_name" content="UTN REP" />
-    <meta property="og:image" content={`${siteURL}/og-image.png`} />
+    <meta property="og:image" content={ogImageUrl} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={`${siteURL}/og-image.png`} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <title>{title}</title>
+
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "WebSite",
@@ -59,6 +71,8 @@ const siteURL = Astro.url.origin;
         "name": "UTN REP"
       }
     })} />
+
+    {schema && <script type="application/ld+json" set:html={schema} />}
   </head>
   <body class="bg-[#1a1a1a] text-neutral-300 antialiased min-h-screen flex flex-col" style="font-family: 'Inter', system-ui, sans-serif;">
     

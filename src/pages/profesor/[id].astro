@@ -92,9 +92,48 @@ const nivelColors: Record<number, { bg: string; accent: string }> = {
   4: { bg: "from-red-500 to-red-600", accent: "bg-red-900/30 text-red-400" },
   5: { bg: "from-purple-500 to-purple-600", accent: "bg-purple-900/30 text-purple-400" },
 };
+
+// ==========================================
+// CONFIGURACIÓN SEO Y DATOS ESTRUCTURADOS
+// ==========================================
+const nombresMaterias = materiasOrdenadas.map(m => m.materia.nombre).join(', ');
+const materiasTexto = nombresMaterias ? ` Materias que dicta: ${nombresMaterias}.` : '';
+
+const seoTitle = `Reseñas de ${profesor.nombre_completo} - UTN FRC`;
+const seoDescription = `Leé opiniones, calificaciones y métodos de evaluación del profesor ${profesor.nombre_completo} en la UTN FRC.${materiasTexto} Enterate qué opinan los alumnos de sus clases.`;
+
+// Armamos el schema de Google para el Profesor (Schema type: Person)
+const schemaObject: any = {
+  "@context": "https://schema.org/",
+  "@type": "Person",
+  "name": profesor.nombre_completo,
+  "jobTitle": "Profesor",
+  "worksFor": {
+    "@type": "Organization",
+    "name": "UTN FRC",
+    "sameAs": "https://frc.utn.edu.ar/"
+  },
+  "description": seoDescription
+};
+
+// Agregamos las estrellas si tiene reseñas
+if (totalResenas > 0 && promedioGeneral !== "0.0") {
+  schemaObject.aggregateRating = {
+    "@type": "AggregateRating",
+    "ratingValue": promedioGeneral,
+    "reviewCount": totalResenas.toString()
+  };
+}
+
+const schemaProfesor = JSON.stringify(schemaObject);
+// ==========================================
 ---
 
-<Layout title={`${profesor.nombre_completo} - UTN REP`}>
+<Layout 
+  title={seoTitle}
+  description={seoDescription}
+  schema={schemaProfesor}
+>
 
   <header class="bg-gradient-to-r from-stone-700 to-stone-900 text-white relative overflow-hidden">
     <div class="absolute inset-0 dot-pattern opacity-30"></div>
