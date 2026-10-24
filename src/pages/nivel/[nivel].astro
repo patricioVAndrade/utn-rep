@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import HeaderNav from '../../components/HeaderNav.astro';
 import { supabase } from '../../lib/supabase';
+import { NIVEL_COLORS } from '../../lib/format';
 
 const user = Astro.locals.user;
 
@@ -26,33 +27,24 @@ const materiaIds = materias?.map(m => m.id) || [];
 const materiaStats: Record<number, { promedio: number; count: number }> = {};
 
 if (materiaIds.length > 0) {
-  const { data: resenas } = await supabase
-    .from('resenas')
-    .select('calificacion_general, dictados!inner(materia_id)')
-    .in('dictados.materia_id', materiaIds);
+  const { data: stats } = await supabase
+    .from('stats_dictados')
+    .select('materia_id, cantidad, promedio')
+    .in('materia_id', materiaIds);
 
-  if (resenas) {
-    resenas.forEach((r: any) => {
-      const mid = r.dictados?.materia_id;
-      if (!mid) return;
-      if (!materiaStats[mid]) materiaStats[mid] = { promedio: 0, count: 0 };
-      materiaStats[mid].count++;
-      materiaStats[mid].promedio += r.calificacion_general;
-    });
-    Object.keys(materiaStats).forEach(id => {
-      const s = materiaStats[Number(id)];
-      s.promedio = s.count > 0 ? s.promedio / s.count : 0;
-    });
-  }
+  (stats || []).forEach((st) => {
+    if (!st.cantidad) return;
+    const acc = materiaStats[st.materia_id] ?? { promedio: 0, count: 0 };
+    // promedio ponderado por cantidad de reseñas de cada dictado
+    acc.promedio = (acc.promedio * acc.count + st.promedio * st.cantidad) / (acc.count + st.cantidad);
+    acc.count += st.cantidad;
+    materiaStats[st.materia_id] = acc;
+  });
 }
 
-const nivelesInfo: Record<number, { label: string; color: string }> = {
-  1: { label: "1er Año", color: "from-blue-500 to-blue-600" },
-  2: { label: "2do Año", color: "from-green-500 to-green-600" },
-  3: { label: "3er Año", color: "from-orange-500 to-orange-600" },
-  4: { label: "4to Año", color: "from-red-500 to-red-600" },
-  5: { label: "5to Año", color: "from-purple-500 to-purple-600" },
-};
+const nivelesInfo = Object.fromEntries(
+  Object.entries(NIVEL_COLORS).map(([n, c]) => [n, { label: c.label, color: c.bg }]),
+) as Record<number, { label: string; color: string }>;
 
 const infoNivel = nivelesInfo[nivelNum];
 ---

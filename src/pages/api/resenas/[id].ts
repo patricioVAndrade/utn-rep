@@ -1,17 +1,12 @@
-import type { APIRoute } from 'astro';
+import type { APIRoute, AstroCookies } from 'astro';
 import { createSupabaseServerClient } from '../../../lib/supabase';
 import { isAdmin } from '../../../lib/admin';
-
-/** JSON response helper */
-function json(data: Record<string, any>, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
+import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { json, readJson } from '../../../lib/http';
+import { parseBody, resenaEditSchema } from '../../../lib/validation';
 
 /** Shared delete logic */
-async function handleDelete(params: Record<string, string | undefined>, request: Request, cookies: any) {
+async function handleDelete(params: Record<string, string | undefined>, request: Request, cookies: AstroCookies) {
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -24,8 +19,11 @@ async function handleDelete(params: Record<string, string | undefined>, request:
     return json({ error: 'ID de reseña inválido.' }, 400);
   }
 
-  // Verify the review exists and belongs to the user
-  const { data: resena } = await supabase
+  // Los admins borran con la service role; el resto solo puede ver (y borrar) sus propias reseñas por RLS
+  const userIsAdmin = isAdmin(user.id);
+  const db = userIsAdmin ? supabaseAdmin : supabase;
+
+  const { data: resena } = await db
     .from('resenas')
     .select('id, user_id')
     .eq('id', resenaId)
@@ -35,11 +33,11 @@ async function handleDelete(params: Record<string, string | undefined>, request:
     return json({ error: 'Reseña no encontrada.' }, 404);
   }
 
-  if (resena.user_id !== user.id && !isAdmin(user.id)) {
-    return json({ error: 'No podés eliminar una reseña que no es tuya.', debug: { userId: user.id, resenaUserId: resena.user_id } }, 403);
+  if (resena.user_id !== user.id && !userIsAdmin) {
+    return json({ error: 'No podés eliminar una reseña que no es tuya.' }, 403);
   }
 
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await db
     .from('resenas')
     .delete()
     .eq('id', resenaId);
@@ -50,7 +48,7 @@ async function handleDelete(params: Record<string, string | undefined>, request:
   }
 
   // Verify the row was actually removed (RLS can make delete a no-op)
-  const { data: checkAfterDelete, error: checkError } = await supabase
+  const { data: checkAfterDelete, error: checkError } = await db
     .from('resenas')
     .select('id')
     .eq('id', resenaId)
@@ -63,14 +61,14 @@ async function handleDelete(params: Record<string, string | undefined>, request:
 
   if (checkAfterDelete) {
     console.warn('Delete appeared to succeed but row still present (likely RLS).');
-    return json({ error: 'No autorizado para eliminar esta reseña (políticas de seguridad).', debug: { userId: user.id, resenaUserId: resena.user_id } }, 403);
+    return json({ error: 'No autorizado para eliminar esta reseña (políticas de seguridad).' }, 403);
   }
 
   return json({ success: true });
 }
 
 /** Shared edit logic */
-async function handleEdit(params: Record<string, string | undefined>, request: Request, cookies: any, body: any) {
+async function handleEdit(params: Record<string, string | undefined>, request: Request, cookies: AstroCookies, body: unknown) {
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -83,15 +81,9 @@ async function handleEdit(params: Record<string, string | undefined>, request: R
     return json({ error: 'ID de reseña inválido.' }, 400);
   }
 
-  const { comentario } = body;
-
-  if (!comentario || typeof comentario !== 'string' || comentario.trim().length < 10) {
-    return json({ error: 'El comentario debe tener al menos 10 caracteres.' }, 400);
-  }
-
-  if (comentario.trim().length > 2000) {
-    return json({ error: 'El comentario no puede superar los 2000 caracteres.' }, 400);
-  }
+  const parsed = parseBody(resenaEditSchema, body);
+  if (!parsed.ok) return json({ error: parsed.error }, 400);
+  const { comentario } = parsed.data;
 
   // Verify ownership
   const { data: resena } = await supabase
@@ -110,7 +102,7 @@ async function handleEdit(params: Record<string, string | undefined>, request: R
 
   const { error: updateError } = await supabase
     .from('resenas')
-    .update({ comentario: comentario.trim() })
+    .update({ comentario })
     .eq('id', resenaId);
 
   if (updateError) {
@@ -128,12 +120,8 @@ async function handleEdit(params: Record<string, string | undefined>, request: R
  */
 export const POST: APIRoute = async ({ params, request, cookies }) => {
   try {
-    let body: any;
-    try {
-      body = await request.json();
-    } catch {
-      return json({ error: 'Body inválido.' }, 400);
-    }
+    const body = await readJson(request) as Record<string, any> | undefined;
+    if (!body) return json({ error: 'Body inválido.' }, 400);
 
     const method = (body._method || '').toUpperCase();
 
@@ -167,12 +155,8 @@ export const DELETE: APIRoute = async ({ params, request, cookies }) => {
  */
 export const PUT: APIRoute = async ({ params, request, cookies }) => {
   try {
-    let body: any;
-    try {
-      body = await request.json();
-    } catch {
-      return json({ error: 'Body inválido.' }, 400);
-    }
+    const body = await readJson(request) as Record<string, any> | undefined;
+    if (!body) return json({ error: 'Body inválido.' }, 400);
     return await handleEdit(params, request, cookies, body);
   } catch (err: any) {
     console.error('Unhandled error in PUT /api/resenas/[id]:', err);

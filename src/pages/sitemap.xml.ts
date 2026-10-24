@@ -5,8 +5,9 @@ import { supabase } from '../lib/supabase';
  * GET /sitemap.xml
  * Generates a dynamic sitemap with all materias, dictados, profesores, and niveles.
  */
-export const GET: APIRoute = async ({ url }) => {
-  const origin = url.origin;
+export const GET: APIRoute = async ({ url, site }) => {
+  // Usar el dominio canónico (astro.config `site`) aunque el request llegue por *.vercel.app
+  const origin = (site ?? url).origin;
 
   // Fetch all entities
   const [{ data: materias }, { data: dictados }, { data: profesores }] = await Promise.all([
@@ -20,6 +21,7 @@ export const GET: APIRoute = async ({ url }) => {
   // Static pages
   urls.push({ loc: '/', priority: '1.0' });
   urls.push({ loc: '/nueva-resena', priority: '0.6' });
+  urls.push({ loc: '/finales', priority: '0.6' });
   urls.push({ loc: '/sobre', priority: '0.4' });
   urls.push({ loc: '/terminos', priority: '0.3' });
 

@@ -152,6 +152,7 @@ const ogImageUrl = new URL(ogImage, siteURL).href;
     function openModal() {
       modal?.classList.remove('hidden');
       modal?.classList.add('flex');
+      (document.getElementById('ml-nombre') as HTMLInputElement | null)?.focus();
 
       // Save the current page URL for post-login redirect
       const currentPage = window.location.pathname + window.location.search;
@@ -174,6 +175,13 @@ const ogImageUrl = new URL(ogImage, siteURL).href;
       modal?.classList.add('hidden');
       modal?.classList.remove('flex');
     }
+
+    // Permite abrir el login desde cualquier script (por ej. al votar sin sesión)
+    (window as any).openLoginModal = openModal;
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
 
     loginBtn?.addEventListener('click', openModal);
     loginBtnMain?.addEventListener('click', openModal);
@@ -258,7 +266,12 @@ const ogImageUrl = new URL(ogImage, siteURL).href;
             (mlSubmit as HTMLButtonElement).disabled = false;
             mlSubmit.innerHTML = btnOriginalHTML;
           } else {
-            mlMsg.innerHTML = '✓ Revisá tu bandeja de entrada (y spam).<br><span class="text-xs text-neutral-500">Enviamos un link a <strong>' + email + '</strong></span>';
+            const detalle = document.createElement('span');
+            detalle.className = 'text-xs text-neutral-500';
+            const emailStrong = document.createElement('strong');
+            emailStrong.textContent = email;
+            detalle.append('Enviamos un link a ', emailStrong);
+            mlMsg.replaceChildren('✓ Revisá tu bandeja de entrada (y spam).', document.createElement('br'), detalle);
             mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-green-900/30 border border-green-700 text-green-400';
             mlMsg.classList.remove('hidden');
             mlNombre.disabled = true;
@@ -313,13 +326,14 @@ const ogImageUrl = new URL(ogImage, siteURL).href;
   try {
     const returnTo = localStorage.getItem('auth_returnTo');
     if (returnTo) {
-      const isLoggedIn = !!document.querySelector('[href="/api/auth/logout"]');
+      const isLoggedIn = !!document.querySelector('[data-logout]');
       const currentPage = window.location.pathname + window.location.search;
-      if (isLoggedIn && returnTo !== currentPage) {
+      const isSafePath = returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.startsWith('/\\');
+      if (isLoggedIn && isSafePath && returnTo !== currentPage) {
         localStorage.removeItem('auth_returnTo');
         document.cookie = 'auth_returnTo=;path=/;max-age=0';
         window.location.replace(returnTo);
-      } else if (isLoggedIn) {
+      } else if (isLoggedIn || !isSafePath) {
         localStorage.removeItem('auth_returnTo');
         document.cookie = 'auth_returnTo=;path=/;max-age=0';
       }

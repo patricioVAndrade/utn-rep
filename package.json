@@ -6,11 +6,13 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "check": "astro check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "gen:types": "supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" > src/lib/database.types.ts"
   },
   "dependencies": {
-    "@astrojs/node": "^9.5.4",
-    "@astrojs/sitemap": "^3.7.3",
     "@astrojs/vercel": "^9.0.4",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
@@ -18,5 +20,10 @@
     "@vercel/analytics": "^1.6.1",
     "astro": "^5.17.1",
     "tailwindcss": "^4.2.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
   }
 }

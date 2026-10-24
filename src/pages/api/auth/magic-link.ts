@@ -1,212 +1,65 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../../lib/supabase';
 import { checkRateLimit } from '../../../lib/rate-limit';
-
-// ── Dominios de email permitidos ──
-const ALLOWED_DOMAINS = new Set([
-  // Institucionales UTN
-  //'sistemas.frc.utn.edu.ar',
-  //'utn.edu.ar',
-  // Populares
-  'gmail.com',
-  'hotmail.com',
-  'hotmail.com.ar',
-  'outlook.com',
-  'outlook.com.ar',
-  'outlook.es',
-  'live.com',
-  'live.com.ar',
-  'yahoo.com',
-  'yahoo.com.ar',
-  'icloud.com',
-  'protonmail.com',
-  'proton.me',
-  'mail.com',
-  'zoho.com',
-]);
-
-// ── Validación de nombre ──
-function validarNombre(nombre: string): string | null {
-  const trimmed = nombre.trim();
-
-  if (trimmed.length < 4 || trimmed.length > 50) {
-    return 'El nombre debe tener entre 4 y 50 caracteres.';
-  }
-
-  // Solo letras (con acentos), espacios y apóstrofes
-  if (!/^[a-záéíóúñüà-ÿ\s']+$/i.test(trimmed)) {
-    return 'El nombre solo puede contener letras y espacios.';
-  }
-
-  // Debe tener al menos 2 palabras (nombre + apellido)
-  const palabras = trimmed.split(/\s+/).filter(p => p.length >= 2);
-  if (palabras.length < 2) {
-    return 'Ingresá tu nombre y apellido.';
-  }
-
-  return null; // válido
-}
-
-// ── Rate limit en memoria (por IP) ──
-
+import { getClientIp } from '../../../lib/request';
+import { json, readJson } from '../../../lib/http';
+import { safeReturnTo } from '../../../lib/redirect';
+import { formatearNombre, normalizarEmail, validarNombre } from '../../../lib/auth-validation';
 
 /**
  * POST /api/auth/magic-link
  * Sends a magic link email. Validates email domain and name.
  */
 export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
-  // 1. Rate limit
-  const ip = clientAddress || request.headers.get('x-forwarded-for') || 'unknown';
-// Limite: 3 magic links por hora (3600000 ms)
-  if (!checkRateLimit(ip, 3, 60 * 60 * 1000)) {
-    return new Response(JSON.stringify({
-      error: 'Demasiados intentos. Esperá un rato antes de intentar de nuevo.'
-    }), {
-      status: 429,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  // 1. Rate limit: 3 magic links por hora por IP
+  const ip = getClientIp(request, clientAddress);
+  if (!(await checkRateLimit(`magic-link:${ip}`, 3, 60 * 60 * 1000))) {
+    return json({ error: 'Demasiados intentos. Esperá un rato antes de intentar de nuevo.' }, 429);
   }
 
-  // 2. Parse body
-  let body: any;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Body inválido.' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  const body = await readJson(request) as Record<string, unknown> | undefined;
+  if (!body) return json({ error: 'Body inválido.' }, 400);
+
+  // 2. Email
+  const emailResult = normalizarEmail(body.email);
+  if (!emailResult.ok) return json({ error: emailResult.error }, 400);
+
+  // 3. Nombre
+  if (!body.nombre || typeof body.nombre !== 'string') {
+    return json({ error: 'Nombre requerido.' }, 400);
+  }
+  const errorNombre = validarNombre(body.nombre);
+  if (errorNombre) return json({ error: errorNombre }, 400);
+
+  // 4. Rate limit por email (evita que se usen muchas IPs contra la misma casilla)
+  if (!(await checkRateLimit(`magic-link-email:${emailResult.email}`, 3, 60 * 60 * 1000))) {
+    return json({ error: 'Ya te enviamos varios links. Revisá tu bandeja (y spam) o esperá un rato.' }, 429);
   }
 
-  const { email, nombre } = body;
-
-  // 3. Validate email format
-  if (!email || typeof email !== 'string') {
-    return new Response(JSON.stringify({ error: 'Email requerido.' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  const emailLower = email.toLowerCase().trim();
-  const emailRegex = /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/;
-  if (!emailRegex.test(emailLower)) {
-    return new Response(JSON.stringify({ error: 'Email inválido.' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // 4. Validate email domain
-  const [localPart, domain] = emailLower.split('@');
-  if (!ALLOWED_DOMAINS.has(domain)) {
-    return new Response(JSON.stringify({
-      error: 'Dominio de email no permitido. Usá Gmail, Hotmail, Outlook o tu email de UTN.'
-    }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // 4b. Strip Gmail/Googlemail plus aliases and dots (user+tag@gmail → user@gmail)
-  let normalizedEmail = emailLower;
-  if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    const basePart = localPart.split('+')[0].replace(/\./g, '');
-    normalizedEmail = `${basePart}@gmail.com`;
-  } else {
-    // Strip + aliases for all other providers too
-    const basePart = localPart.split('+')[0];
-    normalizedEmail = `${basePart}@${domain}`;
-  }
-
-  // 4c. Reject suspicious local parts (random strings, too short, etc.)
-  const cleanLocal = normalizedEmail.split('@')[0];
-  // Count consonant clusters — random strings have many consecutive consonants
-  const consonantClusters = cleanLocal.match(/[bcdfghjklmnpqrstvwxyz]{4,}/gi);
-  if (consonantClusters && consonantClusters.length > 0) {
-    return new Response(JSON.stringify({
-      error: 'El email parece ser una cuenta temporal o generada. Usá tu email personal.'
-    }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Reject if local part is too short (less than 4 chars)
-  if (cleanLocal.replace(/[^a-z0-9]/g, '').length < 4) {
-    return new Response(JSON.stringify({
-      error: 'El email no parece ser una cuenta válida.'
-    }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // 5. Validate name
-  if (!nombre || typeof nombre !== 'string') {
-    return new Response(JSON.stringify({ error: 'Nombre requerido.' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  const errorNombre = validarNombre(nombre);
-  if (errorNombre) {
-    return new Response(JSON.stringify({ error: errorNombre }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Capitalize first letter of each word
-  const nombreFormateado = nombre.trim()
-    .split(/\s+/)
-    .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ');
-
-  // 6. Send magic link via Supabase
+  // 5. Send magic link via Supabase
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
 
-  // Use the returnTo URL from the client so the user lands back where they were
-  const returnTo = body.returnTo || '/';
+  const returnTo = safeReturnTo(typeof body.returnTo === 'string' ? body.returnTo : null);
   const baseUrl = new URL('/', request.url).origin;
-  const emailRedirect = returnTo.startsWith('/') ? `${baseUrl}${returnTo}` : baseUrl;
 
   const { error } = await supabase.auth.signInWithOtp({
-    email: normalizedEmail,
+    email: emailResult.email,
     options: {
-      data: {
-        full_name: nombreFormateado,
-      },
-      emailRedirectTo: emailRedirect,
+      data: { full_name: formatearNombre(body.nombre) },
+      emailRedirectTo: `${baseUrl}${returnTo}`,
     },
   });
 
   if (error) {
     console.error('[Magic Link] Error:', error.message);
-
     if (error.message.includes('rate') || error.message.includes('limit')) {
-      return new Response(JSON.stringify({
-        error: 'Demasiados intentos. Esperá unos minutos.'
-      }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Demasiados intentos. Esperá unos minutos.' }, 429);
     }
-
-    return new Response(JSON.stringify({
-      error: 'No se pudo enviar el email. Intentá de nuevo.'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ error: 'No se pudo enviar el email. Intentá de nuevo.' }, 500);
   }
 
-  return new Response(JSON.stringify({
+  return json({
     success: true,
-    message: 'Te enviamos un link de acceso a tu email. Revisá tu bandeja de entrada (y spam).'
-  }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
+    message: 'Te enviamos un link de acceso a tu email. Revisá tu bandeja de entrada (y spam).',
   });
 };

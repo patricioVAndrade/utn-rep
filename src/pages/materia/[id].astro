@@ -2,14 +2,11 @@
 import Layout from '../../layouts/Layout.astro';
 import HeaderNav from '../../components/HeaderNav.astro';
 import { supabase } from '../../lib/supabase';
-import { isAdmin } from '../../lib/admin';
+import { estrellas, nivelColor, tiempoRelativo } from '../../lib/format';
 
 const user = Astro.locals.user;
-const userIsAdmin = isAdmin(user?.id);
 
-// Obtener el ID de la URL y el parámetro "from"
 const { id } = Astro.params;
-const from = Astro.url.searchParams.get('from');
 
 // Traer los datos de la materia
 const { data: materia } = await supabase
@@ -65,60 +62,41 @@ const dictadosOrdenados = (dictados || [])
 const dictadoIds = dictados?.map(d => d.id) || [];
 let resenas: any[] = [];
 let promedioGeneral = "0.0";
+let totalResenas = 0;
 let dictadoStats: Record<number, { promedio: string, count: number }> = {};
 
 if (dictadoIds.length > 0) {
-  const { data: resenasData } = await supabase
-    .from('resenas')
-    .select('*')
-    .in('dictado_id', dictadoIds)
-    .order('created_at', { ascending: false });
-    
+  // Stats agregadas en la base + solo las reseñas que se muestran
+  const [{ data: statsData }, { data: resenasData }] = await Promise.all([
+    supabase.from('stats_dictados').select('dictado_id, cantidad, promedio').in('dictado_id', dictadoIds),
+    supabase
+      .from('resenas_publicas')
+      .select('*')
+      .in('dictado_id', dictadoIds)
+      .order('created_at', { ascending: false })
+      .limit(6),
+  ]);
+
   resenas = resenasData || [];
-  
-  if (resenas.length > 0) {
-    const suma = resenas.reduce((acc: number, r: any) => acc + r.calificacion_general, 0);
-    promedioGeneral = (suma / resenas.length).toFixed(1);
+  const stats = statsData || [];
+
+  const totalCount = stats.reduce((acc, st) => acc + st.cantidad, 0);
+  if (totalCount > 0) {
+    promedioGeneral = (stats.reduce((acc, st) => acc + st.promedio * st.cantidad, 0) / totalCount).toFixed(1);
   }
+  totalResenas = totalCount;
 
   dictadoIds.forEach(did => {
-    const resenasCurso = resenas.filter((r: any) => r.dictado_id === did);
-    if (resenasCurso.length > 0) {
-      const suma = resenasCurso.reduce((acc: number, r: any) => acc + r.calificacion_general, 0);
-      dictadoStats[did] = {
-        promedio: (suma / resenasCurso.length).toFixed(1),
-        count: resenasCurso.length
-      };
-    } else {
-      dictadoStats[did] = { promedio: "0.0", count: 0 };
-    }
+    const st = stats.find((x) => x.dictado_id === did);
+    dictadoStats[did] = st && st.cantidad > 0
+      ? { promedio: st.promedio.toFixed(1), count: st.cantidad }
+      : { promedio: "0.0", count: 0 };
   });
 }
 
-// Color por nivel
-const nivelColors: Record<number, { bg: string; light: string; accent: string }> = {
-  1: { bg: "from-blue-500 to-blue-600", light: "text-blue-200", accent: "bg-blue-900/30 text-blue-400" },
-  2: { bg: "from-green-500 to-green-600", light: "text-green-200", accent: "bg-green-900/30 text-green-400" },
-  3: { bg: "from-orange-500 to-orange-600", light: "text-orange-200", accent: "bg-orange-900/30 text-orange-400" },
-  4: { bg: "from-red-500 to-red-600", light: "text-red-200", accent: "bg-red-900/30 text-red-400" },
-  5: { bg: "from-purple-500 to-purple-600", light: "text-purple-200", accent: "bg-purple-900/30 text-purple-400" },
-};
-
 const nivel = materia?.nivel || 1;
-const colors = nivelColors[nivel] || nivelColors[1];
+const colors = nivelColor(nivel);
 
-const backLink = from === 'nivel' ? `/nivel/${nivel}` : '/';
-const backLabel = from === 'nivel' ? `${nivel}º Año` : 'Inicio';
-
-function tiempoRelativo(fecha: string): string {
-  const diff = Date.now() - new Date(fecha).getTime();
-  const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (dias === 0) return 'Hoy';
-  if (dias === 1) return 'Ayer';
-  if (dias < 30) return `Hace ${dias} días`;
-  if (dias < 365) return `Hace ${Math.floor(dias / 30)} mes${Math.floor(dias / 30) > 1 ? 'es' : ''}`;
-  return `Hace ${Math.floor(dias / 365)} año${Math.floor(dias / 365) > 1 ? 's' : ''}`;
-}
 
 // ==========================================
 // CONFIGURACIÓN SEO Y DATOS ESTRUCTURADOS
@@ -140,11 +118,11 @@ const schemaObject: any = {
 };
 
 // Si la materia tiene reseñas, le agregamos las "estrellitas" para que salgan en Google
-if (resenas.length > 0) {
+if (totalResenas > 0) {
   schemaObject.aggregateRating = {
     "@type": "AggregateRating",
     "ratingValue": promedioGeneral,
-    "reviewCount": resenas.length.toString()
+    "reviewCount": totalResenas.toString()
   };
 }
 
@@ -178,7 +156,7 @@ const schemaMateria = JSON.stringify(schemaObject);
         <div class="flex items-center gap-4 bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm">
           <div class="text-right">
             <span class="text-white text-lg font-black block leading-none">★ {promedioGeneral}</span>
-            <span class="text-white/80 text-xs uppercase tracking-wider">{resenas.length} reseñas</span>
+            <span class="text-white/80 text-xs uppercase tracking-wider">{totalResenas} reseñas</span>
           </div>
         </div>
       </div>
@@ -306,9 +284,6 @@ const schemaMateria = JSON.stringify(schemaObject);
                       <div class="flex items-center gap-1.5">
                         <p class="font-semibold text-neutral-100 text-sm">
                           {resena.es_anonima ? 'Anónimo' : (resena.nombre_usuario || 'Estudiante')}
-                          {resena.es_anonima && userIsAdmin && (
-                            <span class="text-[10px] text-red-400/70 font-normal ml-1" title="Visible solo para admin">({resena.nombre_usuario})</span>
-                          )}
                         </p>
                         {resena.es_alumno_utn && (
                           <span class="inline-flex items-center gap-0.5 bg-blue-900/40 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-700/50" title="Alumno verificado de UTN FRC">
@@ -323,7 +298,7 @@ const schemaMateria = JSON.stringify(schemaObject);
                     </div>
                   </div>
                   <span class="text-yellow-400 font-bold tracking-widest text-lg drop-shadow-sm flex-shrink-0">
-                    {"★".repeat(resena.calificacion_general)}{"☆".repeat(5 - resena.calificacion_general)}
+                    {estrellas(resena.calificacion_general)}
                   </span>
                 </div>
                 <p class="text-neutral-300 font-medium italic mb-4">"{resena.comentario}"</p>

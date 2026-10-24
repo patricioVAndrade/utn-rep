@@ -13,27 +13,19 @@ const { data: allMateriasRaw } = await supabase
   .order('nombre');
 const allMaterias = allMateriasRaw || [];
 
-// Traer todas las reseñas con su materia_id
-const { data: allResenasRaw } = await supabase
-  .from('resenas')
-  .select('calificacion_general, dictado_id, dictados!inner(materia_id)');
-const allResenas = allResenasRaw || [];
+// Stats por materia (agregadas en la base; no hay que traer todas las reseñas)
+const [{ data: statsRaw }, { count: totalResenasCount }] = await Promise.all([
+  supabase.from('stats_dictados').select('materia_id, cantidad, promedio').gt('cantidad', 0),
+  supabase.from('resenas_publicas').select('id', { count: 'exact', head: true }),
+]);
 
-// Calcular stats por materia
 const materiaStats: Record<number, { promedio: number; count: number }> = {};
-if (allResenas) {
-  allResenas.forEach((r: any) => {
-    const materiaId = r.dictados?.materia_id;
-    if (!materiaId) return;
-    if (!materiaStats[materiaId]) materiaStats[materiaId] = { promedio: 0, count: 0 };
-    materiaStats[materiaId].count++;
-    materiaStats[materiaId].promedio += r.calificacion_general;
-  });
-  Object.keys(materiaStats).forEach(id => {
-    const s = materiaStats[Number(id)];
-    s.promedio = s.count > 0 ? s.promedio / s.count : 0;
-  });
-}
+(statsRaw || []).forEach((st) => {
+  const acc = materiaStats[st.materia_id] ?? { promedio: 0, count: 0 };
+  acc.promedio = (acc.promedio * acc.count + st.promedio * st.cantidad) / (acc.count + st.cantidad);
+  acc.count += st.cantidad;
+  materiaStats[st.materia_id] = acc;
+});
 
 // Top 3 materias con más reseñas
 const topMaterias = (allMaterias || [])
@@ -49,8 +41,7 @@ if (topMaterias.length < 3 && allMaterias) {
   }
 }
 
-const totalResenas = allResenas?.length || 0;
-const totalMaterias = allMaterias?.length || 0;
+const totalResenas = totalResenasCount || 0;
 
 const aniosCarrera = [
   { nivel: 1, label: "1er Año", color: "from-blue-500 to-blue-600" },
