@@ -136,7 +136,7 @@ Variables de entorno (`.env`):
 
 ### Base de datos
 
-Los scripts de `supabase/migrations/` se corren en orden en el SQL Editor de Supabase (o con `supabase db push`). Para regenerar los tipos de la base: `SUPABASE_PROJECT_ID=... npm run gen:types`.
+Los scripts de `supabase/migrations/` se corren en orden en el SQL Editor de Supabase (o con `supabase db push`). `supabase/checks/` tiene chequeos de solo lectura para correr antes de una migración y `supabase/rollback/` los scripts para deshacerlas. Para regenerar los tipos de la base: `SUPABASE_PROJECT_ID=... npm run gen:types`.
 
 ### CI
 

@@ -2,7 +2,14 @@
 -- UTN REP v2.1: parche de seguridad e integridad
 -- Correr UNA VEZ en Supabase (Dashboard > SQL Editor) ANTES de desplegar
 -- el código de esta versión. Es idempotente: se puede volver a correr.
+--
+-- No borra ni modifica filas existentes: crea vistas, tablas y funciones
+-- nuevas y cambia permisos. Corre en una transacción: si algo falla, no
+-- se aplica nada. Para deshacerlo: supabase/rollback/20261024000000_seguridad_v2_1.sql
+-- Antes de correrlo conviene correr supabase/checks/precheck_v2_1.sql.
 -- =====================================================================
+
+BEGIN;
 
 -- ---------------------------------------------------------------------
 -- 1. Anonimato: vista pública de reseñas sin user_id y sin nombre real
@@ -245,3 +252,5 @@ BEGIN
       CHECK (profesor_nombre IS NULL OR char_length(profesor_nombre) <= 120) NOT VALID;
   END IF;
 END $$;
+
+COMMIT;
