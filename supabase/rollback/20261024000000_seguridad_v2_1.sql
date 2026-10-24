@@ -8,7 +8,8 @@
 
 BEGIN;
 
--- Permisos de resenas como antes
+-- Permisos de resenas como antes (las políticas de lectura duplicadas que
+-- había en producción eran todas USING (true); con una alcanza)
 GRANT SELECT, INSERT, UPDATE ON public.resenas TO anon, authenticated;
 DROP POLICY IF EXISTS "Users can read own resenas" ON public.resenas;
 DROP POLICY IF EXISTS "Public read resenas" ON public.resenas;

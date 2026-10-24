@@ -33,8 +33,22 @@ FROM public.resenas r;
 
 GRANT SELECT ON public.resenas_publicas TO anon, authenticated;
 
-DROP POLICY IF EXISTS "Public read resenas" ON public.resenas;
-DROP POLICY IF EXISTS "Users can read own resenas" ON public.resenas;
+-- Borra TODAS las políticas de lectura existentes de resenas (en producción
+-- hay varias con USING (true): "Public read resenas", "Lectura pública",
+-- "Lectura publica resenas"...). Las políticas se suman con OR, así que si
+-- quedara una sola, cualquier usuario logueado seguiría leyendo todo.
+DO $$
+DECLARE
+  pol record;
+BEGIN
+  FOR pol IN
+    SELECT policyname FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'resenas' AND cmd IN ('SELECT', 'ALL')
+  LOOP
+    EXECUTE format('DROP POLICY %I ON public.resenas', pol.policyname);
+  END LOOP;
+END $$;
+
 CREATE POLICY "Users can read own resenas" ON public.resenas
   FOR SELECT USING (auth.uid() = user_id);
 
