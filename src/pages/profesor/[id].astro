@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import HeaderNav from '../../components/HeaderNav.astro';
 import { supabase } from '../../lib/supabase';
+import { nivelColor } from '../../lib/format';
 
 const user = Astro.locals.user;
 
@@ -60,22 +61,14 @@ const dictadoIds = (dictadoProfesores || []).map((dp: any) => dp.dictados?.id).f
 let dictadoStats: Record<number, { promedio: number; count: number }> = {};
 
 if (dictadoIds.length > 0) {
-  const { data: resenas } = await supabase
-    .from('resenas')
-    .select('calificacion_general, dictado_id')
+  const { data: stats } = await supabase
+    .from('stats_dictados')
+    .select('dictado_id, cantidad, promedio')
     .in('dictado_id', dictadoIds);
 
-  if (resenas) {
-    resenas.forEach((r: any) => {
-      if (!dictadoStats[r.dictado_id]) dictadoStats[r.dictado_id] = { promedio: 0, count: 0 };
-      dictadoStats[r.dictado_id].count++;
-      dictadoStats[r.dictado_id].promedio += r.calificacion_general;
-    });
-    Object.keys(dictadoStats).forEach(did => {
-      const s = dictadoStats[Number(did)];
-      s.promedio = s.count > 0 ? s.promedio / s.count : 0;
-    });
-  }
+  (stats || []).forEach((st) => {
+    if (st.cantidad > 0) dictadoStats[st.dictado_id] = { promedio: st.promedio, count: st.cantidad };
+  });
 }
 
 // Promedio general del profesor
@@ -85,13 +78,6 @@ const promedioGeneral = totalResenas > 0
   ? (allStats.reduce((acc, s) => acc + s.promedio * s.count, 0) / totalResenas).toFixed(1)
   : "0.0";
 
-const nivelColors: Record<number, { bg: string; accent: string }> = {
-  1: { bg: "from-blue-500 to-blue-600", accent: "bg-blue-900/30 text-blue-400" },
-  2: { bg: "from-green-500 to-green-600", accent: "bg-green-900/30 text-green-400" },
-  3: { bg: "from-orange-500 to-orange-600", accent: "bg-orange-900/30 text-orange-400" },
-  4: { bg: "from-red-500 to-red-600", accent: "bg-red-900/30 text-red-400" },
-  5: { bg: "from-purple-500 to-purple-600", accent: "bg-purple-900/30 text-purple-400" },
-};
 
 // ==========================================
 // CONFIGURACIÓN SEO Y DATOS ESTRUCTURADOS
@@ -174,7 +160,7 @@ const schemaProfesor = JSON.stringify(schemaObject);
     {materiasOrdenadas.length > 0 ? (
       <div class="space-y-10">
         {materiasOrdenadas.map(({ materia, dictados }) => {
-          const nColors = nivelColors[materia.nivel] || nivelColors[1];
+          const nColors = nivelColor(materia.nivel);
           return (
             <section>
               <div class="flex items-center gap-3 mb-4">

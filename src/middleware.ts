@@ -1,5 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { createSupabaseServerClient, redirectWithCookies } from './lib/supabase';
+import { safeReturnTo } from './lib/redirect';
+import { displayName } from './lib/user';
 
 /**
  * Middleware that:
@@ -33,8 +35,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const returnToCookie = cookies.get('auth_returnTo')?.value;
     let destination: string;
     if (returnToCookie) {
-      const decoded = decodeURIComponent(returnToCookie);
-      destination = decoded.startsWith('/') ? decoded : '/';
+      destination = safeReturnTo(returnToCookie);
       // Delete the returnTo cookie by adding an expired cookie to the response
       responseCookies.push({
         name: 'auth_returnTo',
@@ -62,11 +63,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (user) {
       context.locals.user = {
         id: user.id,
-        name:
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          user.email?.split('@')[0] ||
-          'Usuario',
+        name: displayName(user),
         avatar: user.user_metadata?.avatar_url || undefined,
         email: user.email || '',
       };

@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /admin
+Disallow: /mis-resenas
 
-Sitemap: https://utnrep.app/sitemap-index.xml
+Sitemap: https://utnrep.app/sitemap.xml

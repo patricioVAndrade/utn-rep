@@ -31,7 +31,7 @@ export function createSupabaseServerClient(context: {
   // operations (delete, update) use the fresh token, not the stale one.
   const cookieStore = new Map<string, string>();
   for (const { name, value } of parseCookieHeader(context.headers.get('Cookie') ?? '')) {
-    cookieStore.set(name, value);
+    if (value !== undefined) cookieStore.set(name, value);
   }
 
   const responseCookies: Array<{ name: string; value: string; options: Record<string, any> }> = [];

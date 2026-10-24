@@ -1,0 +1,75 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeaderNav from '../components/HeaderNav.astro';
+import { createSupabaseServerClient } from '../lib/supabase';
+import { estrellas, nivelColor, tiempoRelativo } from '../lib/format';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/');
+
+const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+
+// RLS: el usuario solo ve sus propias filas de la tabla base
+const { data } = await client
+  .from('resenas')
+  .select(`
+    id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, created_at,
+    dictados ( cursos ( identificador ), materias ( nombre, nivel ) )
+  `)
+  .eq('user_id', user.id)
+  .order('created_at', { ascending: false });
+
+const misResenas = (data || []).map((r: any) => {
+  const dictado = Array.isArray(r.dictados) ? r.dictados[0] : r.dictados;
+  const materia = Array.isArray(dictado?.materias) ? dictado.materias[0] : dictado?.materias;
+  const curso = Array.isArray(dictado?.cursos) ? dictado.cursos[0] : dictado?.cursos;
+  return { ...r, materia, curso };
+});
+---
+
+<Layout title="Mis reseñas - UTN REP" description="Las reseñas que publicaste en UTN REP.">
+  <header class="bg-gradient-to-r from-amber-500 to-amber-600 text-white relative overflow-hidden">
+    <div class="absolute inset-0 dot-pattern opacity-30"></div>
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-10">
+      <HeaderNav user={user} />
+      <h1 class="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight">Mis reseñas</h1>
+      <p class="text-white/80 mt-2 text-sm">
+        {misResenas.length === 0
+          ? 'Todavía no publicaste ninguna reseña.'
+          : `Publicaste ${misResenas.length} reseña${misResenas.length !== 1 ? 's' : ''}. Para editarlas o borrarlas, entrá a cada curso.`}
+      </p>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-4">
+    {misResenas.map((r) => (
+      <a href={`/dictado/${r.dictado_id}`} class="block bg-[#242424] rounded-2xl border border-neutral-700/60 p-5 sm:p-6 hover:border-neutral-500 transition-colors">
+        <div class="flex items-start justify-between gap-4 mb-2">
+          <div>
+            <span class={`font-bold ${nivelColor(r.materia?.nivel).accent} px-2 py-0.5 rounded text-xs tracking-wide`}>
+              {r.curso?.identificador || 'Curso'}
+            </span>
+            <h2 class="text-neutral-100 font-semibold mt-1">{r.materia?.nombre || 'Materia'}</h2>
+          </div>
+          <span class="text-yellow-500 text-lg flex-shrink-0" aria-label={`Calificación: ${r.calificacion_general} de 5`}>
+            {estrellas(r.calificacion_general)}
+          </span>
+        </div>
+        <p class="text-neutral-400 text-sm leading-relaxed line-clamp-3">{r.comentario}</p>
+        <p class="text-xs text-neutral-500 mt-3">
+          {tiempoRelativo(r.created_at)}
+          {' · '}{r.es_anonima ? 'Publicada como anónima' : 'Publicada con tu nombre'}
+          {' · '}{r.votos_utilidad || 0} voto{(r.votos_utilidad || 0) !== 1 ? 's' : ''} de utilidad
+        </p>
+      </a>
+    ))}
+
+    {misResenas.length === 0 && (
+      <div class="bg-[#242424] p-12 text-center border-2 border-dashed border-neutral-700 rounded-2xl">
+        <a href="/nueva-resena" class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold px-6 py-3 rounded-xl hover:opacity-90 transition-all">
+          Escribir mi primera reseña
+        </a>
+      </div>
+    )}
+  </main>
+</Layout>

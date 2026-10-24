@@ -1,13 +1,8 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { requireAdmin } from '../../../lib/admin-guards';
+import { json } from '../../../lib/http';
 
-function json(data: Record<string, any>, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
 
 const ALLOWED_TURNOS = new Set(['MAÑANA', 'TARDE', 'NOCHE', 'INDEFINIDO']);
 const ALLOWED_PERIODOS = new Set(['PRIMER_CUATRIMESTRE', 'SEGUNDO_CUATRIMESTRE', 'ANUAL']);

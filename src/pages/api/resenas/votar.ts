@@ -1,56 +1,45 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { createSupabaseServerClient } from '../../../lib/supabase';
 import { checkRateLimit } from '../../../lib/rate-limit';
+import { json, readJson } from '../../../lib/http';
+import { parseBody, votoSchema } from '../../../lib/validation';
 
-export const POST: APIRoute = async ({ request, clientAddress }) => {
-  // --- Seguridad Anti-Spam ---
-  const ip = clientAddress || request.headers.get('x-forwarded-for') || '127.0.0.1';
-  // Límite: Máximo 20 acciones de votos por minuto por IP (subimos un poco porque votar y desvotar cuenta doble)
-  if (!checkRateLimit(ip, 20, 60 * 1000)) {
-    return new Response(JSON.stringify({ error: 'Demasiadas acciones. Esperá un momento.' }), { status: 429 });
+/**
+ * POST /api/resenas/votar
+ * Marca (o desmarca) una reseña como útil. Requiere login: la base guarda
+ * un voto por usuario y reseña (RPC `votar_resena`).
+ */
+export const POST: APIRoute = async ({ request, cookies }) => {
+  const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return json({ error: 'Iniciá sesión para votar.' }, 401);
   }
 
-  try {
-    const body = await request.json();
-    const { resena_id, accion } = body; // 'votar' o 'desvotar'
+  // Máximo 30 acciones de voto por minuto por usuario
+  if (!(await checkRateLimit(`votar:${user.id}`, 30, 60 * 1000))) {
+    return json({ error: 'Demasiadas acciones. Esperá un momento.' }, 429);
+  }
 
-    if (!resena_id) {
-      return new Response(JSON.stringify({ error: 'Falta el ID de la reseña.' }), { status: 400 });
-    }
+  const body = await readJson(request);
+  if (body === undefined) return json({ error: 'Body inválido.' }, 400);
 
-    const isVotar = accion !== 'desvotar'; // Por defecto, si no se envía acción, asume 'votar'
+  const parsed = parseBody(votoSchema, body);
+  if (!parsed.ok) return json({ error: parsed.error }, 400);
+  const { resena_id, accion } = parsed.data;
 
-    // 1. Obtener los votos actuales de la reseña
-    const { data: resena, error: fetchError } = await supabaseAdmin
-      .from('resenas')
-      .select('votos_utilidad')
-      .eq('id', resena_id)
-      .single();
+  const { data: votos, error } = await supabase.rpc('votar_resena', {
+    p_resena_id: resena_id,
+    p_votar: accion === 'votar',
+  });
 
-    if (fetchError || !resena) {
-      return new Response(JSON.stringify({ error: 'Reseña no encontrada.' }), { status: 404 });
-    }
-
-    // 2. Sumar o restar según la acción recibida (los votos nunca bajan de 0)
-    let nuevosVotos = resena.votos_utilidad || 0;
-    if (isVotar) {
-      nuevosVotos += 1;
-    } else {
-      nuevosVotos = Math.max(0, nuevosVotos - 1);
-    }
-
-    // 3. Actualizar la base de datos
-    const { error: updateError } = await supabaseAdmin
-      .from('resenas')
-      .update({ votos_utilidad: nuevosVotos })
-      .eq('id', resena_id);
-
-    if (updateError) throw updateError;
-
-    return new Response(JSON.stringify({ success: true, votos: nuevosVotos }), { status: 200 });
-
-  } catch (error) {
+  if (error) {
+    // 23503 = foreign_key_violation: la reseña no existe
+    if (error.code === '23503') return json({ error: 'Reseña no encontrada.' }, 404);
     console.error('[Votar Reseña] Error:', error);
-    return new Response(JSON.stringify({ error: 'Error interno del servidor.' }), { status: 500 });
+    return json({ error: 'Error interno del servidor.' }, 500);
   }
+
+  return json({ success: true, votos, votado: accion === 'votar' });
 };
