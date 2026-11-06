@@ -85,6 +85,12 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 
 F29 a F37 y logros L8 a L19 (detalle en la encuesta de la V6). Nada de esto está hecho.
 
+## Ideas nuevas de Pato (después de la V6)
+
+| Código | Qué es | Estado | Nota |
+|---|---|---|---|
+| F38 | Completar "¿Cómo te fue?" en reseñas viejas | Propuesta para etapa 3 | Al entrar, una franja (no una ventana) con tus reseñas sin estado y tres botones: Promocioné, Regularicé, Quedé libre. Opciones "Ahora no" (vuelve en 30 días) y "No preguntar más". Solo pregunta por cursadas de años anteriores o reseñas con más de 4 meses. También se puede completar desde Mis reseñas. Cambio en la base: permitir editar `condicion_final` de la reseña propia (hoy solo se puede editar el comentario). |
+
 ## Cómo probarlo
 
 - **Link de prueba:** Vercel, pestaña Deployments, el deploy de esta rama. Usa la base de prueba.
