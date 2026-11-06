@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
-import { supabase } from '../lib/supabase';
+import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { anioLabel, turnoLabel } from '../lib/format';
 import { safeReturnTo } from '../lib/redirect';
 
@@ -52,6 +52,15 @@ if (!dictadoInfo) {
   materias = data || [];
 }
 
+// Cursos que ya reseñaste (la base no deja dos reseñas del mismo curso)
+let yaResenados: number[] = [];
+if (user) {
+  const { client: userClient } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+  const { data } = await userClient.from('resenas').select('dictado_id').eq('user_id', user.id);
+  yaResenados = (data || []).map((r: any) => r.dictado_id);
+}
+const yaResenoEste = !!dictadoInfo && yaResenados.includes(dictadoInfo.id);
+
 const currentYear = new Date().getFullYear();
 const materiaCtx = dictadoInfo?.materias || materiaPreseleccionada;
 const crumbs = [
@@ -72,28 +81,44 @@ const crumbs = [
           <span class="sub">Si elegís publicarla como anónima, tu nombre no se muestra.</span>
           <button id="login-btn-main" type="button" class="btn primary" data-login><Icon name="user" /> Iniciar sesión</button>
         </div>
+      ) : yaResenoEste ? (
+        <div class="empty">
+          <h1 style="margin:0;font:bold 16px var(--f-title)">Ya reseñaste este curso</h1>
+          <span>Podés editar tu reseña de {dictadoInfo.materias?.nombre}, {dictadoInfo.cursos?.identificador} desde la página del curso.</span>
+          <a class="btn primary" href={`/dictado/${dictadoInfo.id}`}><Icon name="edit" /> Ir a mi reseña</a>
+        </div>
       ) : (
         <>
+          <div id="msg-borrador" class="notice hidden" role="status">
+            <Icon name="info" />
+            <span><b>Recuperamos tu borrador</b> <span id="borrador-fecha"></span> <button type="button" id="descartar-borrador" class="linklike">Descartarlo y empezar de cero</button></span>
+          </div>
           <div id="msg-success" class="notice ok hidden" role="status">
             <Icon name="check" />
             <div><b>¡Reseña publicada!</b><p>Gracias por contar tu experiencia. Te llevamos al curso…</p></div>
           </div>
           <div id="msg-error" class="notice bad hidden" role="alert">
             <Icon name="alert" />
-            <div><b>No se pudo publicar</b><p id="msg-error-text">Probá de nuevo.</p></div>
+            <div><b>Falta algo</b><p id="msg-error-text">Probá de nuevo.</p></div>
           </div>
 
           <form id="review-form" class="form" novalidate>
             <h1 class="fhead">
-              <span>Escribir una reseña</span>
-              {dictadoInfo && <span>{dictadoInfo.materias?.nombre}, {dictadoInfo.cursos?.identificador} · Turno {turnoLabel(dictadoInfo.cursos?.turno).toLowerCase()}</span>}
+              <span>{dictadoInfo ? `Nueva reseña para ${dictadoInfo.materias?.nombre}, curso ${dictadoInfo.cursos?.identificador}` : 'Nueva reseña'}</span>
+              <span class="draft-note">Se guarda como borrador mientras escribís</span>
             </h1>
-            <div class="fgrid">
-              {!dictadoInfo && (
-                <>
+            <ol class="stepper" aria-label="Pasos">
+              {!dictadoInfo && <li data-paso="1"><span class="n">1</span> Materia y curso</li>}
+              <li data-paso="2"><span class="n">{dictadoInfo ? 1 : 2}</span> Tu experiencia</li>
+              <li data-paso="3"><span class="n">{dictadoInfo ? 2 : 3}</span> Revisar y publicar</li>
+            </ol>
+
+            {!dictadoInfo && (
+              <div class="paso" data-paso="1">
+                <div class="fgrid">
                   <label for="materia-select">Materia<small>Elegí la materia que cursaste.</small></label>
                   <div class="field">
-                    <select id="materia-select" required disabled={!!materiaPreseleccionada}>
+                    <select id="materia-select" required>
                       <option value="">Elegí una materia…</option>
                       {[1, 2, 3, 4, 5].map((niv) => {
                         const lista = materias.filter((m) => m.nivel === niv);
@@ -104,58 +129,117 @@ const crumbs = [
                         );
                       })}
                     </select>
-                    {materiaPreseleccionada && <input type="hidden" id="materia-hidden" value={materiaPreseleccionada.id} />}
                   </div>
 
                   <label for="curso-select">Curso<small>Por ejemplo 2K3. Cada curso tiene su equipo docente.</small></label>
                   <div class="field">
-                    <select id="curso-select" required disabled={!materiaPreseleccionada}>
+                    <select id="curso-select" required disabled>
                       <option value="">{materiaPreseleccionada ? 'Cargando cursos…' : 'Primero elegí una materia'}</option>
                     </select>
+                    <span class="help hidden" id="curso-ya">Los cursos que ya reseñaste aparecen deshabilitados: tu reseña se edita desde el curso.</span>
                   </div>
-                </>
-              )}
-              {dictadoInfo && <input type="hidden" id="dictado-id-hidden" value={dictadoIdParam} />}
 
-              <span class="lab" id="lab-cal">Puntaje<small>¿Cómo fue tu experiencia en general?</small></span>
-              <div class="field">
-                <div class="star-pick" id="star-rating" role="radiogroup" aria-labelledby="lab-cal">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button type="button" data-star={star} class="star-btn" role="radio" aria-checked="false" aria-label={`${star} estrella${star > 1 ? 's' : ''}`}>★</button>
-                  ))}
+                  <label for="anio-cursado">¿Cuándo la cursaste?</label>
+                  <div class="field">
+                    <select id="anio-cursado" required>
+                      <option value="">Elegí el año…</option>
+                      {Array.from({ length: 10 }, (_, i) => currentYear - i).map((year) => <option value={year}>{year}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <input type="hidden" id="calificacion" name="calificacion" value="0" />
-                <span id="rating-label" class="rate-word">Tocá una estrella para puntuar</span>
+                <div class="fbar">
+                  <a class="btn quiet" href={fromParam || '/'}>Cancelar</a>
+                  <button type="button" class="btn primary" data-ir="2">Seguir: contar mi experiencia</button>
+                </div>
               </div>
+            )}
 
-              <label for="anio-cursado">Año en que cursaste</label>
-              <div class="field">
-                <select id="anio-cursado" required>
-                  <option value="">Elegí el año…</option>
-                  {Array.from({ length: 10 }, (_, i) => currentYear - i).map((year) => <option value={year}>{year}</option>)}
-                </select>
+            <div class="paso" data-paso="2">
+              <div class="fgrid">
+                {!dictadoInfo ? (
+                  <>
+                    <span class="lab">Materia y curso<small>Lo elegiste en el paso anterior.</small></span>
+                    <div class="field"><span><b id="resumen-curso"></b> <button type="button" class="linklike" data-ir="1">Cambiar</button></span></div>
+                  </>
+                ) : (
+                  <>
+                    <input type="hidden" id="dictado-id-hidden" value={dictadoIdParam} />
+                    <span class="lab">Curso</span>
+                    <div class="field"><span><b>{dictadoInfo.materias?.nombre}</b>, curso {dictadoInfo.cursos?.identificador}, turno {turnoLabel(dictadoInfo.cursos?.turno).toLowerCase()}.</span></div>
+
+                    <label for="anio-cursado">¿Cuándo la cursaste?</label>
+                    <div class="field">
+                      <select id="anio-cursado" required>
+                        <option value="">Elegí el año…</option>
+                        {Array.from({ length: 10 }, (_, i) => currentYear - i).map((year) => <option value={year}>{year}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <span class="lab" id="lab-cal">Puntaje<small>¿Cómo fue tu experiencia en general?</small></span>
+                <div class="field">
+                  <div class="star-pick" id="star-rating" role="radiogroup" aria-labelledby="lab-cal">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button type="button" data-star={star} class="star-btn" role="radio" aria-checked="false" aria-label={`${star} estrella${star > 1 ? 's' : ''}`}>★</button>
+                    ))}
+                  </div>
+                  <input type="hidden" id="calificacion" name="calificacion" value="0" />
+                  <span id="rating-label" class="rate-word">Tocá una estrella para puntuar</span>
+                </div>
+
+                <span class="lab" id="lab-cond">¿Cómo te fue?<small>Opcional</small></span>
+                <div class="field">
+                  <div class="seg cond-pick" role="radiogroup" aria-labelledby="lab-cond">
+                    <button type="button" role="radio" data-cond="PROMOCIONADO" aria-checked="false" aria-pressed="false">Promocioné</button>
+                    <button type="button" role="radio" data-cond="REGULAR" aria-checked="false" aria-pressed="false">Regularicé</button>
+                    <button type="button" role="radio" data-cond="LIBRE" aria-checked="false" aria-pressed="false">Quedé libre</button>
+                    <button type="button" role="radio" data-cond="" aria-checked="true" aria-pressed="true">Prefiero no contarlo</button>
+                  </div>
+                  <input type="hidden" id="condicion-final" value="" />
+                </div>
+
+                <label for="comentario">Tu opinión<small>Contá lo que te hubiera servido saber antes de cursar.</small></label>
+                <div class="field">
+                  <textarea id="comentario" rows="7" maxlength="2000" required placeholder="¿Cómo son las clases? ¿Y los parciales? ¿Los profes explican bien? Cualquier dato sirve."></textarea>
+                  <span class="help"><span id="contador">0</span> de 2000 caracteres. Hablá de la cursada, con respeto: las reseñas con insultos se borran.</span>
+                </div>
+
+                <span class="lab">Privacidad</span>
+                <div class="field">
+                  <label class="check"><input type="checkbox" id="es-anonima" /> <span>Publicarla como anónima. Tu nombre no se muestra a nadie; solo la moderación puede verlo si la reseña es reportada.</span></label>
+                </div>
               </div>
-
-              <label for="condicion-final">¿Cómo te fue?<small>Opcional</small></label>
-              <div class="field">
-                <select id="condicion-final">
-                  <option value="">Prefiero no contarlo</option>
-                  <option value="PROMOCIONADO">Promocioné (aprobación directa)</option>
-                  <option value="REGULAR">Regularicé</option>
-                  <option value="LIBRE">Quedé libre</option>
-                </select>
-              </div>
-
-              <label for="comentario">Tu opinión<small>Contá lo que te hubiera servido saber antes de cursar.</small></label>
-              <div class="field">
-                <textarea id="comentario" rows="6" maxlength="2000" required placeholder="¿Cómo son las clases? ¿Y los parciales? ¿Los profes explican bien? Cualquier dato sirve."></textarea>
-                <span class="help">Hablá de la cursada, con respeto. Las reseñas con insultos se borran.</span>
-                <label class="check"><input type="checkbox" id="es-anonima" /> <span id="anonima-hint">Publicarla como anónima (no se muestra tu nombre)</span></label>
+              <div class="fbar">
+                {dictadoInfo
+                  ? <a class="btn quiet" href={fromParam || `/dictado/${dictadoInfo.id}`}>Cancelar</a>
+                  : <button type="button" class="btn quiet" data-ir="1">Volver al paso anterior</button>}
+                <button type="button" class="btn primary" data-ir="3">Continuar a revisar</button>
               </div>
             </div>
-            <div class="fbar">
-              <span class="sub">Podés editarla o borrarla cuando quieras desde el curso.</span>
-              <button type="submit" id="btn-submit" class="btn primary"><Icon name="pen" /> Publicar reseña</button>
+
+            <div class="paso" data-paso="3">
+              <div class="review-preview">
+                <p class="sub">Así se va a ver tu reseña:</p>
+                <article class="post">
+                  <div class="post-head"><span id="prev-curso"></span><span class="mesa" id="prev-anio"></span></div>
+                  <div class="post-main">
+                    <div class="author">
+                      <div class="avatar" id="prev-avatar"></div>
+                      <span class="uname" id="prev-nombre"></span>
+                      <span id="prev-cond"></span>
+                    </div>
+                    <div class="message">
+                      <div class="rate-line"><span class="stars" id="prev-stars"></span> <b id="prev-nota"></b></div>
+                      <p id="prev-texto" style="white-space:pre-line"></p>
+                    </div>
+                  </div>
+                </article>
+              </div>
+              <div class="fbar">
+                <button type="button" class="btn quiet" data-ir="2">Volver a editar</button>
+                <button type="submit" id="btn-submit" class="btn primary"><Icon name="pen" /> Publicar reseña</button>
+              </div>
             </div>
           </form>
         </>
@@ -175,139 +259,275 @@ const crumbs = [
           </ul>
         </div>
       </section>
+      <section class="panel">
+        <h3>Una reseña por curso</h3>
+        <div class="in">
+          <span>Podés reseñar cada curso una vez y editarla cuando quieras. Si recursaste, reseñá cada curso por separado.</span>
+        </div>
+      </section>
     </aside>
   </div>
 
-  <script define:vars={{ dictadoIdParam: dictadoInfo ? dictadoIdParam : null, fromParam, supabaseUrl: import.meta.env.PUBLIC_SUPABASE_URL, supabaseKey: import.meta.env.PUBLIC_SUPABASE_ANON_KEY }}>
-    // ========== ESTRELLAS ==========
-    let selectedRating = 0;
-    const labels = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
-    const starBtns = document.querySelectorAll('.star-btn');
-    const calInput = document.getElementById('calificacion');
-    const ratingLabel = document.getElementById('rating-label');
+  <script define:vars={{
+    dictadoIdParam: dictadoInfo ? dictadoIdParam : null,
+    dictadoLabel: dictadoInfo ? `${dictadoInfo.materias?.nombre}, ${dictadoInfo.cursos?.identificador}` : null,
+    materiaInicial: materiaPreseleccionada ? String(materiaPreseleccionada.id) : '',
+    yaResenados,
+    nombreUsuario: user?.name || '',
+    supabaseUrl: import.meta.env.PUBLIC_SUPABASE_URL,
+    supabaseKey: import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  }}>
+    const form = document.getElementById('review-form');
+    if (form) {
+      const $ = (id) => document.getElementById(id);
+      const materiaSelect = $('materia-select');
+      const cursoSelect = $('curso-select');
+      const anioSelect = $('anio-cursado');
+      const calInput = $('calificacion');
+      const condInput = $('condicion-final');
+      const comentario = $('comentario');
+      const anonima = $('es-anonima');
+      const msgError = $('msg-error');
+      const msgErrorText = $('msg-error-text');
 
-    function pintarEstrellas(hasta, clase) {
-      starBtns.forEach((b) => b.classList.toggle(clase, parseInt(b.dataset.star) <= hasta));
-    }
-
-    starBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        selectedRating = parseInt(btn.dataset.star);
-        calInput.value = selectedRating;
-        ratingLabel.textContent = selectedRating + ' de 5: ' + labels[selectedRating];
-        ratingLabel.classList.add('set');
-        pintarEstrellas(selectedRating, 'on');
-        starBtns.forEach((b) => b.setAttribute('aria-checked', b === btn ? 'true' : 'false'));
-      });
-      btn.addEventListener('mouseenter', () => pintarEstrellas(parseInt(btn.dataset.star), 'hov'));
-      btn.addEventListener('mouseleave', () => pintarEstrellas(0, 'hov'));
-    });
-
-    // ========== MATERIA → CURSO ==========
-    const materiaSelect = document.getElementById('materia-select');
-    const cursoSelect = document.getElementById('curso-select');
-    const materiaHidden = document.getElementById('materia-hidden');
-
-    async function loadCursos(materiaId) {
-      if (!cursoSelect) return;
-      cursoSelect.innerHTML = '<option value="">Cargando cursos…</option>';
-      cursoSelect.disabled = true;
-
-      if (!materiaId) {
-        cursoSelect.innerHTML = '<option value="">Primero elegí una materia</option>';
-        return;
+      function error(texto) {
+        msgErrorText.textContent = texto;
+        msgError.classList.remove('hidden');
+        msgError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
       }
+      const limpiarError = () => msgError.classList.add('hidden');
 
-      try {
-        const res = await fetch(supabaseUrl + '/rest/v1/dictados?materia_id=eq.' + encodeURIComponent(materiaId) + '&select=id,cursos(identificador,turno)', {
-          headers: { apikey: supabaseKey, Authorization: 'Bearer ' + supabaseKey },
+      // ========== ESTRELLAS ==========
+      const labels = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
+      const starBtns = document.querySelectorAll('.star-btn');
+      const ratingLabel = $('rating-label');
+      const pintar = (hasta, clase) => starBtns.forEach((b) => b.classList.toggle(clase, parseInt(b.dataset.star) <= hasta));
+      function setRating(n) {
+        calInput.value = n;
+        ratingLabel.textContent = n ? n + ' de 5: ' + labels[n] : 'Tocá una estrella para puntuar';
+        ratingLabel.classList.toggle('set', !!n);
+        pintar(n, 'on');
+        starBtns.forEach((b) => b.setAttribute('aria-checked', parseInt(b.dataset.star) === n ? 'true' : 'false'));
+      }
+      starBtns.forEach((btn) => {
+        btn.addEventListener('click', () => { setRating(parseInt(btn.dataset.star)); guardar(); });
+        btn.addEventListener('mouseenter', () => pintar(parseInt(btn.dataset.star), 'hov'));
+        btn.addEventListener('mouseleave', () => pintar(0, 'hov'));
+      });
+
+      // ========== CÓMO TE FUE ==========
+      const condBtns = document.querySelectorAll('[data-cond]');
+      function setCond(v) {
+        condInput.value = v;
+        condBtns.forEach((b) => {
+          const on = b.dataset.cond === v;
+          b.setAttribute('aria-checked', String(on));
+          b.setAttribute('aria-pressed', String(on));
         });
-        const dictados = await res.json();
+      }
+      condBtns.forEach((b) => b.addEventListener('click', () => { setCond(b.dataset.cond); guardar(); }));
 
-        if (!Array.isArray(dictados) || dictados.length === 0) {
-          cursoSelect.innerHTML = '<option value="">No hay cursos cargados para esta materia</option>';
+      // ========== CONTADOR ==========
+      const contador = $('contador');
+      const contar = () => { contador.textContent = comentario.value.trim().length; };
+      comentario.addEventListener('input', contar);
+
+      // ========== MATERIA → CURSO ==========
+      async function loadCursos(materiaId, elegir) {
+        if (!cursoSelect) return;
+        cursoSelect.innerHTML = '<option value="">Cargando cursos…</option>';
+        cursoSelect.disabled = true;
+        if (!materiaId) {
+          cursoSelect.innerHTML = '<option value="">Primero elegí una materia</option>';
           return;
         }
-
-        dictados.sort((a, b) => (a.cursos?.identificador || '').localeCompare(b.cursos?.identificador || '', 'es', { numeric: true }));
-        cursoSelect.innerHTML = '<option value="">Elegí un curso…</option>';
-        dictados.forEach((d) => {
-          const opt = document.createElement('option');
-          opt.value = d.id;
-          const turno = (d.cursos?.turno || '').toLowerCase();
-          opt.textContent = (d.cursos?.identificador || 'Curso') + (turno ? ' · Turno ' + turno : '');
-          cursoSelect.appendChild(opt);
-        });
-        cursoSelect.disabled = false;
-      } catch (err) {
-        console.error('Error cargando cursos:', err);
-        cursoSelect.innerHTML = '<option value="">No se pudieron cargar los cursos</option>';
+        try {
+          const res = await fetch(supabaseUrl + '/rest/v1/dictados?materia_id=eq.' + encodeURIComponent(materiaId) + '&select=id,cursos(identificador,turno)', {
+            headers: { apikey: supabaseKey, Authorization: 'Bearer ' + supabaseKey },
+          });
+          const dictados = await res.json();
+          if (!Array.isArray(dictados) || dictados.length === 0) {
+            cursoSelect.innerHTML = '<option value="">No hay cursos cargados para esta materia</option>';
+            return;
+          }
+          dictados.sort((a, b) => (a.cursos?.identificador || '').localeCompare(b.cursos?.identificador || '', 'es', { numeric: true }));
+          cursoSelect.innerHTML = '<option value="">Elegí un curso…</option>';
+          let hayYa = false;
+          dictados.forEach((d) => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            const turno = (d.cursos?.turno || '').toLowerCase();
+            const ya = yaResenados.includes(d.id);
+            if (ya) hayYa = true;
+            opt.disabled = ya;
+            opt.textContent = (d.cursos?.identificador || 'Curso') + (turno ? ' · Turno ' + turno : '') + (ya ? ' (ya lo reseñaste)' : '');
+            cursoSelect.appendChild(opt);
+          });
+          $('curso-ya')?.classList.toggle('hidden', !hayYa);
+          cursoSelect.disabled = false;
+          if (elegir && !yaResenados.includes(Number(elegir))) cursoSelect.value = String(elegir);
+        } catch (err) {
+          console.error('Error cargando cursos:', err);
+          cursoSelect.innerHTML = '<option value="">No se pudieron cargar los cursos</option>';
+        }
       }
-    }
+      materiaSelect?.addEventListener('change', () => { loadCursos(materiaSelect.value); guardar(); });
+      cursoSelect?.addEventListener('change', guardar);
 
-    if (materiaHidden) loadCursos(materiaHidden.value);
-    materiaSelect?.addEventListener('change', () => loadCursos(materiaSelect.value));
-
-    // ========== PUBLICAR ==========
-    const form = document.getElementById('review-form');
-    const btnSubmit = document.getElementById('btn-submit');
-    const msgSuccess = document.getElementById('msg-success');
-    const msgError = document.getElementById('msg-error');
-    const msgErrorText = document.getElementById('msg-error-text');
-    const btnOriginal = btnSubmit ? btnSubmit.innerHTML : '';
-
-    function error(texto) {
-      msgErrorText.textContent = texto;
-      msgError.classList.remove('hidden');
-      msgError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      msgSuccess.classList.add('hidden');
-      msgError.classList.add('hidden');
-
-      const dictadoId = dictadoIdParam || cursoSelect?.value;
-      const calificacion = parseInt(calInput.value);
-      const anio = parseInt(document.getElementById('anio-cursado').value);
-      const comentario = document.getElementById('comentario').value.trim();
-
-      if (!dictadoId) return error('Elegí la materia y el curso.');
-      if (!calificacion || calificacion < 1) return error('Elegí un puntaje de 1 a 5 estrellas.');
-      if (!anio) return error('Elegí el año en que cursaste.');
-      if (!comentario) return error('Escribí tu opinión sobre la cursada.');
-
-      btnSubmit.disabled = true;
-      btnSubmit.innerHTML = '<span class="spin"></span> Publicando…';
-      const condicionFinal = document.getElementById('condicion-final').value || null;
-
-      try {
-        const res = await fetch('/api/resenas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            dictado_id: parseInt(dictadoId),
-            calificacion_general: calificacion,
-            anio_cursado: anio,
-            comentario,
-            es_anonima: document.getElementById('es-anonima')?.checked || false,
-            condicion_final: condicionFinal,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error ' + res.status);
-
-        // Volver al curso (o a donde vino) después de publicar
-        const destino = fromParam || '/dictado/' + dictadoId;
-        msgSuccess.classList.remove('hidden');
-        msgSuccess.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => { window.location.href = destino; }, 1500);
-      } catch (err) {
-        console.error('Error enviando reseña:', err);
-        error(err.message || 'No se pudo publicar la reseña. Probá de nuevo.');
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = btnOriginal;
+      // ========== BORRADOR ==========
+      const CLAVE = 'borradorResena';
+      const leerBorrador = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || 'null'); } catch { return null; } };
+      let timer = null;
+      function guardar() {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          const datos = {
+            dictado: dictadoIdParam || cursoSelect?.value || '',
+            materia: materiaSelect?.value || '',
+            anio: anioSelect.value,
+            calificacion: parseInt(calInput.value) || 0,
+            condicion: condInput.value,
+            comentario: comentario.value,
+            anonima: anonima.checked,
+            fecha: Date.now(),
+          };
+          const vacio = !datos.calificacion && !datos.comentario.trim();
+          try { vacio ? localStorage.removeItem(CLAVE) : localStorage.setItem(CLAVE, JSON.stringify(datos)); } catch {}
+        }, 400);
       }
-    });
+      [anioSelect, comentario].forEach((el) => el.addEventListener('input', guardar));
+      anonima.addEventListener('change', guardar);
+
+      const borrador = leerBorrador();
+      const sirve = borrador && (borrador.comentario?.trim() || borrador.calificacion)
+        && (dictadoIdParam ? String(borrador.dictado) === String(dictadoIdParam) : !materiaInicial || borrador.materia === materiaInicial);
+      if (sirve) {
+        if (materiaSelect && borrador.materia) materiaSelect.value = borrador.materia;
+        if (borrador.anio) anioSelect.value = borrador.anio;
+        setRating(borrador.calificacion || 0);
+        setCond(borrador.condicion || '');
+        comentario.value = borrador.comentario || '';
+        anonima.checked = !!borrador.anonima;
+        contar();
+        const d = new Date(borrador.fecha);
+        $('borrador-fecha').textContent = '(del ' + d.toLocaleDateString('es-AR') + ' a las ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) + ').';
+        $('msg-borrador').classList.remove('hidden');
+      }
+      $('descartar-borrador')?.addEventListener('click', () => {
+        try { localStorage.removeItem(CLAVE); } catch {}
+        location.reload();
+      });
+      const materiaACargar = materiaSelect?.value || materiaInicial;
+      if (materiaACargar) loadCursos(materiaACargar, sirve ? borrador.dictado : '');
+
+      // ========== PASOS ==========
+      const pasos = document.querySelectorAll('.paso');
+      const items = document.querySelectorAll('.stepper li');
+      const orden = Array.from(pasos).map((p) => p.dataset.paso);
+      let actual = orden[0];
+
+      function cursoElegido() {
+        if (dictadoLabel) return dictadoLabel;
+        const materia = materiaSelect.options[materiaSelect.selectedIndex]?.textContent || '';
+        const curso = (cursoSelect.options[cursoSelect.selectedIndex]?.textContent || '').split(' · ')[0];
+        return materia + ', ' + curso;
+      }
+
+      function validar(paso) {
+        if (paso === '1') {
+          if (!materiaSelect.value || !cursoSelect.value) return error('Elegí la materia y el curso.');
+          if (!anioSelect.value) return error('Elegí el año en que cursaste.');
+        }
+        if (paso === '2') {
+          if (!anioSelect.value) return error('Elegí el año en que cursaste.');
+          if (!(parseInt(calInput.value) >= 1)) return error('Elegí un puntaje de 1 a 5 estrellas.');
+          if (comentario.value.trim().length < 10) return error('Escribí tu opinión sobre la cursada (al menos 10 caracteres).');
+        }
+        return true;
+      }
+
+      function preview() {
+        const n = parseInt(calInput.value) || 0;
+        $('prev-curso').textContent = cursoElegido();
+        $('prev-anio').textContent = 'Cursó en ' + anioSelect.value;
+        const nombre = anonima.checked ? 'Anónimo' : nombreUsuario;
+        $('prev-nombre').textContent = nombre;
+        $('prev-avatar').textContent = anonima.checked ? '?' : (nombre.trim()[0] || '?').toUpperCase();
+        const conds = { PROMOCIONADO: ['Promocionó', 'prom'], REGULAR: ['Regularizó', 'reg'], LIBRE: ['Quedó libre', 'libre'] };
+        const c = conds[condInput.value];
+        $('prev-cond').innerHTML = '';
+        if (c) { const s = document.createElement('span'); s.className = 'cond ' + c[1]; s.textContent = c[0]; $('prev-cond').appendChild(s); }
+        $('prev-stars').innerHTML = '★★★★★'.split('').map((x, i) => '<span' + (i < n ? '' : ' class="off"') + '>★</span>').join('');
+        $('prev-nota').textContent = n + ' de 5';
+        $('prev-texto').textContent = comentario.value.trim();
+      }
+
+      function ir(paso, conFoco) {
+        limpiarError();
+        actual = paso;
+        pasos.forEach((p) => p.classList.toggle('hidden', p.dataset.paso !== paso));
+        const idx = orden.indexOf(paso);
+        items.forEach((li) => {
+          const i = orden.indexOf(li.dataset.paso);
+          li.classList.toggle('done', i < idx);
+          if (i === idx) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+        });
+        if (paso === '2' && $('resumen-curso')) $('resumen-curso').textContent = cursoElegido() + '. Cursaste en ' + anioSelect.value + '.';
+        if (paso === '3') preview();
+        if (conFoco) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      document.querySelectorAll('[data-ir]').forEach((b) => b.addEventListener('click', () => {
+        const destino = b.dataset.ir;
+        // Para avanzar, el paso actual tiene que estar completo
+        if (orden.indexOf(destino) > orden.indexOf(actual)) {
+          for (const p of orden.slice(orden.indexOf(actual), orden.indexOf(destino))) {
+            if (!validar(p)) return;
+          }
+        }
+        ir(destino, true);
+      }));
+      ir(orden[0], false);
+
+      // ========== PUBLICAR ==========
+      const btnSubmit = $('btn-submit');
+      const btnOriginal = btnSubmit.innerHTML;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (actual !== '3') return;
+        for (const p of orden.slice(0, -1)) if (!validar(p)) return ir(p, true);
+        const dictadoId = dictadoIdParam || cursoSelect.value;
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<span class="spin"></span> Publicando…';
+        try {
+          const res = await fetch('/api/resenas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              dictado_id: parseInt(dictadoId),
+              calificacion_general: parseInt(calInput.value),
+              anio_cursado: parseInt(anioSelect.value),
+              comentario: comentario.value.trim(),
+              es_anonima: anonima.checked,
+              condicion_final: condInput.value || null,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Error ' + res.status);
+          clearTimeout(timer);
+          try { localStorage.removeItem(CLAVE); } catch {}
+          $('msg-success').classList.remove('hidden');
+          $('msg-success').scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => { window.location.href = '/dictado/' + dictadoId + '?publicada=1'; }, 1200);
+        } catch (err) {
+          console.error('Error enviando reseña:', err);
+          msgError.querySelector('b').textContent = 'No se pudo publicar';
+          error(err.message || 'No se pudo publicar la reseña. Probá de nuevo.');
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = btnOriginal;
+        }
+      });
+    }
   </script>
 </Layout>

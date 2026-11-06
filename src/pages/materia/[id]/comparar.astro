@@ -1,0 +1,238 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import Icon from '../../../components/Icon.astro';
+import Stars from '../../../components/Stars.astro';
+import CursoChips from '../../../components/CursoChips.astro';
+import ShareButton from '../../../components/ShareButton.astro';
+import { supabase } from '../../../lib/supabase';
+import { anioLabel, compararCursos, nota, turnoClase } from '../../../lib/format';
+
+const { id } = Astro.params;
+const MIN_RESENAS = 5;
+
+const { data: materia } = await supabase
+  .from('materias')
+  .select('id, nombre, nivel')
+  .eq('id', id)
+  .single();
+
+if (!materia) {
+  return Astro.redirect('/404');
+}
+
+const { data: dictados } = await supabase
+  .from('dictados')
+  .select(`
+    id,
+    cursos ( identificador, turno ),
+    dictado_profesores (
+      profesores ( id, nombre_completo )
+    )
+  `)
+  .eq('materia_id', id);
+
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
+const lista = (dictados || []).map((d: any) => ({ ...d, cursos: one(d.cursos) }));
+const ids = lista.map((d: any) => d.id);
+
+const stats: Record<number, { promedio: number; count: number }> = {};
+const cond: Record<number, { prom: number; reg: number; libre: number; total: number }> = {};
+if (ids.length > 0) {
+  const [{ data: st }, { data: rs }] = await Promise.all([
+    supabase.from('stats_dictados').select('dictado_id, cantidad, promedio').in('dictado_id', ids),
+    supabase.from('resenas_publicas').select('dictado_id, condicion_final').in('dictado_id', ids).limit(5000),
+  ]);
+  (st || []).forEach((s) => { if (s.cantidad > 0) stats[s.dictado_id] = { promedio: s.promedio, count: s.cantidad }; });
+  (rs || []).forEach((r) => {
+    const c = (cond[r.dictado_id] ??= { prom: 0, reg: 0, libre: 0, total: 0 });
+    if (r.condicion_final === 'PROMOCIONADO') c.prom++;
+    else if (r.condicion_final === 'REGULAR') c.reg++;
+    else if (r.condicion_final === 'LIBRE') c.libre++;
+    else return;
+    c.total++;
+  });
+}
+
+const pct = (n: number, t: number) => (t > 0 ? Math.round((n / t) * 100) : null);
+const filas = lista
+  .map((d: any) => {
+    const s = stats[d.id];
+    const c = cond[d.id];
+    return {
+      id: d.id,
+      curso: d.cursos?.identificador || 'Curso',
+      turno: d.cursos?.turno ?? null,
+      profes: (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)).filter(Boolean),
+      promedio: s?.promedio ?? null,
+      count: s?.count ?? 0,
+      prom: c ? pct(c.prom, c.total) : null,
+      reg: c ? pct(c.reg, c.total) : null,
+      libre: c ? pct(c.libre, c.total) : null,
+    };
+  })
+  .sort((a, b) => (b.promedio ?? -1) - (a.promedio ?? -1) || compararCursos(a.curso, b.curso));
+
+// Lo mejor de cada columna, solo entre cursos con suficientes reseñas
+const confiables = filas.filter((f) => f.count >= MIN_RESENAS);
+const mejor = (k: 'promedio' | 'prom' | 'libre', menor = false) => {
+  const vals = confiables.map((f) => f[k]).filter((v): v is number => v !== null);
+  if (vals.length < 2) return null;
+  return menor ? Math.min(...vals) : Math.max(...vals);
+};
+const best = { promedio: mejor('promedio'), prom: mejor('prom'), libre: mejor('libre', true) };
+const esMejor = (f: (typeof filas)[number], k: keyof typeof best) => f.count >= MIN_RESENAS && best[k] !== null && f[k] === best[k];
+
+const desde = Number(Astro.url.searchParams.get('desde')) || null;
+const nivel = materia.nivel || 1;
+const label = anioLabel(nivel).replace(/^./, (c) => c.toUpperCase());
+const hayPocas = filas.some((f) => f.count > 0 && f.count < MIN_RESENAS);
+---
+
+<Layout
+  title={`Comparar cursos de ${materia.nombre} - UTN REP`}
+  description={`Compará los cursos de ${materia.nombre} en la UTN FRC: puntaje, cuántos promocionan y cuántos quedan libres, según las reseñas.`}
+  tab="materias"
+  crumbs={[
+    { label: 'Materias', href: '/' },
+    { label, href: `/nivel/${nivel}` },
+    { label: materia.nombre, href: `/materia/${materia.id}` },
+    { label: 'Comparar cursos' },
+  ]}
+>
+  <div class="layout single">
+    <div class="main">
+      <div class="topic">
+        <div>
+          <a class:list={['yr', `y${nivel}`]} href={`/nivel/${nivel}`}>{label}</a>
+          <h1 style="margin-top:6px">Comparar cursos de {materia.nombre}</h1>
+          <p>Todo sale de las reseñas de cada curso. Lo verde es lo mejor de cada columna.</p>
+        </div>
+        <div class="actions">
+          <ShareButton titulo={`Compará los cursos de ${materia.nombre} en UTN REP`} />
+        </div>
+      </div>
+
+      <div class="filters">
+        <span class="sub" id="turno-label">Turno:</span>
+        <div class="seg" role="group" aria-labelledby="turno-label">
+          <button type="button" data-turno="" aria-pressed="true">Todos</button>
+          <button type="button" data-turno="m" aria-pressed="false"><Icon name="sun" /> Mañana</button>
+          <button type="button" data-turno="t" aria-pressed="false"><Icon name="sunset" /> Tarde</button>
+          <button type="button" data-turno="n" aria-pressed="false"><Icon name="moon" /> Noche</button>
+        </div>
+        <label class="check"><input type="checkbox" id="ocultar-pocas" /> Ocultar los cursos con menos de {MIN_RESENAS} reseñas</label>
+      </div>
+
+      {filas.length > 0 ? (
+        <div class="grid-tbl compare">
+          <table id="tabla-comparar">
+            <thead>
+              <tr>
+                <th><button type="button" data-sort="curso">Curso</button></th>
+                <th>Turno</th>
+                <th>Profesores</th>
+                <th aria-sort="descending"><button type="button" data-sort="promedio">General</button></th>
+                <th class="c"><button type="button" data-sort="count">Reseñas</button></th>
+                <th><button type="button" data-sort="prom">Promocionó</button></th>
+                <th><button type="button" data-sort="reg">Regularizó</button></th>
+                <th><button type="button" data-sort="libre" data-asc>Quedó libre</button></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((f) => (
+                <tr
+                  class:list={{ here: desde === f.id }}
+                  data-turno={turnoClase(f.turno)}
+                  data-count={f.count}
+                  data-curso={f.curso}
+                  data-promedio={f.promedio ?? ''}
+                  data-prom={f.prom ?? ''}
+                  data-reg={f.reg ?? ''}
+                  data-libre={f.libre ?? ''}
+                >
+                  <td class="nowrap">
+                    <a class="curso" href={`/dictado/${f.id}`}>{f.curso}</a>
+                    {desde === f.id && <span class="sub"> (estás acá)</span>}
+                    {f.count > 0 && f.count < MIN_RESENAS && <span class="pocas">pocas reseñas</span>}
+                  </td>
+                  <td><CursoChips mini turno={f.turno} /></td>
+                  <td class="profs">{f.profes.length ? f.profes.map((p: any, i: number) => <>{i > 0 && ', '}<a href={`/profesor/${p.id}`}>{p.nombre_completo}</a></>) : <span class="sub">Sin cargar</span>}</td>
+                  <td class:list={['nowrap', { best: esMejor(f, 'promedio') }]}>
+                    {f.promedio !== null ? <><Stars value={f.promedio} /> <b>{nota(f.promedio)}</b></> : <span class="sub">Sin reseñas</span>}
+                  </td>
+                  <td class="c num">{f.count}</td>
+                  <td class:list={['nowrap', { best: esMejor(f, 'prom') }]}>{f.prom !== null ? <><i class="pbar"><b style={`width:${f.prom}%`}></b></i> {f.prom} %</> : <span class="sub">—</span>}</td>
+                  <td class="nowrap">{f.reg !== null ? <>{f.reg} %</> : <span class="sub">—</span>}</td>
+                  <td class:list={['nowrap', { best: esMejor(f, 'libre') }]}>{f.libre !== null ? <>{f.libre} %</> : <span class="sub">—</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="empty">
+          <h3>No hay cursos cargados</h3>
+          <span>Todavía no se registraron cursos para esta materia.</span>
+        </div>
+      )}
+      <div id="comparar-vacio" class="empty hidden"><span>Ningún curso coincide con esos filtros.</span></div>
+
+      <p class="sub">
+        Los porcentajes salen de las reseñas que contaron cómo les fue.
+        {hayPocas && <> Con menos de {MIN_RESENAS} reseñas el promedio todavía no es confiable, por eso no compite por el verde.</>}
+      </p>
+      <div><a class="btn quiet" href={`/materia/${materia.id}`}><Icon name="back" /> Volver a {materia.nombre}</a></div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const tabla = document.getElementById('tabla-comparar');
+  const tbody = tabla?.querySelector('tbody');
+  const filas = Array.from(tbody?.querySelectorAll<HTMLTableRowElement>('tr') || []);
+  const botonesTurno = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-turno]'));
+  const ocultarPocas = document.getElementById('ocultar-pocas') as HTMLInputElement | null;
+  const vacio = document.getElementById('comparar-vacio');
+  let turno = '';
+
+  function filtrar() {
+    let visibles = 0;
+    filas.forEach((tr) => {
+      const ok = (!turno || tr.dataset.turno === turno) && (!ocultarPocas?.checked || Number(tr.dataset.count) >= 5);
+      tr.classList.toggle('hidden', !ok);
+      if (ok) visibles++;
+    });
+    vacio?.classList.toggle('hidden', visibles > 0 || filas.length === 0);
+  }
+
+  botonesTurno.forEach((b) => b.addEventListener('click', () => {
+    turno = b.dataset.turno || '';
+    botonesTurno.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    filtrar();
+  }));
+  ocultarPocas?.addEventListener('change', filtrar);
+
+  // Ordenar tocando el encabezado; los cursos sin dato van siempre al final
+  tabla?.querySelectorAll<HTMLButtonElement>('th button[data-sort]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const th = btn.closest('th')!;
+      const clave = btn.dataset.sort!;
+      const actual = th.getAttribute('aria-sort');
+      const porDefecto = clave === 'curso' || btn.hasAttribute('data-asc') ? 'ascending' : 'descending';
+      const orden = actual ? (actual === 'ascending' ? 'descending' : 'ascending') : porDefecto;
+      tabla.querySelectorAll('th').forEach((o) => o.removeAttribute('aria-sort'));
+      th.setAttribute('aria-sort', orden);
+      const signo = orden === 'ascending' ? 1 : -1;
+      const sorted = [...filas].sort((a, b) => {
+        if (clave === 'curso') return signo * (a.dataset.curso || '').localeCompare(b.dataset.curso || '', 'es', { numeric: true });
+        const va = a.dataset[clave] === '' ? null : Number(a.dataset[clave]);
+        const vb = b.dataset[clave] === '' ? null : Number(b.dataset[clave]);
+        if (va === null && vb === null) return 0;
+        if (va === null) return 1;
+        if (vb === null) return -1;
+        return signo * (va - vb);
+      });
+      sorted.forEach((tr) => tbody!.appendChild(tr));
+    });
+  });
+</script>

@@ -181,6 +181,14 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
 </html>
 
 <script>
+  // ========== ÚLTIMA VISITA ==========
+  import { visitaAnterior, textoVisita } from '../scripts/visitas';
+  const anteriorVisita = visitaAnterior();
+  const spanVisita = document.getElementById('ultima-visita');
+  if (spanVisita && anteriorVisita) spanVisita.textContent = `Tu última visita: ${textoVisita(anteriorVisita)}`;
+</script>
+
+<script>
   // ========== MODO NOCHE ==========
   const toggle = document.getElementById('theme-toggle');
   const root = document.documentElement;

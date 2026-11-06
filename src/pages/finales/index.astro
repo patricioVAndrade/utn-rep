@@ -27,6 +27,34 @@ const listaExperiencias = (experiencias || []).map((exp: any) => ({
   ...exp,
   materia: Array.isArray(exp.materias) ? exp.materias[0] : exp.materias,
 }));
+
+// Mesas para filtrar (lo guardado es "Diciembre", "Febrero", "Julio" o "Especial")
+const MESAS = [
+  { valor: 'diciembre', label: 'Diciembre' },
+  { valor: 'febrero', label: 'Febrero / marzo' },
+  { valor: 'julio', label: 'Julio' },
+  { valor: 'especial', label: 'Especial' },
+];
+const claveMesa = (mesa?: string | null) => {
+  const k = (mesa || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().split(/[\s/]+/)[0];
+  return MESAS.some((m) => m.valor === k) ? k : 'otra';
+};
+
+// Materias con experiencias, para el selector y el ranking del costado
+const conteo = new Map<number, { id: number; nombre: string; n: number }>();
+listaExperiencias.forEach((exp: any) => {
+  if (!exp.materia?.id) return;
+  const c = conteo.get(exp.materia.id) ?? { id: exp.materia.id, nombre: exp.materia.nombre, n: 0 };
+  c.n++;
+  conteo.set(exp.materia.id, c);
+});
+const materiasConFinales = [...conteo.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+const masContadas = [...conteo.values()].sort((a, b) => b.n - a.n).slice(0, 5);
+
+const materiaParam = Astro.url.searchParams.get('materia') || '';
+const mesaParam = (Astro.url.searchParams.get('mesa') || '').toLowerCase();
+const materiaInicial = conteo.has(Number(materiaParam)) ? materiaParam : '';
+const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
 ---
 
 <Layout title="Experiencias de finales - UTN REP" tab="finales" crumbs={[{ label: 'Experiencias de finales' }]}>
@@ -44,11 +72,20 @@ const listaExperiencias = (experiencias || []).map((exp: any) => ({
         </div>
       </div>
 
-      <div class="finder">
-        <Icon name="search" />
-        <label class="sr" for="search-finales">Buscar por materia</label>
-        <input type="search" id="search-finales" placeholder="Filtrar por materia…" autocomplete="off" />
-      </div>
+      {listaExperiencias.length > 0 && (
+        <div class="filters">
+          <span class="sub" id="mesa-label">Mesa:</span>
+          <div class="seg" role="group" aria-labelledby="mesa-label">
+            <button type="button" data-mesa="" aria-pressed={mesaInicial === '' ? 'true' : 'false'}>Todas</button>
+            {MESAS.map((m) => <button type="button" data-mesa={m.valor} aria-pressed={mesaInicial === m.valor ? 'true' : 'false'}>{m.label}</button>)}
+          </div>
+          <label class="sr" for="filtro-materia">Materia</label>
+          <select id="filtro-materia" class="mini">
+            <option value="">Todas las materias</option>
+            {materiasConFinales.map((m) => <option value={m.id} selected={materiaInicial === String(m.id)}>{m.nombre} ({m.n})</option>)}
+          </select>
+        </div>
+      )}
 
       <div id="finales-container" style="display:grid;gap:12px">
         {listaExperiencias.length > 0 ? (
@@ -56,8 +93,9 @@ const listaExperiencias = (experiencias || []).map((exp: any) => ({
             const isOwner = user?.id === exp.user_id;
             return (
               <article
-                class:list={['post exp final-card', { 'final-extra hidden': idx >= 10 }]}
-                data-materia={exp.materia?.nombre?.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()}
+                class:list={['post exp final-card', { 'final-extra': idx >= 10 }, { hidden: idx >= 10 || (materiaInicial && String(exp.materia?.id) !== materiaInicial) || (mesaInicial && claveMesa(exp.mesa) !== mesaInicial) }]}
+                data-materia-id={exp.materia?.id}
+                data-mesa={claveMesa(exp.mesa)}
                 data-id={exp.id}
               >
                 <div class="post-head">
@@ -102,7 +140,12 @@ const listaExperiencias = (experiencias || []).map((exp: any) => ({
             <span>¿Rendiste un final? Sé la primera persona en contarlo.</span>
           </div>
         )}
-        <div id="finales-vacio" class="empty hidden"><span>No hay experiencias de esa materia todavía.</span></div>
+        <div id="finales-vacio" class="empty hidden">
+          <span>Todavía nadie contó un final con esos filtros.</span>
+          {user
+            ? <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Contar mi final</a>
+            : <button type="button" class="btn primary" data-login><Icon name="pen" /> Contar mi final</button>}
+        </div>
       </div>
 
       {listaExperiencias.length > 10 && (
@@ -120,34 +163,64 @@ const listaExperiencias = (experiencias || []).map((exp: any) => ({
             : <button type="button" class="btn primary big" data-login><Icon name="user" /> Iniciar sesión para contarlo</button>}
         </div>
       </section>
+
+      {masContadas.length > 0 && (
+        <section class="panel">
+          <h3>Materias con más finales contados</h3>
+          <div class="in feed">
+            {masContadas.map((m) => (
+              <div>
+                <a href={`/finales?materia=${m.id}`} data-filtrar-materia={m.id}>{m.nombre}</a>
+                <span class="sub">{m.n} experiencia{m.n !== 1 ? 's' : ''}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </aside>
   </div>
 </Layout>
 
 <script>
-  const searchInput = document.getElementById('search-finales') as HTMLInputElement | null;
   const cards = Array.from(document.querySelectorAll<HTMLElement>('.final-card'));
   const showMoreBtn = document.getElementById('show-more-btn') as HTMLButtonElement | null;
   const vacio = document.getElementById('finales-vacio');
-  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const selMateria = document.getElementById('filtro-materia') as HTMLSelectElement | null;
+  const botonesMesa = Array.from(document.querySelectorAll<HTMLButtonElement>('.seg [data-mesa]'));
+  let mesa = botonesMesa.find((b) => b.getAttribute('aria-pressed') === 'true')?.dataset.mesa || '';
 
-  // Filtro por materia
-  searchInput?.addEventListener('input', () => {
-    const value = norm(searchInput.value);
-    let visibles = 0;
+  // Filtros por mesa y materia (también quedan en la dirección, para compartir el link)
+  function aplicar() {
+    const materia = selMateria?.value || '';
+    const filtrando = !!(materia || mesa);
+    let coinciden = 0;
     cards.forEach((card) => {
-      if (value) {
-        const ok = (card.dataset.materia || '').includes(value);
-        card.classList.toggle('hidden', !ok);
-        if (ok) visibles++;
-      } else {
-        card.classList.toggle('hidden', card.classList.contains('final-extra'));
-        visibles++;
-      }
+      const ok = (!materia || card.dataset.materiaId === materia) && (!mesa || card.dataset.mesa === mesa);
+      if (ok) coinciden++;
+      card.classList.toggle('hidden', !ok || (!filtrando && card.classList.contains('final-extra')));
     });
-    if (showMoreBtn) showMoreBtn.style.display = value || !document.querySelector('.final-extra.hidden') ? 'none' : '';
-    vacio?.classList.toggle('hidden', visibles > 0 || cards.length === 0);
-  });
+    if (showMoreBtn) showMoreBtn.style.display = filtrando || !document.querySelector('.final-extra.hidden') ? 'none' : '';
+    vacio?.classList.toggle('hidden', coinciden > 0 || cards.length === 0);
+    const url = new URL(location.href);
+    materia ? url.searchParams.set('materia', materia) : url.searchParams.delete('materia');
+    mesa ? url.searchParams.set('mesa', mesa) : url.searchParams.delete('mesa');
+    history.replaceState(null, '', url);
+  }
+
+  botonesMesa.forEach((b) => b.addEventListener('click', () => {
+    mesa = b.dataset.mesa || '';
+    botonesMesa.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    aplicar();
+  }));
+  selMateria?.addEventListener('change', aplicar);
+  document.querySelectorAll<HTMLAnchorElement>('[data-filtrar-materia]').forEach((a) => a.addEventListener('click', (e) => {
+    if (!selMateria) return;
+    e.preventDefault();
+    selMateria.value = a.dataset.filtrarMateria || '';
+    aplicar();
+    document.querySelector('.filters')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+  if (selMateria?.value || mesa) aplicar();
 
   // Ver más, de a 10
   showMoreBtn?.addEventListener('click', () => {

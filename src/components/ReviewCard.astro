@@ -7,6 +7,7 @@
  */
 import Icon from './Icon.astro';
 import Stars from './Stars.astro';
+import ShareButton from './ShareButton.astro';
 import { tiempoRelativo } from '../lib/format';
 
 interface Props {
@@ -112,6 +113,7 @@ const fecha = resena.created_at ? new Date(resena.created_at) : null;
         {logueado && !esPropia && (
           <button type="button" class="report-btn btn quiet" title="Reportar reseña"><Icon name="flag" /> Reportar</button>
         )}
+        <ShareButton mini titulo="Mirá esta reseña en UTN REP" ruta={`/dictado/${resena.dictado_id}#resena-${resena.id}`} />
       </div>
       {(esPropia || userIsAdmin) && (
         <div class="group">

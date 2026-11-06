@@ -4,6 +4,7 @@ import Icon from '../../components/Icon.astro';
 import Stars from '../../components/Stars.astro';
 import CursoChips from '../../components/CursoChips.astro';
 import ReviewCard from '../../components/ReviewCard.astro';
+import ShareButton from '../../components/ShareButton.astro';
 import { supabase } from '../../lib/supabase';
 import { anioLabel, compararCursos, nota } from '../../lib/format';
 
@@ -77,6 +78,11 @@ if (dictadoIds.length > 0) {
 }
 const totalDist = distribucion.reduce((a, b) => a + b, 0);
 
+const { count: cantFinales } = await supabase
+  .from('experiencias_finales')
+  .select('id', { count: 'exact', head: true })
+  .eq('materia_id', id);
+
 // Datos rápidos
 const conResenas = dictadosOrdenados.filter((d: any) => dictadoStats[d.id]);
 const mejor = conResenas
@@ -134,6 +140,8 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
         </div>
         <div class="actions">
           <a class="btn primary" href={escribir}><Icon name="pen" /> Escribir una reseña</a>
+          {dictadosOrdenados.length > 1 && <a class="btn secondary" href={`/materia/${id}/comparar`}><Icon name="compare" /> Comparar cursos</a>}
+          <ShareButton titulo={`Reseñas de ${materia.nombre} en UTN REP`} />
         </div>
       </div>
 
@@ -218,6 +226,15 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
           <span>Todavía no se registraron cursos para esta materia.</span>
         </div>
       )}
+
+      <div class="notice">
+        <Icon name="final" />
+        <span>
+          {cantFinales
+            ? <>Hay {cantFinales} experiencia{cantFinales !== 1 ? 's' : ''} de finales de {materia.nombre}. <a href={`/finales?materia=${id}`}><b>Ver cómo toman el final</b></a></>
+            : <>Todavía nadie contó cómo es el final de {materia.nombre}. <a href="/finales/nuevo"><b>¿Lo rendiste? Contalo</b></a></>}
+        </span>
+      </div>
 
       <div class="toolbar"><h2>Opiniones recientes</h2></div>
       {resenas.length > 0 ? (

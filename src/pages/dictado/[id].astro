@@ -4,6 +4,7 @@ import Icon from '../../components/Icon.astro';
 import Stars from '../../components/Stars.astro';
 import CursoChips from '../../components/CursoChips.astro';
 import ReviewCard from '../../components/ReviewCard.astro';
+import ShareButton from '../../components/ShareButton.astro';
 import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 import { supabaseAdmin } from '../../lib/supabase-admin';
 import { isAdmin } from '../../lib/admin';
@@ -111,6 +112,12 @@ const nivel = materia?.nivel || 1;
 const label = anioLabel(nivel).replace(/^./, (c) => c.toUpperCase());
 const escribir = `/nueva-resena?dictado=${id}&from=/dictado/${id}`;
 const pct = (n: number) => (conCondicion ? Math.round((n / conCondicion) * 100) : 0);
+
+const [{ count: cantFinales }, { count: cantCursos }] = await Promise.all([
+  supabase.from('experiencias_finales').select('id', { count: 'exact', head: true }).eq('materia_id', dictado.materia_id),
+  supabase.from('dictados').select('id', { count: 'exact', head: true }).eq('materia_id', dictado.materia_id),
+]);
+const recienPublicada = Astro.url.searchParams.get('publicada') === '1';
 ---
 
 <Layout
@@ -144,8 +151,19 @@ const pct = (n: number) => (conCondicion ? Math.round((n / conCondicion) * 100) 
         </div>
         <div class="actions">
           <a class="btn primary" href={escribir}><Icon name="pen" /> Escribir una reseña</a>
+          <ShareButton titulo={`Reseñas de ${materia?.nombre}, curso ${curso?.identificador}, en UTN REP`} />
         </div>
       </div>
+
+      {recienPublicada && (
+        <div class="notice ok" id="aviso-publicada">
+          <Icon name="check" />
+          <span>
+            <b>¡Listo, tu reseña ya está publicada!</b> Si tus compañeros también cursaron acá, pasales el link así suman la suya.
+          </span>
+          <ShareButton titulo={`Ya dejé mi reseña de ${materia?.nombre}, ${curso?.identificador}. Sumá la tuya en UTN REP`} label="Pasalo al grupo" />
+        </div>
+      )}
 
       {totalResenas > 0 && (
         <div class="summary">
@@ -251,10 +269,23 @@ const pct = (n: number) => (conCondicion ? Math.round((n / conCondicion) * 100) 
         </div>
       </section>
 
+      {(cantCursos || 0) > 1 && (
+        <section class="panel">
+          <h3>¿Y los otros cursos?</h3>
+          <div class="in">
+            <span>{materia?.nombre} tiene {cantCursos} cursos. Comparalos por puntaje y por cuántos promocionan.</span>
+            <a class="btn secondary" href={`/materia/${materia?.id}/comparar?desde=${id}`}><Icon name="compare" /> Comparar cursos</a>
+            <a href={`/materia/${materia?.id}`}>Ver todos los cursos de {materia?.nombre}</a>
+          </div>
+        </section>
+      )}
+
       <section class="panel">
-        <h3>Otros cursos</h3>
+        <h3>Finales de esta materia</h3>
         <div class="in">
-          <a href={`/materia/${materia?.id}`}>Ver todos los cursos de {materia?.nombre}</a>
+          {cantFinales
+            ? <><span>{cantFinales} experiencia{cantFinales !== 1 ? 's' : ''} de cómo toman el final.</span><a class="btn quiet" href={`/finales?materia=${materia?.id}`}><Icon name="final" /> Ver los finales</a></>
+            : <><span>Todavía nadie contó cómo es el final.</span><a href="/finales/nuevo">¿Lo rendiste? Contalo</a></>}
         </div>
       </section>
     </aside>

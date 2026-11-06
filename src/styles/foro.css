@@ -196,7 +196,9 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--line); background: var(--row-a); font-size: 11.5px; border-radius: 3px; color: var(--ink); }
 .chip svg { width: 14px; height: 14px; }
 .chip.yr { background: var(--yc); color: #fff; border-color: rgba(0,0,0,.2); font-weight: bold; font-size: 12.5px; padding: 4px 10px; }
-.chip.turno { font-weight: bold; font-size: 12.5px; padding: 4px 10px; }
+.tt svg { width: 11px; height: 11px; }
+.chip.turno svg { width: 14px; height: 14px; }
+.chip.turno { display: inline-flex; align-items: center; gap: 5px; font-weight: bold; font-size: 12.5px; padding: 4px 10px; }
 .chip.turno.m, .tt.m { background: var(--tm-bg); color: var(--tm-ink); border-color: var(--tm-line); }
 .chip.turno.t, .tt.t { background: var(--tt-bg); color: var(--tt-ink); border-color: var(--tt-line); }
 .chip.turno.n, .tt.n { background: var(--tn-bg); color: var(--tn-ink); border-color: var(--tn-line); }
@@ -219,6 +221,8 @@ html[data-theme="dark"] .chip.elec { color: #c9b6ff; border-color: #8f74d6; }
 .notice.bad svg { color: var(--bad); }
 .notice b { display: block; }
 .notice p { margin: 2px 0 0; }
+.notice > .btn { grid-column: 2; justify-self: start; }
+.notice .btn svg { width: 14px; height: 14px; color: inherit; }
 
 /* Paneles */
 .panel { border: 1px solid var(--line); background: var(--row-a); min-width: 0; }
@@ -275,6 +279,8 @@ html[data-theme="dark"] .chip.elec { color: #c9b6ff; border-color: #8f74d6; }
 .folder { width: 24px; height: 20px; display: block; margin: 0 auto; }
 .folder.new { color: var(--amber); }
 .folder.old { color: var(--star-off); }
+.row .nuevas { color: var(--hover); }
+.userbar .visita { color: var(--muted); }
 .name { font-weight: bold; font-size: 13px; }
 .last { font-size: 11px; color: var(--muted); line-height: 1.4; min-width: 0; overflow-wrap: anywhere; }
 .only-sm-inline { display: none; }
@@ -361,6 +367,17 @@ html[data-theme="dark"] .chip.elec { color: #c9b6ff; border-color: #8f74d6; }
 .rate-word.set { color: var(--ink); font-weight: bold; }
 .check { display: flex; gap: 8px; align-items: flex-start; font-size: 11.5px; cursor: pointer; }
 .check input { margin-top: 2px; accent-color: var(--amber); width: 15px; height: 15px; }
+.stepper { display: flex; margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--line); background: var(--row-b); }
+.stepper li { display: flex; align-items: center; gap: 6px; padding: 7px 12px; font-size: 11.5px; font-style: italic; color: var(--muted); border-right: 1px solid var(--line-soft); }
+.stepper .n { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); font-style: normal; font-size: 10.5px; background: var(--box); }
+.stepper li[aria-current] { color: var(--ink); font-weight: bold; background: var(--box); box-shadow: inset 0 -2px 0 var(--amber); }
+.stepper li[aria-current] .n { background: var(--amber); border-color: #9f6c00; color: var(--amber-ink); }
+.stepper li.done .n { background: var(--ok); border-color: var(--ok); color: #fff; font-size: 0; }
+.stepper li.done .n::after { content: "✓"; font-size: 11px; }
+.form .fhead .draft-note { font-weight: normal; font-size: 11px; opacity: .85; }
+.review-preview { padding: 10px; display: grid; gap: 6px; }
+.review-preview .post-head span:first-child { font-weight: bold; }
+.cond-pick button { padding-block: 6px; }
 .fbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; background: var(--row-b); border-top: 1px solid var(--line); }
 .guide ul { margin: 0; padding-left: 16px; display: grid; gap: 4px; list-style: disc; }
 .guide .good { color: var(--ok); } .guide .bad { color: var(--bad); }
@@ -407,10 +424,33 @@ html[data-theme="dark"] .chip.elec { color: #c9b6ff; border-color: #8f74d6; }
 .foot .cafe-link { white-space: nowrap; }
 .bottombar { display: none; }
 
-/* Experiencias de finales: buscador */
-.finder { display: flex; border: 1px solid var(--line); background: var(--input-bg); }
-.finder svg { width: 16px; height: 16px; margin: 8px 0 0 9px; color: var(--muted); flex: none; }
-.finder input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: 12.5px var(--f-body); padding: 8px 10px; }
+/* Comparar cursos */
+.compare table { min-width: 760px; }
+.compare th button { all: unset; cursor: pointer; }
+.compare th button:hover, .compare th button:focus-visible { text-decoration: underline; }
+.compare th[aria-sort] button::after { content: " ▼"; font-size: 9px; }
+.compare th[aria-sort="ascending"] button::after { content: " ▲"; }
+.compare th[aria-sort] { box-shadow: inset 0 -3px 0 var(--amber); }
+.grid-tbl.compare td.best { background: var(--ok-bg); color: var(--ok); font-weight: bold; }
+.grid-tbl.compare tr.here td { background: var(--row-hover); border-top: 2px solid var(--amber); border-bottom: 2px solid var(--amber); }
+.compare .nowrap { white-space: nowrap; }
+.compare .profs { min-width: 160px; }
+.pocas { display: inline-block; margin-left: 4px; padding: 0 4px; border: 1px dashed var(--line); font-size: 9.5px; color: var(--muted); white-space: nowrap; }
+.pbar { display: inline-block; width: 46px; height: 6px; background: var(--box); border: 1px solid var(--line); vertical-align: 1px; margin-right: 4px; }
+.pbar b { display: block; height: 100%; background: var(--ok); }
+.foro .btn.wa { background: linear-gradient(#2fbf5f, #1f9d4b); border-color: #178a40; color: #fff; }
+.foro .btn.wa:hover { background: linear-gradient(#34cc66, #22a852); color: #fff; }
+
+/* Filtros (finales, comparar) */
+.filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.seg button { display: inline-flex; align-items: center; gap: 4px; padding: 5px 11px; border: 0; border-left: 1px solid var(--line); background: var(--box); color: var(--ink); font: 12px var(--f-body); cursor: pointer; }
+.seg button:first-child { border-left: 0; }
+.seg button svg { width: 13px; height: 13px; }
+.seg button:hover { background: var(--row-hover); }
+.seg button[aria-pressed="true"] { background: var(--navy); color: #fff; font-weight: bold; }
+.filters select.mini { padding: 6px 8px; font-size: 12px; max-width: 100%; }
+.filters .check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
 
 /* ======================================================================
    Pantallas angostas: se decide por el ancho del foro, no de la ventana
@@ -453,13 +493,19 @@ html[data-theme="dark"] .chip.elec { color: #c9b6ff; border-color: #8f74d6; }
   .author .extra { display: none; }
   .btn { min-height: 44px; padding-inline: 14px; }
   .post-tools .group { width: 100%; }
-  .post-tools .btn { flex: 1; }
+  .post-tools .btn { flex: 1; white-space: nowrap; padding-inline: 8px; }
+  .post-tools [data-share] { flex: 0 0 44px; }
+  .post-tools [data-share] .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .topic .actions { width: 100%; }
   .topic .actions .btn { flex: 1 1 auto; }
   .fgrid { grid-template-columns: 1fr; }
+  .stepper li { flex: 1; padding: 8px 6px; font-size: 10.5px; }
+  .form .fhead .draft-note { display: none; }
   .fgrid > label, .fgrid > .lab { border-right: 0; }
   .foro .star-btn { font-size: 34px; padding: 0 4px; }
   .field input[type="text"], .field input[type="email"], .field select, .field textarea { font-size: 16px; }
+  .seg button { min-height: 40px; padding-inline: 9px; }
+  .filters select.mini { width: 100%; min-height: 40px; font-size: 16px; }
   .grid-tbl.stack table { display: none; }
   .grid-tbl.stack { overflow: visible; border: 0; }
   .grid-tbl.stack .cards-sm { display: grid; gap: 8px; }

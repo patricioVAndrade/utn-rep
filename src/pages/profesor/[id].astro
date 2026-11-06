@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Stars from '../../components/Stars.astro';
 import CursoChips from '../../components/CursoChips.astro';
+import ShareButton from '../../components/ShareButton.astro';
 import { supabase } from '../../lib/supabase';
 import { anioLabel, compararCursos, nota } from '../../lib/format';
 
@@ -115,12 +116,15 @@ const schemaProfesor = JSON.stringify(schemaObject);
             {totalResenas > 0 && <> Sus cursos tienen <b>{nota(promedioGeneral)}</b> de promedio en {totalResenas} reseña{totalResenas !== 1 ? 's' : ''}.</>}
           </p>
         </div>
-        {totalResenas > 0 && (
-          <div style="text-align:right">
-            <span class="big-score">{nota(promedioGeneral)} <small>de 5</small></span><br />
-            <Stars value={promedioGeneral} />
-          </div>
-        )}
+        <div class="actions" style="text-align:right">
+          {totalResenas > 0 && (
+            <div>
+              <span class="big-score">{nota(promedioGeneral)} <small>de 5</small></span><br />
+              <Stars value={promedioGeneral} />
+            </div>
+          )}
+          <ShareButton titulo={`Reseñas de los cursos de ${profesor.nombre_completo} en UTN REP`} />
+        </div>
       </div>
 
       <div class="notice">

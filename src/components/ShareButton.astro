@@ -1,0 +1,36 @@
+---
+/**
+ * Botón "Compartir": en el celular abre el menú para compartir del teléfono
+ * y en la compu abre WhatsApp Web con el texto y el link.
+ */
+import Icon from './Icon.astro';
+
+interface Props {
+  /** Texto que acompaña al link */
+  titulo: string;
+  /** Ruta a compartir (por defecto, la página actual sin parámetros) */
+  ruta?: string;
+  /** Botón chico, para usar dentro de una reseña */
+  mini?: boolean;
+  label?: string;
+}
+const { titulo, ruta, mini = false, label = 'Compartir' } = Astro.props;
+---
+<button type="button" class:list={['btn', mini ? 'quiet' : 'wa']} data-share data-titulo={titulo} data-ruta={ruta} title={label}>
+  <Icon name="share" /> <span class="lbl">{label}</span>
+</button>
+
+<script>
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-share]');
+    if (!btn) return;
+    const url = new URL(btn.dataset.ruta || location.pathname, location.origin).href;
+    const texto = btn.dataset.titulo || document.title;
+    const celular = matchMedia('(pointer: coarse)').matches;
+    if (celular && navigator.share) {
+      try { await navigator.share({ title: texto, text: texto, url }); } catch { /* lo cerró */ }
+      return;
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${texto} ${url}`)}`, '_blank', 'noopener');
+  });
+</script>

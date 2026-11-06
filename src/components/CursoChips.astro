@@ -1,5 +1,6 @@
 ---
 /** Chips de un curso: turno, cuatrimestre, contracuatrimestre, intensivo y electiva. */
+import Icon from './Icon.astro';
 import { turnoClase, turnoLabel } from '../lib/format';
 
 interface Props {
@@ -18,11 +19,13 @@ const PERIODOS: Record<string, string> = {
   ANUAL: 'Anual',
 };
 const esAnual = periodo === 'ANUAL';
+const ICONO_TURNO: Record<string, string> = { m: 'sun', t: 'sunset', n: 'moon' };
+const icono = ICONO_TURNO[turnoClase(turno)];
 ---
 <span class="chips">
   {turno !== undefined && (mini
-    ? <span class:list={['tt', turnoClase(turno)]}>{turnoLabel(turno)}</span>
-    : <span class:list={['chip turno', turnoClase(turno)]}>Turno {turnoLabel(turno).toLowerCase()}</span>)}
+    ? <span class:list={['tt', turnoClase(turno)]}>{icono && <Icon name={icono} />}{turnoLabel(turno)}</span>
+    : <span class:list={['chip turno', turnoClase(turno)]}>{icono && <Icon name={icono} />}Turno {turnoLabel(turno).toLowerCase()}</span>)}
   {periodo && PERIODOS[periodo] && <span class="chip">{PERIODOS[periodo]}</span>}
   {contra && !esAnual && <span class="chip" title="Se dicta en el cuatrimestre contrario al habitual">Contracuatrimestre</span>}
   {intensivo && <span class="chip">Intensivo</span>}
