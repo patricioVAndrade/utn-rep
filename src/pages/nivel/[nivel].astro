@@ -1,10 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import HeaderNav from '../../components/HeaderNav.astro';
+import Icon from '../../components/Icon.astro';
+import Stars from '../../components/Stars.astro';
 import { supabase } from '../../lib/supabase';
-import { NIVEL_COLORS } from '../../lib/format';
-
-const user = Astro.locals.user;
+import { anioLabel, nota, tiempoRelativo } from '../../lib/format';
 
 const { nivel } = Astro.params;
 const nivelNum = parseInt(nivel || '1');
@@ -13,138 +12,123 @@ if (isNaN(nivelNum) || nivelNum < 1 || nivelNum > 5) {
   return Astro.redirect('/');
 }
 
-// Consultar materias de este nivel
+// Materias de este año
 const { data: materias, error } = await supabase
   .from('materias')
   .select('id, nombre, nivel, es_electiva, puntos_electiva')
   .eq('nivel', nivelNum)
   .order('nombre');
 
-if (error) console.error("Error trayendo materias:", error.message);
+if (error) console.error('Error trayendo materias:', error.message);
 
-// Traer reseñas para stats reales
-const materiaIds = materias?.map(m => m.id) || [];
-const materiaStats: Record<number, { promedio: number; count: number }> = {};
+const materiaIds = materias?.map((m) => m.id) || [];
+type Agg = { promedio: number; count: number; cursos: number };
+const porMateria: Record<number, Agg> = {};
+const ultima: Record<number, { created_at: string; autor: string }> = {};
 
 if (materiaIds.length > 0) {
   const { data: stats } = await supabase
     .from('stats_dictados')
-    .select('materia_id, cantidad, promedio')
+    .select('dictado_id, materia_id, cantidad, promedio')
     .in('materia_id', materiaIds);
 
+  const materiaDeDictado = new Map<number, number>();
   (stats || []).forEach((st) => {
-    if (!st.cantidad) return;
-    const acc = materiaStats[st.materia_id] ?? { promedio: 0, count: 0 };
-    // promedio ponderado por cantidad de reseñas de cada dictado
-    acc.promedio = (acc.promedio * acc.count + st.promedio * st.cantidad) / (acc.count + st.cantidad);
-    acc.count += st.cantidad;
-    materiaStats[st.materia_id] = acc;
+    materiaDeDictado.set(st.dictado_id, st.materia_id);
+    const acc = porMateria[st.materia_id] ?? { promedio: 0, count: 0, cursos: 0 };
+    acc.cursos += 1;
+    if (st.cantidad > 0) {
+      // promedio ponderado por cantidad de reseñas de cada curso
+      acc.promedio = (acc.promedio * acc.count + st.promedio * st.cantidad) / (acc.count + st.cantidad);
+      acc.count += st.cantidad;
+    }
+    porMateria[st.materia_id] = acc;
   });
+
+  const dictadoIds = [...materiaDeDictado.keys()];
+  if (dictadoIds.length > 0) {
+    const { data: recientes } = await supabase
+      .from('resenas_publicas')
+      .select('dictado_id, created_at, nombre_usuario, es_anonima')
+      .in('dictado_id', dictadoIds)
+      .order('created_at', { ascending: false })
+      .limit(500);
+    (recientes || []).forEach((r) => {
+      const mid = materiaDeDictado.get(r.dictado_id);
+      if (mid && !ultima[mid]) ultima[mid] = { created_at: r.created_at, autor: r.es_anonima ? 'Anónimo' : r.nombre_usuario || 'Estudiante' };
+    });
+  }
 }
 
-const nivelesInfo = Object.fromEntries(
-  Object.entries(NIVEL_COLORS).map(([n, c]) => [n, { label: c.label, color: c.bg }]),
-) as Record<number, { label: string; color: string }>;
-
-const infoNivel = nivelesInfo[nivelNum];
+const total = Object.values(porMateria).reduce((acc, a) => acc + a.count, 0);
+const label = anioLabel(nivelNum).replace(/^./, (c) => c.toUpperCase());
 ---
 
-<Layout title={`Materias de ${infoNivel.label} - UTN REP`}>
+<Layout
+  title={`Materias de ${label} - UTN REP`}
+  tab="materias"
+  crumbs={[{ label: 'Materias', href: '/' }, { label }]}
+>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="folder" viewBox="0 0 24 20"><path d="M1 3.5C1 2.7 1.7 2 2.5 2h6l2 2.5h11c.8 0 1.5.7 1.5 1.5v11.5c0 .8-.7 1.5-1.5 1.5h-19C1.7 19 1 18.3 1 17.5z" fill="currentColor" stroke="rgba(0,0,0,.35)"/><path d="M1.5 7h21" stroke="rgba(255,255,255,.5)"/></symbol>
+  </svg>
 
-  <header class={`bg-gradient-to-r ${infoNivel.color} text-white relative overflow-hidden`}>
-    <div class="absolute inset-0 dot-pattern opacity-30"></div>
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-12">
-      <HeaderNav user={user} />
-      <div class="flex items-center gap-4">
-        <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-        </div>
+  <div class="layout single">
+    <div class="main">
+      <div class:list={['year-band', `y${nivelNum}`]}>
+        <span class="ybig">{nivelNum}.º</span>
         <div>
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-heading font-extrabold tracking-tight">
-            {infoNivel.label}
-          </h1>
-          <p class="text-white/80 mt-2">
-            {materias?.length || 0} materias encontradas
-          </p>
+          <h1>{label}</h1>
+          <p>{materias?.length || 0} materias · {total.toLocaleString('es-AR')} reseña{total !== 1 ? 's' : ''}</p>
         </div>
+        <nav class="ynav" aria-label="Otros años">
+          {[1, 2, 3, 4, 5].filter((n) => n !== nivelNum).map((n) => <a href={`/nivel/${n}`}>{n}.º año</a>)}
+        </nav>
       </div>
-    </div>
-  </header>
 
-  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-    
-    {materias && materias.length > 0 ? (
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {materias.map((materia) => {
-          const stats = materiaStats[materia.id];
-          const hasReviews = stats && stats.count > 0;
-          return (
-            <a 
-              href={`/materia/${materia.id}?from=nivel`} 
-              class="group bg-[#242424] p-5 sm:p-6 rounded-2xl border border-neutral-700/60 hover:border-amber-300 hover:shadow-xl transition-all duration-300 flex flex-col h-full"
-            >
-              <div class="flex items-start justify-between gap-4">
-                <h3 class="font-heading font-bold text-white group-hover:text-amber-400 transition-colors">
-                  {materia.nombre}
-                </h3>
-                <svg class="w-5 h-5 text-neutral-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-              </div>
-
-              <div class="mt-auto pt-4 flex flex-col items-start">
-                {materia.es_electiva && (
-                  <span class="inline-flex items-center gap-1 text-xs font-semibold bg-purple-400/20 text-purple-100 px-2 py-0.5 rounded-full mb-2">
-                    Electiva ({materia.puntos_electiva || 0} pts)
-                  </span>
-                )}
-                
-                <div class="flex items-center gap-2">
-                  {hasReviews ? (
-                    <>
-                      <span class="text-xs text-amber-400 flex items-center gap-1 font-semibold">
-                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-                        {stats.promedio.toFixed(1)}
-                      </span>
-                      <span class="text-xs text-neutral-500">
-                        · {stats.count} reseña{stats.count !== 1 ? 's' : ''}
-                      </span>
-                    </>
-                  ) : (
-                    <span class="text-xs text-neutral-500">Sin reseñas aún</span>
-                  )}
+      {materias && materias.length > 0 ? (
+        <div class="tbl" role="table" aria-label={`Materias de ${label}`}>
+          <div class="thead" role="row">
+            <span></span><span>Materia</span><span class="c">Promedio</span><span class="c">Reseñas</span><span>Última reseña</span>
+          </div>
+          {materias.map((m) => {
+            const st = porMateria[m.id];
+            const ult = ultima[m.id];
+            return (
+              <div class="row" role="row">
+                <svg class="folder old" aria-hidden="true"><use href="#folder" /></svg>
+                <div>
+                  <a class="name" href={`/materia/${m.id}`}>{m.nombre}</a>
+                  <div class="sub">
+                    {m.es_electiva && <><span class="tt" style="border-color:var(--y5);color:var(--y5)">Electiva, {m.puntos_electiva || 0} pts</span>{' '}</>}
+                    {st ? `${st.cursos} curso${st.cursos !== 1 ? 's' : ''}` : 'Sin cursos cargados'}
+                    {st && st.count > 0 && <span class="only-sm-inline">, {st.count} reseña{st.count !== 1 ? 's' : ''}</span>}
+                  </div>
                 </div>
+                {st && st.count > 0 ? (
+                  <>
+                    <div class="c"><Stars value={st.promedio} /><div class="score">{nota(st.promedio)} de 5</div></div>
+                    <div class="c num hide-sm">{st.count}<div class="score">reseñas</div></div>
+                    <div class="last hide-sm">{ult ? <>{tiempoRelativo(ult.created_at)}<br />por <b>{ult.autor}</b></> : '—'}</div>
+                  </>
+                ) : (
+                  <>
+                    <div class="c sub hide-sm">Sin puntaje</div>
+                    <div class="c num hide-sm">0</div>
+                    <div class="last hide-sm"><a href={`/nueva-resena?materia=${m.id}&from=/materia/${m.id}`}>Escribí la primera reseña</a></div>
+                  </>
+                )}
               </div>
-            </a>
-          );
-        })}
-      </div>
-    ) : (
-      <div class="text-center py-16">
-        <div class="flex justify-center mb-4">
-          <svg class="w-16 h-16 text-neutral-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+            );
+          })}
         </div>
-        <h2 class="text-xl font-heading font-bold text-neutral-300 mb-2">No hay materias cargadas</h2>
-        <p class="text-neutral-500">Todavía no hay materias registradas para este nivel.</p>
-      </div>
-    )}
-
-    <!-- Navegación entre niveles -->
-    <nav class="mt-12 pt-8 border-t border-neutral-700">
-      <h3 class="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-4">Otros niveles</h3>
-      <div class="flex flex-wrap gap-3">
-        {[1, 2, 3, 4, 5].filter(n => n !== nivelNum).map((n) => (
-          <a 
-            href={`/nivel/${n}`}
-            class={`bg-gradient-to-br ${nivelesInfo[n].color} text-white px-4 py-2 rounded-xl font-semibold hover:scale-105 transition-all shadow-md flex items-center gap-1.5`}
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-            {nivelesInfo[n].label}
-          </a>
-        ))}
-      </div>
-    </nav>
-
-  </main>
-
+      ) : (
+        <div class="empty">
+          <h2>No hay materias cargadas</h2>
+          <span>Todavía no hay materias registradas para este año.</span>
+          <a class="btn quiet" href="/"><Icon name="back" /> Volver a todas las materias</a>
+        </div>
+      )}
+    </div>
+  </div>
 </Layout>

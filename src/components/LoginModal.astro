@@ -1,0 +1,57 @@
+---
+/**
+ * Ventana de ingreso (mail sin contraseña, o Google/GitHub).
+ * La abre cualquier botón con [data-login] o window.openLoginModal().
+ * Los ids los usa el script de Layout.astro.
+ */
+import Icon from './Icon.astro';
+---
+<div id="login-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+  <div class="box">
+    <div class="mh">
+      <h2 id="login-modal-title">Iniciar sesión</h2>
+      <button id="close-modal" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div class="mb">
+      <p class="sub" style="margin:0">El ingreso es solo para moderar. Si querés, tu reseña se publica como anónima.</p>
+
+      <div class="mtabs" role="tablist">
+        <button id="tab-email" type="button" role="tab" aria-selected="true" aria-controls="panel-email">Con tu mail</button>
+        <button id="tab-social" type="button" role="tab" aria-selected="false" aria-controls="panel-social">Google o GitHub</button>
+      </div>
+
+      <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" style="display:grid;gap:10px">
+        <div class="field">
+          <label for="ml-nombre">Nombre y apellido</label>
+          <input type="text" id="ml-nombre" placeholder="Juan Pérez" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="ml-email">Mail</label>
+          <input type="email" id="ml-email" placeholder="tu@gmail.com" autocomplete="email" />
+        </div>
+        <p class="sub" style="margin:0"><b>Sin contraseña.</b> Te mandamos un link a tu mail para entrar. No guardamos ni pedimos contraseñas.</p>
+        <button id="ml-submit" type="button" class="btn primary big">
+          <Icon name="mail" /> Mandame el link
+        </button>
+        <div id="ml-msg" class="msg hidden" role="status"></div>
+      </div>
+
+      <div id="panel-social" role="tabpanel" aria-labelledby="tab-social" style="display:none;gap:8px">
+        <a id="oauth-google" class="oauth" href="/api/auth/login?provider=google">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Seguir con Google
+        </a>
+        <a id="oauth-github" class="oauth" href="/api/auth/login?provider=github">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          Seguir con GitHub
+        </a>
+        <p class="sub" style="margin:0">Solo usamos tu nombre y tu foto de perfil. No publicamos nada en tu cuenta.</p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,7 @@
+---
+/** Estrellas del foro: llenas en ámbar, vacías en gris. */
+interface Props { value: number; class?: string }
+const { value, class: cls } = Astro.props;
+const llenas = Math.min(Math.max(Math.round(value), 0), 5);
+---
+<span class:list={['stars', cls]} role="img" aria-label={`${value.toLocaleString('es-AR', { maximumFractionDigits: 1 })} de 5 estrellas`}>{'★'.repeat(llenas)}<span class="off">{'★'.repeat(5 - llenas)}</span></span>

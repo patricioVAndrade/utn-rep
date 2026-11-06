@@ -1,0 +1,47 @@
+---
+/**
+ * Barra de usuario debajo del banner: saludo, accesos de la cuenta y modo noche.
+ */
+import { isAdmin } from '../lib/admin';
+
+interface Props {
+  user: App.Locals['user'];
+}
+
+const { user } = Astro.props;
+const userIsAdmin = isAdmin(user?.id);
+---
+<div class="userbar">
+  {user ? (
+    <div class="left">
+      <span>
+        {user.avatar && <img class="mini-av" src={user.avatar} alt="" width="20" height="20" referrerpolicy="no-referrer" />}
+        {' '}<span id="greeting">Hola</span>, <a class="me-link" href="/mis-resenas">{user.name}</a>.
+      </span>
+      <a class="hide-sm" href="/mis-resenas">Mis reseñas</a>
+      {userIsAdmin && <a class="hide-sm" href="/admin">Panel de admin</a>}
+      <form method="post" action="/api/auth/logout">
+        <button type="submit" class="linklike" data-logout>Cerrar sesión</button>
+      </form>
+    </div>
+  ) : (
+    <div class="left">
+      <span class="hide-sm">¡Hola! Para escribir reseñas tenés que</span>
+      <button id="login-btn" type="button" class="linklike" data-login><b>Iniciar sesión</b></button>
+    </div>
+  )}
+  <div class="right">
+    <button id="theme-toggle" type="button" class="switch" aria-pressed="false" aria-label="Modo noche"><span class="txt" aria-hidden="true">Modo noche</span></button>
+  </div>
+</div>
+
+{user && (
+  <script is:inline>
+    (function () {
+      var el = document.getElementById('greeting');
+      if (!el) return;
+      var h = new Date().getHours();
+      el.textContent = h >= 6 && h < 12 ? 'Buen día' : h >= 12 && h < 19 ? 'Buenas tardes' : 'Buenas noches';
+    })();
+  </script>
+)}

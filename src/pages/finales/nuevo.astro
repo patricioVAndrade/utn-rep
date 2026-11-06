@@ -1,144 +1,128 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import HeaderNav from '../../components/HeaderNav.astro';
+import Icon from '../../components/Icon.astro';
 import { supabase } from '../../lib/supabase';
+import { anioLabel } from '../../lib/format';
 
 const user = Astro.locals.user;
 
-// Redirigir si no está logueado
+// Hay que estar logueado
 if (!user) {
   return Astro.redirect('/?auth_error=login_required');
 }
 
-// 1. Traer la lista de materias
-const { data: materias } = await supabase
-  .from('materias')
-  .select('id, nombre, nivel')
-  .order('nivel', { ascending: true })
-  .order('nombre', { ascending: true });
+const [{ data: materias }, { data: profesores }] = await Promise.all([
+  supabase.from('materias').select('id, nombre, nivel').order('nivel', { ascending: true }).order('nombre', { ascending: true }),
+  supabase.from('profesores').select('id, nombre_completo').order('nombre_completo', { ascending: true }),
+]);
 
 const listaMaterias = materias || [];
-
-// 2. Traer la lista de profesores
-const { data: profesores } = await supabase
-  .from('profesores')
-  .select('id, nombre_completo')
-  .order('nombre_completo', { ascending: true });
-
 const listaProfesores = profesores || [];
 
-// 3. Generar años dinámicamente (Desde el actual hasta 2015)
+// Años desde el actual hasta 2015
 const currentYear = new Date().getFullYear();
 const aniosDisponibles = Array.from({ length: currentYear - 2014 }, (_, i) => currentYear - i);
 ---
 
-<Layout title="Compartir Experiencia de Final - UTN REP">
-  <main class="max-w-xl mx-auto px-4 py-8">
-    <div class="mb-6">
-      <a href="/finales" class="text-amber-400 hover:text-amber-300 font-semibold text-sm flex items-center gap-1">
-        ← Volver a finales
-      </a>
-    </div>
+<Layout
+  title="Contar mi final - UTN REP"
+  tab="finales"
+  crumbs={[{ label: 'Experiencias de finales', href: '/finales' }, { label: 'Contar mi final' }]}
+>
+  <div class="layout">
+    <div class="main">
+      <div id="form-error" class="notice bad hidden" role="alert">
+        <Icon name="alert" />
+        <div><b>No se pudo publicar</b><p id="form-error-text"></p></div>
+      </div>
 
-    <div class="bg-[#242424] rounded-3xl border border-neutral-700/60 p-6 sm:p-8 shadow-xl">
-      <h1 class="text-2xl font-heading font-extrabold text-neutral-100 mb-2">Compartí tu Experiencia</h1>
-      <p class="text-sm text-neutral-400 mb-6">Contale a otros estudiantes cómo fue tu mesa de examen, qué temas te preguntaron y qué te pareció el final.</p>
-
-      <form id="final-form" class="space-y-5">
-        <div>
-          <label class="block text-sm font-semibold text-neutral-300 mb-1.5">Materia *</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-neutral-500">🔍</span>
-            <input 
-              type="text" 
-              id="materia_search" 
-              list="lista-materias" 
-              autocomplete="off" 
-              required 
-              placeholder="Escribí para buscar la materia..." 
-              class="w-full pl-10 px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-            />
+      <form id="final-form" class="form" novalidate>
+        <h1 class="fhead"><span>Contar mi final</span></h1>
+        <div class="fgrid">
+          <label for="materia_search">Materia<small>Escribí y elegí de la lista.</small></label>
+          <div class="field">
+            <input type="text" id="materia_search" list="lista-materias" autocomplete="off" required placeholder="Por ejemplo: Análisis Matemático I" />
             <datalist id="lista-materias">
-              {listaMaterias.map((m: any) => (
-                <option data-id={m.id} value={`${m.nombre} (${m.nivel}º Año)`}></option>
-              ))}
+              {listaMaterias.map((m: any) => <option data-id={m.id} value={`${m.nombre} (${anioLabel(m.nivel)})`}></option>)}
             </datalist>
           </div>
-        </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-semibold text-neutral-300 mb-1.5">¿Cuándo rendiste? *</label>
-            <select id="anio" required class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
-              <option value="" disabled selected>Elegí el año...</option>
-              {aniosDisponibles.map((anio) => (
-                <option value={anio}>{anio}</option>
-              ))}
+          <label for="anio">Año en que rendiste</label>
+          <div class="field">
+            <select id="anio" required>
+              <option value="" disabled selected>Elegí el año…</option>
+              {aniosDisponibles.map((anio) => <option value={anio}>{anio}</option>)}
             </select>
           </div>
 
-          <div>
-            <label class="block text-sm font-semibold text-neutral-300 mb-1.5">Mesa *</label>
-            <select id="mesa" required class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
-              <option value="" disabled selected>Elegí la mesa...</option>
+          <label for="mesa">Mesa</label>
+          <div class="field">
+            <select id="mesa" required>
+              <option value="" disabled selected>Elegí la mesa…</option>
               <option value="Diciembre">Diciembre</option>
               <option value="Febrero">Febrero / Marzo</option>
               <option value="Julio">Julio</option>
-              <option value="Especial">Mesa Especial</option>
+              <option value="Especial">Mesa especial</option>
             </select>
           </div>
 
-          <div>
-            <label class="block text-sm font-semibold text-neutral-300 mb-1.5">Profesor (Opcional)</label>
-            <select id="profesor" class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
-              <option value="" selected>No recuerdo</option>
-              {listaProfesores.map((p: any) => (
-                <option value={p.nombre_completo}>{p.nombre_completo}</option>
-              ))}
+          <label for="profesor">Profesor que tomó<small>Opcional</small></label>
+          <div class="field">
+            <select id="profesor">
+              <option value="" selected>No me acuerdo</option>
+              {listaProfesores.map((p: any) => <option value={p.nombre_completo}>{p.nombre_completo}</option>)}
             </select>
           </div>
+
+          <label for="comentario">Tu experiencia<small>Mínimo 10 caracteres.</small></label>
+          <div class="field">
+            <textarea id="comentario" required rows="6" maxlength="1000" placeholder="¿Cómo fue la mesa? ¿Fue más difícil el práctico o el teórico? ¿Qué temas salieron?"></textarea>
+          </div>
         </div>
-
-        <div>
-          <label class="block text-sm font-semibold text-neutral-300 mb-1.5">Tu Experiencia *</label>
-          <textarea 
-            id="comentario" 
-            required 
-            rows="5"
-            placeholder="¿Cómo fue la mesa? ¿Fue mas complicado el práctico o el teorico? ¿Qué temas salieron?" 
-            class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#1a1a1a] text-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
-          ></textarea>
-          <span class="text-neutral-500 text-[11px] block mt-1 text-right">Mínimo 10 caracteres.</span>
+        <div class="fbar">
+          <a href="/finales">Volver a los finales</a>
+          <button type="submit" id="submit-btn" class="btn primary"><Icon name="pen" /> Publicar experiencia</button>
         </div>
-
-        <div id="form-error" class="text-red-400 text-xs font-medium hidden"></div>
-
-        <button 
-          type="submit" 
-          id="submit-btn"
-          class="w-full bg-amber-500 hover:bg-amber-400 text-neutral-900 font-bold py-3.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 text-sm"
-        >
-           Publicar Experiencia
-        </button>
       </form>
     </div>
-  </main>
+
+    <aside class="side">
+      <section class="panel guide">
+        <h3>Qué contar</h3>
+        <div class="in">
+          <ul>
+            <li class="good">Qué temas tomaron y en qué formato.</li>
+            <li class="good">Cuánto duró y cómo corrigieron.</li>
+            <li class="good">Qué te sirvió para prepararlo.</li>
+            <li class="bad">No compartas enunciados con datos personales.</li>
+          </ul>
+        </div>
+      </section>
+    </aside>
+  </div>
 </Layout>
 
 <script>
   const form = document.getElementById('final-form') as HTMLFormElement;
-  const errorDiv = document.getElementById('form-error') as HTMLDivElement;
+  const errorBox = document.getElementById('form-error') as HTMLDivElement;
+  const errorText = document.getElementById('form-error-text') as HTMLElement;
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
   const searchInput = document.getElementById('materia_search') as HTMLInputElement;
+  const original = submitBtn.innerHTML;
+
+  const mostrarError = (texto: string) => {
+    errorText.textContent = texto;
+    errorBox.classList.remove('hidden');
+    errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorDiv.classList.add('hidden');
-    
-    // Validar el datalist para obtener el ID real de la materia
+    errorBox.classList.add('hidden');
+
+    // El datalist da el texto; buscamos el id real de la materia
     let materia_id = '';
-    const options = document.querySelectorAll('#lista-materias option');
-    for (const option of Array.from(options)) {
+    for (const option of Array.from(document.querySelectorAll('#lista-materias option'))) {
       const opt = option as HTMLOptionElement;
       if (opt.value === searchInput.value) {
         materia_id = opt.getAttribute('data-id') || '';
@@ -146,41 +130,32 @@ const aniosDisponibles = Array.from({ length: currentYear - 2014 }, (_, i) => cu
       }
     }
 
-    if (!materia_id) {
-      errorDiv.textContent = 'Por favor, seleccioná una materia válida de la lista.';
-      errorDiv.classList.remove('hidden');
-      return;
-    }
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Enviando...';
-
     const anio = (document.getElementById('anio') as HTMLSelectElement).value;
     const mesa = (document.getElementById('mesa') as HTMLSelectElement).value;
     const profesor_nombre = (document.getElementById('profesor') as HTMLSelectElement).value;
     const comentario = (document.getElementById('comentario') as HTMLTextAreaElement).value;
 
+    if (!materia_id) return mostrarError('Elegí una materia de la lista.');
+    if (!anio) return mostrarError('Elegí el año en que rendiste.');
+    if (!mesa) return mostrarError('Elegí la mesa.');
+    if (comentario.trim().length < 10) return mostrarError('Contá tu experiencia en al menos 10 caracteres.');
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spin"></span> Publicando…';
+
     try {
       const response = await fetch('/api/finales/crear', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ materia_id, anio, mesa, profesor_nombre, comentario })
+        body: JSON.stringify({ materia_id, anio, mesa, profesor_nombre, comentario }),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Ocurrió un error al guardar.');
-      }
-
-      // Redirigimos al dashboard con éxito
+      if (!response.ok) throw new Error(data.error || 'Ocurrió un error al guardar.');
       window.location.href = '/finales';
-
     } catch (err: any) {
-      errorDiv.textContent = err.message;
-      errorDiv.classList.remove('hidden');
+      mostrarError(err.message);
       submitBtn.disabled = false;
-      submitBtn.textContent =  'Publicar Experiencia';
+      submitBtn.innerHTML = original;
     }
   });
 </script>

@@ -1,14 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import HeaderNav from '../../components/HeaderNav.astro';
+import Icon from '../../components/Icon.astro';
+import Stars from '../../components/Stars.astro';
+import CursoChips from '../../components/CursoChips.astro';
+import ReviewCard from '../../components/ReviewCard.astro';
 import { supabase } from '../../lib/supabase';
-import { estrellas, nivelColor, tiempoRelativo } from '../../lib/format';
-
-const user = Astro.locals.user;
+import { anioLabel, compararCursos, nota } from '../../lib/format';
 
 const { id } = Astro.params;
 
-// Traer los datos de la materia
+// Datos de la materia
 const { data: materia } = await supabase
   .from('materias')
   .select('*')
@@ -19,7 +20,7 @@ if (!materia) {
   return Astro.redirect('/404');
 }
 
-// Traer los dictados con cursos y profesores
+// Cursos con turno y profesores
 const { data: dictados } = await supabase
   .from('dictados')
   .select(`
@@ -29,45 +30,27 @@ const { data: dictados } = await supabase
     es_intensivo,
     cursos ( identificador, turno ),
     dictado_profesores (
-      profesores ( nombre_completo )
+      profesores ( id, nombre_completo )
     )
   `)
   .eq('materia_id', id);
 
-function normalizeCurso(curso: any) {
-  if (Array.isArray(curso)) return curso[0] || null;
-  return curso || null;
-}
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 
 const dictadosOrdenados = (dictados || [])
-  .map((dictado: any) => ({
-    ...dictado,
-    cursos: normalizeCurso(dictado.cursos),
-  }))
-  .sort((a: any, b: any) => {
-    // Natural sort: extract numeric part after letter (e.g. "2K10" → 10)
-    const cursoA = normalizeCurso(a.cursos);
-    const cursoB = normalizeCurso(b.cursos);
-    const identificadorA = cursoA?.identificador || '';
-    const identificadorB = cursoB?.identificador || '';
-    const numA = parseInt(identificadorA.replace(/\D+/g, '').slice(1) || '0');
-    const numB = parseInt(identificadorB.replace(/\D+/g, '').slice(1) || '0');
-    const prefixA = identificadorA.replace(/\d+$/, '');
-    const prefixB = identificadorB.replace(/\d+$/, '');
-    if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
-    return numA - numB;
-  });
+  .map((d: any) => ({ ...d, cursos: one(d.cursos) }))
+  .sort((a: any, b: any) => compararCursos(a.cursos?.identificador, b.cursos?.identificador));
 
-// Traer reseñas y calcular estadísticas reales
-const dictadoIds = dictados?.map(d => d.id) || [];
+// Estadísticas reales
+const dictadoIds = dictadosOrdenados.map((d: any) => d.id);
 let resenas: any[] = [];
-let promedioGeneral = "0.0";
+let promedioGeneral = 0;
 let totalResenas = 0;
-let dictadoStats: Record<number, { promedio: string, count: number }> = {};
+const distribucion = [0, 0, 0, 0, 0];
+const dictadoStats: Record<number, { promedio: number; count: number }> = {};
 
 if (dictadoIds.length > 0) {
-  // Stats agregadas en la base + solo las reseñas que se muestran
-  const [{ data: statsData }, { data: resenasData }] = await Promise.all([
+  const [{ data: statsData }, { data: resenasData }, { data: notas }] = await Promise.all([
     supabase.from('stats_dictados').select('dictado_id, cantidad, promedio').in('dictado_id', dictadoIds),
     supabase
       .from('resenas_publicas')
@@ -75,268 +58,179 @@ if (dictadoIds.length > 0) {
       .in('dictado_id', dictadoIds)
       .order('created_at', { ascending: false })
       .limit(6),
+    supabase.from('resenas_publicas').select('calificacion_general').in('dictado_id', dictadoIds).limit(5000),
   ]);
 
   resenas = resenasData || [];
   const stats = statsData || [];
-
-  const totalCount = stats.reduce((acc, st) => acc + st.cantidad, 0);
-  if (totalCount > 0) {
-    promedioGeneral = (stats.reduce((acc, st) => acc + st.promedio * st.cantidad, 0) / totalCount).toFixed(1);
+  totalResenas = stats.reduce((acc, st) => acc + st.cantidad, 0);
+  if (totalResenas > 0) {
+    promedioGeneral = stats.reduce((acc, st) => acc + st.promedio * st.cantidad, 0) / totalResenas;
   }
-  totalResenas = totalCount;
-
-  dictadoIds.forEach(did => {
-    const st = stats.find((x) => x.dictado_id === did);
-    dictadoStats[did] = st && st.cantidad > 0
-      ? { promedio: st.promedio.toFixed(1), count: st.cantidad }
-      : { promedio: "0.0", count: 0 };
+  stats.forEach((st) => {
+    if (st.cantidad > 0) dictadoStats[st.dictado_id] = { promedio: st.promedio, count: st.cantidad };
+  });
+  (notas || []).forEach((r) => {
+    const i = Math.min(Math.max(Math.round(r.calificacion_general) - 1, 0), 4);
+    distribucion[i]++;
   });
 }
+const totalDist = distribucion.reduce((a, b) => a + b, 0);
 
-const nivel = materia?.nivel || 1;
-const colors = nivelColor(nivel);
+// Datos rápidos
+const conResenas = dictadosOrdenados.filter((d: any) => dictadoStats[d.id]);
+const mejor = conResenas
+  .filter((d: any) => dictadoStats[d.id].count >= 2)
+  .sort((a: any, b: any) => dictadoStats[b.id].promedio - dictadoStats[a.id].promedio)[0];
+const masResenas = [...conResenas].sort((a: any, b: any) => dictadoStats[b.id].count - dictadoStats[a.id].count)[0];
 
+const nivel = materia.nivel || 1;
+const label = anioLabel(nivel).replace(/^./, (c) => c.toUpperCase());
+const cursoDe = (dictadoId: number) => dictadosOrdenados.find((d: any) => d.id === dictadoId)?.cursos?.identificador || 'Curso';
 
-// ==========================================
-// CONFIGURACIÓN SEO Y DATOS ESTRUCTURADOS
-// ==========================================
-const seoTitle = `Reseñas de ${materia?.nombre} - UTN FRC`;
-const seoDescription = `Leé opiniones, calificaciones y recomendaciones para cursar ${materia?.nombre} en Ingeniería en Sistemas de la UTN FRC. Enterate qué profesores son los mejores y cómo son los finales.`;
+// SEO y datos estructurados
+const seoTitle = `Reseñas de ${materia.nombre} - UTN FRC`;
+const seoDescription = `Leé opiniones, calificaciones y recomendaciones para cursar ${materia.nombre} en Ingeniería en Sistemas de la UTN FRC. Enterate qué profesores son los mejores y cómo son los finales.`;
 
-// Armamos el schema de Google agregándole también las estrellas si es que tiene reseñas
 const schemaObject: any = {
-  "@context": "https://schema.org/",
-  "@type": "Course",
-  "name": `${materia?.nombre} - UTN FRC`,
-  "description": seoDescription,
-  "provider": {
-    "@type": "Organization",
-    "name": "UTN FRC",
-    "sameAs": "https://frc.utn.edu.ar/"
-  }
+  '@context': 'https://schema.org/',
+  '@type': 'Course',
+  name: `${materia.nombre} - UTN FRC`,
+  description: seoDescription,
+  provider: {
+    '@type': 'Organization',
+    name: 'UTN FRC',
+    sameAs: 'https://frc.utn.edu.ar/',
+  },
 };
-
-// Si la materia tiene reseñas, le agregamos las "estrellitas" para que salgan en Google
 if (totalResenas > 0) {
   schemaObject.aggregateRating = {
-    "@type": "AggregateRating",
-    "ratingValue": promedioGeneral,
-    "reviewCount": totalResenas.toString()
+    '@type': 'AggregateRating',
+    ratingValue: promedioGeneral.toFixed(1),
+    reviewCount: totalResenas.toString(),
   };
 }
-
 const schemaMateria = JSON.stringify(schemaObject);
-// ==========================================
+const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
 ---
 
-<Layout 
+<Layout
   title={seoTitle}
   description={seoDescription}
   schema={schemaMateria}
-  hasFloatingButton={true}
+  tab="materias"
+  crumbs={[{ label: 'Materias', href: '/' }, { label, href: `/nivel/${nivel}` }, { label: materia.nombre }]}
 >
-    
-  <header class={`bg-gradient-to-r ${colors.bg} text-white shadow-md relative overflow-hidden`}>
-    <div class="absolute inset-0 dot-pattern opacity-30"></div>
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-12">
-      <HeaderNav user={user} />
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div class="layout single">
+    <div class="main">
+      <div class="topic">
         <div>
-          <span class={`text-sm font-medium ${colors.light} uppercase tracking-wider`}>{nivel}º Año</span>
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-heading font-extrabold tracking-tight mt-1">
-            {materia?.nombre}
-          </h1>
-          {materia.es_electiva && (
-            <span class="inline-flex items-center gap-1 text-xs font-bold bg-purple-900/40 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full uppercase tracking-wider">
-              Electiva ({materia.puntos_electiva || 0} pts)
-            </span>
-          )}
-        </div>
-        <div class="flex items-center gap-4 bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm">
-          <div class="text-right">
-            <span class="text-white text-lg font-black block leading-none">★ {promedioGeneral}</span>
-            <span class="text-white/80 text-xs uppercase tracking-wider">{totalResenas} reseñas</span>
+          <div class="chips">
+            <a class:list={['yr', `y${nivel}`]} href={`/nivel/${nivel}`}>{label}</a>
+            {materia.es_electiva && <span class="chip elec">Electiva ({materia.puntos_electiva || 0} pts)</span>}
           </div>
+          <h1 style="margin-top:6px">{materia.nombre}</h1>
+          <p>{dictadosOrdenados.length} curso{dictadosOrdenados.length !== 1 ? 's' : ''} · {totalResenas} reseña{totalResenas !== 1 ? 's' : ''}</p>
+        </div>
+        <div class="actions">
+          <a class="btn primary" href={escribir}><Icon name="pen" /> Escribir una reseña</a>
         </div>
       </div>
-    </div>
-  </header>
 
-  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-    
-    
-
-    <section class="mb-12">
-      <h2 class="text-xl sm:text-2xl font-heading font-bold text-neutral-100 mb-6 flex items-center gap-3">
-        <span class="bg-neutral-700 text-neutral-300 p-2 rounded-xl shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg></span>
-        Todos Los Cursos
-      </h2>
-      
-      {dictadosOrdenados.length > 0 ? (
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {dictadosOrdenados.map((dictado: any) => {
-            const curso = normalizeCurso(dictado.cursos);
-            const stats = dictadoStats[dictado.id] || { promedio: "0.0", count: 0 };
-            return (
-              <a href={`/dictado/${dictado.id}`} class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-5 sm:p-6 hover:shadow-xl hover:-translate-y-1 hover:border-amber-300 transition-all duration-300 flex flex-col">
-                <div class="flex justify-between items-start mb-3 gap-2">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <h3 class="font-heading font-extrabold text-2xl text-white">{curso?.identificador || 'Curso'}</h3>
-                    {dictado.periodo_dictado === 'PRIMER_CUATRIMESTRE' && (
-                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-1 rounded-full">
-                        1° cuatrimestre
-                      </span>
-                    )}
-                    {dictado.periodo_dictado === 'SEGUNDO_CUATRIMESTRE' && (
-                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-green-300 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-full">
-                        2° cuatrimestre
-                      </span>
-                    )}
-                    {dictado.periodo_dictado === 'ANUAL' && (
-                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2 py-1 rounded-full">
-                        Anual
-                      </span>
-                    )}
-                    {dictado.es_intensivo && (
-                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full">
-                        Intensivo
-                      </span>
-                    )}
-                    {dictado.es_contracuatrimestral && (
-                      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full" title="Se dicta en el cuatrimestre contrario al normal">
-                        Contracuatrimestre
-                        <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500/20 text-[10px] font-bold">i</span>
-                      </span>
-                    )}
-                  </div>
-                  <span class={`text-xs font-bold ${colors.accent} px-3 py-1 rounded-lg uppercase tracking-wide`}>
-                    {curso?.turno || 'SIN TURNO'}
-                  </span>
-                </div>
-                
-                <div class="text-sm text-neutral-400 mb-4 flex-1">
-                  <span class="font-semibold text-neutral-100 block mb-2">Equipo Docente:</span>
-                  <ul class="flex flex-col gap-1.5">
-                    {dictado.dictado_profesores.map((dp: any) => (
-                      <li class="flex items-center gap-2">
-                        <span class="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0"></span>
-                        <span class="font-medium text-neutral-300">{dp.profesores.nombre_completo}</span>
-                      </li>
-                    ))}
-                    {dictado.dictado_profesores.length === 0 && (
-                      <li class="text-neutral-500 italic">Profesores sin asignar</li>
-                    )}
-                  </ul>
-                </div>
-                
-                <div class="pt-4 border-t border-neutral-700 flex justify-between items-center text-sm mt-auto">
-                  {stats.count > 0 ? (
-                    <span class="text-amber-500 font-bold flex items-center gap-1">
-                      &#11088; {stats.promedio} 
-                      <span class="text-neutral-500 font-medium text-xs ml-1">({stats.count})</span>
-                    </span>
-                  ) : (
-                    <span class="text-neutral-500 font-medium text-xs">Sin reseñas</span>
-                  )}
-                  <span class="text-amber-400 font-semibold text-sm">
-                    Ver Reseñas →
-                  </span>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      ) : (
-        <div class="text-center py-16 bg-[#242424] rounded-2xl border border-neutral-700/60 shadow-sm">
-          <div class="flex justify-center mb-4">
-            <svg class="w-14 h-14 text-neutral-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+      {totalResenas > 0 && (
+        <div class="summary">
+          <div>
+            <span class="sub">Promedio de la materia</span>
+            <span class="big-score">{nota(promedioGeneral)} <small>de 5</small></span>
+            <Stars value={promedioGeneral} />
+            <span class="sub">{totalResenas} reseña{totalResenas !== 1 ? 's' : ''}</span>
           </div>
-          <h3 class="text-lg font-heading font-bold text-neutral-300 mb-2">No hay cátedras cargadas</h3>
-          <p class="text-neutral-500">Todavía no se registraron cursos para esta materia.</p>
-        </div>
-      )}
-    </section>
-
-    <section class="mb-24">
-      <h2 class="text-xl sm:text-2xl font-heading font-bold text-neutral-100 mb-6 flex items-center gap-3">
-        <span class="bg-amber-900/30 text-amber-400 p-2 rounded-xl shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></span>
-        Opiniones Recientes
-      </h2>
-      
-      {resenas.length > 0 ? (
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {resenas.slice(0, 6).map((resena: any) => {
-            const dictadoInfo = dictadosOrdenados.find((d: any) => d.id === resena.dictado_id);
-            const cursoNombre = normalizeCurso(dictadoInfo?.cursos)?.identificador || 'Curso';
-            return (
-              <div class="bg-[#242424] p-6 rounded-2xl border border-neutral-700/60 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start mb-3">
-                  <div class="flex items-center gap-3">
-                    <div class={`w-9 h-9 bg-gradient-to-br ${resena.es_anonima ? 'from-neutral-700 to-neutral-800' : colors.bg} rounded-full flex items-center justify-center text-white font-bold text-sm`}>
-                      {resena.es_anonima ? (
-                        <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                      ) : (
-                        (resena.nombre_usuario || 'E').charAt(0).toUpperCase()
-                      )}
-                    </div>
-                    <div>
-                      <div class="flex items-center gap-1.5">
-                        <p class="font-semibold text-neutral-100 text-sm">
-                          {resena.es_anonima ? 'Anónimo' : (resena.nombre_usuario || 'Estudiante')}
-                        </p>
-                        {resena.es_alumno_utn && (
-                          <span class="inline-flex items-center gap-0.5 bg-blue-900/40 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-700/50" title="Alumno verificado de UTN FRC">
-                            <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                            UTN
-                          </span>
-                        )}
-                      </div>
-                      <span class={`font-bold ${colors.accent} px-2 py-0.5 rounded text-xs tracking-wide`}>
-                        {cursoNombre}
-                      </span>
-                    </div>
-                  </div>
-                  <span class="text-yellow-400 font-bold tracking-widest text-lg drop-shadow-sm flex-shrink-0">
-                    {estrellas(resena.calificacion_general)}
-                  </span>
-                </div>
-                <p class="text-neutral-300 font-medium italic mb-4">"{resena.comentario}"</p>
-                <div class="flex items-center justify-between mt-4 pt-4 border-t border-neutral-700/50">
-                  <div class="text-xs text-neutral-500 font-medium flex items-center gap-2 mt-4 pt-4 border-t border-neutral-700/50">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                      Cursado en {resena.anio_cursado}
-                      {resena.created_at && ` · ${tiempoRelativo(resena.created_at)}`}
-                  </div>
-                  
-                  
-                </div>
+          <div>
+            <span class="sub">Cómo la puntuaron</span>
+            <div class="bars dist">
+              {[5, 4, 3, 2, 1].map((n) => (
+                <div><span>{n} ★</span><i><b style={`width:${totalDist ? Math.round((distribucion[n - 1] / totalDist) * 100) : 0}%`}></b></i><span class="n">{distribucion[n - 1]}</span></div>
+              ))}
             </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div class="bg-[#242424] p-8 sm:p-12 text-center border-2 border-dashed border-neutral-700 rounded-2xl">
-          <div class="flex justify-center mb-3">
-            <svg class="w-12 h-12 text-neutral-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
           </div>
-          <h3 class="text-lg font-heading font-bold text-neutral-300 mb-2">Todavía no hay opiniones</h3>
-          <p class="text-neutral-500">Sé el primero en compartir tu experiencia en esta materia.</p>
+          <div>
+            <span class="sub">Datos rápidos</span>
+            <div class="facts">
+              {mejor && <div><span>Mejor puntuado</span><a href={`/dictado/${mejor.id}`}><b>{mejor.cursos?.identificador}</b> ({nota(dictadoStats[mejor.id].promedio)})</a></div>}
+              {masResenas && <div><span>Más reseñado</span><a href={`/dictado/${masResenas.id}`}><b>{masResenas.cursos?.identificador}</b> ({dictadoStats[masResenas.id].count})</a></div>}
+              <div><span>Cursos con reseñas</span><b>{conResenas.length} de {dictadosOrdenados.length}</b></div>
+            </div>
+          </div>
         </div>
       )}
-    </section>
 
-    <div class="fixed bottom-6 left-4 right-4 sm:left-auto sm:right-8 sm:w-auto z-20">
-      <a href={`/nueva-resena?materia=${id}&from=/materia/${id}`} class={`w-full sm:w-auto bg-gradient-to-r ${colors.bg} hover:opacity-90 text-white font-bold text-base sm:text-lg px-8 py-4 rounded-2xl shadow-xl shadow-blue-900/20 transition-all active:scale-95 flex items-center justify-center gap-2`}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-          <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.158 3.71 3.71 1.159-1.157a2.625 2.625 0 000-3.711z" />
-          <path d="M10.74 15.394l6.5-6.5-3.71-3.71-6.5 6.5a1.5 1.5 0 00-.4.73l-.84 4.2a.75.75 0 00.916.916l4.2-.84a1.5 1.5 0 00.73-.4z" />
-        </svg>
-        Escribir una reseña
-      </a>
+      <div class="toolbar"><h2>Cursos</h2><span class="sub">Tocá un curso para leer sus reseñas.</span></div>
+
+      {dictadosOrdenados.length > 0 ? (
+        <div class="grid-tbl stack">
+          <table>
+            <thead>
+              <tr><th>Curso</th><th>Equipo docente</th><th class="c">Promedio</th><th class="c">Reseñas</th><th></th></tr>
+            </thead>
+            <tbody>
+              {dictadosOrdenados.map((d: any) => {
+                const st = dictadoStats[d.id];
+                const profes = (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)).filter(Boolean);
+                return (
+                  <tr>
+                    <td>
+                      <a class="curso" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a>
+                      <CursoChips mini turno={d.cursos?.turno} periodo={d.periodo_dictado} contra={d.es_contracuatrimestral} intensivo={d.es_intensivo} />
+                    </td>
+                    <td>
+                      {profes.length > 0
+                        ? <ul class="profes">{profes.map((p: any) => <li><a href={`/profesor/${p.id}`}>{p.nombre_completo}</a></li>)}</ul>
+                        : <span class="sub">Sin profesores cargados</span>}
+                    </td>
+                    <td class="c">{st ? <><Stars value={st.promedio} /><div class="score">{nota(st.promedio)}</div></> : <span class="sub">Sin puntaje</span>}</td>
+                    <td class="c num">{st?.count || 0}</td>
+                    <td><a href={`/dictado/${d.id}`}>{st ? 'Ver reseñas' : 'Escribí la primera'}</a></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div class="cards-sm">
+            {dictadosOrdenados.map((d: any) => {
+              const st = dictadoStats[d.id];
+              const profes = (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)?.nombre_completo).filter(Boolean);
+              return (
+                <div class="ccard">
+                  <div class="top">
+                    <a class="curso stretch" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a>
+                    <CursoChips mini turno={d.cursos?.turno} periodo={d.periodo_dictado} contra={d.es_contracuatrimestral} intensivo={d.es_intensivo} />
+                  </div>
+                  <span class="sub">{profes.length ? profes.join(', ') : 'Sin profesores cargados'}</span>
+                  <span>{st ? <><Stars value={st.promedio} /> <b>{nota(st.promedio)}</b> <span class="sub">· {st.count} reseña{st.count !== 1 ? 's' : ''}</span></> : <span class="sub">Sin reseñas todavía</span>}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div class="empty">
+          <h3>No hay cursos cargados</h3>
+          <span>Todavía no se registraron cursos para esta materia.</span>
+        </div>
+      )}
+
+      <div class="toolbar"><h2>Opiniones recientes</h2></div>
+      {resenas.length > 0 ? (
+        resenas.map((r: any) => (
+          <ReviewCard resena={r} compact curso={{ label: `${materia.nombre}, ${cursoDe(r.dictado_id)}`, href: `/dictado/${r.dictado_id}#resena-${r.id}` }} />
+        ))
+      ) : (
+        <div class="empty">
+          <h3>Todavía no hay opiniones</h3>
+          <span>Sé la primera persona en contar cómo es cursar esta materia.</span>
+          <a class="btn primary" href={escribir}><Icon name="pen" /> Escribir la primera reseña</a>
+        </div>
+      )}
     </div>
-
-  
-  </main>
-  
+  </div>
 </Layout>

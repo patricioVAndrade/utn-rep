@@ -36,3 +36,34 @@ export const NIVEL_COLORS: Record<number, NivelColor> = {
 export function nivelColor(nivel: number | null | undefined): NivelColor {
   return NIVEL_COLORS[nivel ?? 1] || NIVEL_COLORS[1];
 }
+
+/** "2.º año" */
+export function anioLabel(nivel: number | null | undefined): string {
+  return `${nivel ?? 1}.º año`;
+}
+
+/** Clase del chip de turno: m (mañana), t (tarde), n (noche). */
+export function turnoClase(turno: string | null | undefined): string {
+  const t = (turno || '').toUpperCase();
+  if (t.startsWith('MA')) return 'm';
+  if (t.startsWith('TA')) return 't';
+  if (t.startsWith('NO')) return 'n';
+  return '';
+}
+
+/** "Mañana", "Tarde", "Noche" */
+export function turnoLabel(turno: string | null | undefined): string {
+  if (!turno) return 'Sin turno';
+  const t = turno.trim().toLowerCase();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/** 4.25 → "4,3" */
+export function nota(n: number): string {
+  return n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+/** Orden natural de cursos: 1K2 antes que 1K10. */
+export function compararCursos(a: string, b: string): number {
+  return (a || '').localeCompare(b || '', 'es', { numeric: true });
+}

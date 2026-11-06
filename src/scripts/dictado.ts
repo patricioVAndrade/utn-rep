@@ -170,8 +170,6 @@ document.querySelectorAll('.report-btn').forEach((btn) => {
       if (!res.ok) throw new Error(data.error || 'Error');
 
       btn.textContent = '✓ Reportada';
-      btn.classList.remove('text-neutral-600', 'hover:text-red-400');
-      btn.classList.add('text-neutral-500');
       (btn as HTMLButtonElement).disabled = true;
     } catch (err) {
       alert(getErrorMessage(err));
@@ -182,15 +180,11 @@ document.querySelectorAll('.report-btn').forEach((btn) => {
 
 // ========== VOTOS ==========
 // El estado inicial viene del servidor (data-votada); la base guarda un voto por usuario.
-const VOTADA_CLASSES = ['bg-amber-500/10', 'text-amber-400', 'border-amber-500/30'];
-const NEUTRA_CLASSES = ['bg-[#2a2a2a]', 'hover:bg-[#333333]', 'text-neutral-400', 'border-neutral-700/50'];
-
 function pintarVoto(btn: HTMLButtonElement, votada: boolean, votos: number) {
   btn.dataset.votada = votada ? 'true' : 'false';
   btn.setAttribute('aria-pressed', votada ? 'true' : 'false');
-  btn.classList.remove(...(votada ? NEUTRA_CLASSES : VOTADA_CLASSES));
-  btn.classList.add(...(votada ? VOTADA_CLASSES : NEUTRA_CLASSES));
-  btn.querySelector('svg')?.setAttribute('fill', votada ? 'currentColor' : 'none');
+  btn.classList.toggle('pressed', votada);
+  btn.classList.toggle('quiet', !votada);
   const countSpan = btn.querySelector('.votos-count');
   if (countSpan) countSpan.textContent = String(Math.max(0, votos));
   btn.closest('.review-card')?.setAttribute('data-votos', String(Math.max(0, votos)));

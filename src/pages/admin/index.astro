@@ -1,6 +1,5 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import HeaderNav from '../../components/HeaderNav.astro';
 import { isAdmin } from '../../lib/admin';
 import { supabaseAdmin } from '../../lib/supabase-admin';
 import { ADMIN_CSRF_COOKIE, ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
@@ -250,11 +249,10 @@ function tiempoRelativo(fecha: string): string {
 }
 ---
 
-<Layout title="Panel de Administración — UTN REP">
+<Layout title="Panel de Administración — UTN REP" legacy crumbs={[{ label: 'Panel de admin' }]}>
   <header class="bg-stone-900 text-white relative">
     <div class="absolute inset-0 hero-pattern dot-pattern opacity-60 overflow-hidden"></div>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-6">
-      <HeaderNav user={user} />
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-6">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
           <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
