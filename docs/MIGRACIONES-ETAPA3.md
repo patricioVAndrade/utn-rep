@@ -65,7 +65,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108050000_seguimientos.sql`. Vuelta atrás: `supabase/rollback/20261108050000_seguimientos.sql`.
 - **Verificación esperada:** `tabla = 1`, `politicas = 4`, `anon_lee = false`.
 
-### 7. Avisos dentro del sitio (3.8, F33 y la base de F32) — **lista para correr en prueba**
+### 7. Avisos dentro del sitio (3.8, F33 y la base de F32) — **corrida en prueba el 7/11, código subido**
 
 - **Tabla `notificaciones`:** un aviso por persona, con tipo, título, link, si lo leyó y si ya se mandó por mail. Cada uno ve, marca como leídos y borra solo los suyos. Nadie puede crear avisos desde el sitio: los crea la base.
 - **Tabla `preferencias_aviso`:** qué avisos quiere cada uno y por qué canal (sitio, mail, Telegram, push). Si no eligió nada, el aviso está prendido. Sumar mail o Telegram después no cambia nada de esto.

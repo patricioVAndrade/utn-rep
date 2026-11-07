@@ -23,7 +23,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F8 | Formulario en pasos con borrador | Hecho | Escribir una reseña | 3 pasos (2 si venís desde un curso). El borrador queda en el navegador. **No están** el título ni el plan de estudios (no existen en la base) ni los puntajes por separado. El paso 1 usa listas desplegables en vez de botones. Los cursos que ya reseñaste aparecen deshabilitados. |
 | F9 | Barra de navegación inferior en celular | Hecho | Celular | — |
 | F10 | Notas de moderación en una reseña | Hecho (migración 4) | Curso, Finales, admin | Junta con F12 en "Respuesta del moderador": una por reseña o final, pública y sin nombre de quién la escribió. Se escribe desde Reportes o Reseñas del admin. |
-| F11 | Seguir una materia y aviso por mail | Parcial (migración 6) | Materia, curso y Mi cuenta | Panel "Seguir esta materia" (desde el curso se sigue su materia) y la lista en Mi cuenta con interruptor de mail y "Dejar de seguir", como la V6. Los avisos van con la migración 7. |
+| F11 | Seguir una materia y aviso por mail | Parcial (migración 6) | Materia, curso y Mi cuenta | Panel "Seguir esta materia" (desde el curso se sigue su materia) y la lista en Mi cuenta con interruptor de mail y "Dejar de seguir", como la V6. Avisos en el sitio: hechos (migración 7). Falta el envío por mail (necesita un servicio de mail). |
 | F12 | Respuestas a una reseña | Hecho como F10 | — | Solo responde el moderador (decisión de Pato). |
 | F13 | Contador "Hay X estudiantes en línea" | Falta (etapa 3) | — | Necesita registrar actividad reciente. |
 | F14 | Visitas | Falta (etapa 3) | — | Vercel Analytics las cuenta, pero no se pueden mostrar en la página sin un contador propio. |
@@ -102,6 +102,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Código | Qué es | Estado | Nota |
 |---|---|---|---|
 | 3.3 | "Editada el 12/11" | Hecho (migración 3) | Reseña y Mis reseñas | La fecha la pone la base (trigger) solo si cambia el texto, las estrellas o "¿Cómo te fue?"; los votos no cuentan como edición. |
+| 3.8 / F33 | Avisos dentro del sitio | Hecho (migración 7) | "Avisos" en la barra de arriba (con cantidad sin leer), página `/avisos` y qué avisos querés en Mi cuenta | Los crea la base: reseña o final nuevo en lo que seguís, "Tu reseña le sirvió a N personas" (máximo uno por semana), respuesta y pedido de la moderación. Tabla de preferencias por canal (sitio, mail, Telegram, push). Mail y el recordatorio de fin de cuatrimestre (F32) van después. |
 | F38 | Completar "¿Cómo te fue?" en reseñas viejas | Hecho (migración 3) | Inicio, Mis reseñas y Editar | Franja en el inicio, de a una reseña, con Promocioné, Regularicé y Quedé libre; "Ahora no" (30 días) y "No preguntar más" se guardan en tu cuenta (migración 5) y se cambian en Mi cuenta. Solo pregunta por cursadas de años anteriores o reseñas de más de 4 meses. En Mis reseñas, cada reseña sin el dato lo pide; al editar una reseña hay un selector "¿Cómo te fue?". Las estrellas no se pueden cambiar. |
 
 ## Importar cuatrimestre (nuevo)

@@ -3,6 +3,9 @@
  * Barra de usuario debajo del banner: saludo, accesos de la cuenta y modo noche.
  */
 import { isAdmin } from '../lib/admin';
+import Icon from './Icon.astro';
+import { createSupabaseServerClient } from '../lib/supabase';
+import { avisosSinLeer } from '../lib/avisos';
 
 interface Props {
   user: App.Locals['user'];
@@ -10,6 +13,7 @@ interface Props {
 
 const { user } = Astro.props;
 const userIsAdmin = isAdmin(user?.id);
+const sinLeer = user ? await avisosSinLeer(createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies }).client, user.id) : 0;
 ---
 <div class="userbar">
   {user ? (
@@ -18,6 +22,9 @@ const userIsAdmin = isAdmin(user?.id);
         {user.avatar && <img class="mini-av" src={user.avatar} alt="" width="20" height="20" referrerpolicy="no-referrer" />}
         {' '}<span id="greeting">Hola</span>, <a class="me-link" href="/mi-cuenta">{user.name}</a>{/[.!?]$/.test(user.name) ? '' : '.'}
       </span>
+      <a class:list={['avisos-link', { hay: sinLeer > 0 }]} href="/avisos" title={sinLeer ? `${sinLeer} aviso${sinLeer !== 1 ? 's' : ''} sin leer` : 'Avisos'}>
+        <Icon name="bell" /><span class="hide-sm">Avisos</span>{sinLeer > 0 && <span class="cnt" aria-label={`${sinLeer} sin leer`}>{sinLeer > 99 ? '99+' : sinLeer}</span>}
+      </a>
       <a class="hide-sm" href="/mis-resenas">Mis reseñas</a>
       {userIsAdmin && <a class="hide-sm" href="/admin">Panel de admin</a>}
       <form method="post" action="/api/auth/logout">

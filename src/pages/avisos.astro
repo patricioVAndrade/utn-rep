@@ -1,0 +1,93 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+import { createSupabaseServerClient } from '../lib/supabase';
+import { ICONO_AVISO } from '../lib/avisos';
+import { tiempoRelativo } from '../lib/format';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/?auth_error=login_required');
+
+const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+const { data } = await client
+  .from('notificaciones')
+  .select('id, tipo, titulo, texto, link, leida_at, created_at')
+  .eq('user_id', user.id)
+  .order('created_at', { ascending: false })
+  .limit(60);
+const avisos = data || [];
+const sinLeer = avisos.filter((a: any) => !a.leida_at).length;
+---
+
+<Layout title="Avisos - UTN REP" description="Tus avisos en UTN REP." tab="mis" crumbs={[{ label: 'Avisos' }]}>
+  <div class="layout narrow">
+    <div class="main">
+      <div class="topic">
+        <div>
+          <h1>Avisos</h1>
+          <p>{sinLeer ? `Tenés ${sinLeer} sin leer.` : 'Estás al día.'} Qué avisos te llegan lo elegís en <a href="/mi-cuenta#avisos">Mi cuenta</a>.</p>
+        </div>
+        {sinLeer > 0 && <div class="actions"><button type="button" class="btn quiet" id="leer-todos"><Icon name="check" /> Marcar todo como leído</button></div>}
+      </div>
+
+      {avisos.length > 0 ? (
+        <ul class="avisos" id="lista-avisos">
+          {avisos.map((a: any) => (
+            <li class:list={['aviso', { nuevo: !a.leida_at }]} data-id={a.id}>
+              <span class="ico"><Icon name={ICONO_AVISO[a.tipo] || 'info'} /></span>
+              <div class="cuerpo">
+                {a.link ? <a href={a.link} data-ir><b>{a.titulo}</b></a> : <b>{a.titulo}</b>}
+                {a.texto && <span class="texto">{a.texto}</span>}
+                <span class="sub">{tiempoRelativo(a.created_at)}{!a.leida_at && <span class="sin-leer"> · <span class="nuevo-txt">Sin leer</span></span>}</span>
+              </div>
+              <button type="button" class="x linklike" data-borrar aria-label="Borrar este aviso" title="Borrar">×</button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div class="empty">
+          <h2>Todavía no tenés avisos</h2>
+          <span>Te avisamos acá cuando hay reseñas o finales nuevos en las materias que seguís, cuando tus reseñas le sirven a alguien y cuando la moderación te responde.</span>
+          <a class="btn primary" href="/">Buscar materias para seguir</a>
+        </div>
+      )}
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const enviar = (cuerpo: Record<string, unknown>) =>
+    fetch('/api/avisos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+
+  const marcarLeido = (li: HTMLElement) => {
+    li.classList.remove('nuevo');
+    li.querySelector('.sin-leer')?.remove();
+  };
+  const actualizarContador = () => {
+    const quedan = document.querySelectorAll('.aviso.nuevo').length;
+    const cnt = document.querySelector('.avisos-link .cnt');
+    if (cnt) { if (quedan) cnt.textContent = String(quedan); else cnt.remove(); }
+    if (!quedan) document.getElementById('leer-todos')?.remove();
+  };
+
+  document.querySelectorAll<HTMLElement>('.aviso').forEach((li) => {
+    li.querySelector<HTMLAnchorElement>('[data-ir]')?.addEventListener('click', (e) => {
+      if (!li.classList.contains('nuevo')) return;
+      e.preventDefault();
+      const destino = (e.currentTarget as HTMLAnchorElement).href;
+      enviar({ accion: 'leer', id: Number(li.dataset.id) }).finally(() => { window.location.href = destino; });
+    });
+    li.querySelector<HTMLButtonElement>('[data-borrar]')?.addEventListener('click', async () => {
+      const res = await enviar({ accion: 'borrar', id: Number(li.dataset.id) }).catch(() => null);
+      if (res?.ok) { li.remove(); actualizarContador(); }
+    });
+  });
+
+  document.getElementById('leer-todos')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    b.disabled = true;
+    const res = await enviar({ accion: 'leer' }).catch(() => null);
+    if (res?.ok) { document.querySelectorAll<HTMLElement>('.aviso.nuevo').forEach(marcarLeido); actualizarContador(); }
+    else b.disabled = false;
+  });
+</script>

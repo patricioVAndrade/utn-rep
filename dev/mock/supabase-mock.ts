@@ -92,11 +92,16 @@ class Q {
   is(k: string, v: any) { this.filters.push((r) => (r[k] ?? null) === v); return this; }
   range(a: number, b: number) { this.off = a; return this.limit(b - a + 1); }
   upsert(v: any, o: any = {}) {
-    const k = o.onConflict || 'id';
+    const ks = String(o.onConflict || 'id').split(',');
     const t = (T[this.table] = T[this.table] || []);
-    const ya = t.find((x: any) => x[k] === v[k]);
-    if (ya) { Object.assign(ya, v); this.op = 'noop'; this.payload = ya; return this; }
-    return this.insert(v);
+    const nuevos: any[] = [];
+    const filas = Array.isArray(v) ? v : [v];
+    filas.forEach((f: any) => {
+      const ya = t.find((x: any) => ks.every((k) => x[k] === f[k]));
+      if (ya) Object.assign(ya, f); else nuevos.push(f);
+    });
+    if (!nuevos.length) { this.op = 'noop'; this.payload = filas[0]; return this; }
+    return this.insert(nuevos);
   }
   insert(v: any) { this.op = 'insert'; this.payload = v; this.fields = [{ name: '*' }]; return this; }
   update(v: any) { this.op = 'update'; this.payload = v; return this; }

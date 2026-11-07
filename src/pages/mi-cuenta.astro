@@ -4,16 +4,20 @@ import Icon from '../components/Icon.astro';
 import Avatar from '../components/Avatar.astro';
 import { createSupabaseServerClient } from '../lib/supabase';
 import { DIBUJOS, leerPerfil } from '../lib/perfil';
+import { PREFERENCIAS_EDITABLES } from '../lib/avisos';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/');
 
 const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
-const [perfil, { data: auth }, { data: seguidasRaw }] = await Promise.all([
+const [perfil, { data: auth }, { data: seguidasRaw }, { data: prefsRaw }] = await Promise.all([
   leerPerfil(client, user.id),
   client.auth.getUser(),
   client.from('seguimientos').select('materia_id, mail, materias ( id, nombre, nivel )').eq('user_id', user.id).order('created_at', { ascending: true }),
+  client.from('preferencias_aviso').select('tipo, canal, activo').eq('user_id', user.id),
 ]);
+// Sin fila, el aviso está prendido
+const prendido = (tipos: string[], canal = 'sitio') => !(prefsRaw || []).some((p: any) => tipos.includes(p.tipo) && p.canal === canal && p.activo === false);
 const seguidas = (seguidasRaw || [])
   .map((x: any) => ({ mail: x.mail, materia: Array.isArray(x.materias) ? x.materias[0] : x.materias }))
   .filter((x: any) => x.materia)
@@ -80,7 +84,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
               </div>
             ))
             : <span class="sub" id="sin-seguidas">Todavía no seguís ninguna. En cada materia y en cada curso hay un botón "Seguir materia".</span>}
-          {seguidas.length > 0 && <span class="sub">Te avisamos en el sitio cuando hay reseñas o finales nuevos. "Mail" es para que también te llegue un mail.</span>}
+          {seguidas.length > 0 && <span class="sub">Te avisamos en <a href="/avisos">Avisos</a> cuando hay reseñas o finales nuevos. "Mail" es para que también te llegue un mail, cuando esté el envío.</span>}
         </div>
       </section>
 
@@ -105,8 +109,18 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="avisos">
         <h2>Avisos en el sitio</h2>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>Qué te avisamos</b><span class="sub">En <a href="/avisos">Avisos</a>, arriba de todo</span></div>
+          <div class="acct-val">
+            {PREFERENCIAS_EDITABLES.map((p) => (
+              <label class="toggle"><input type="checkbox" data-tipos={p.tipos.join(',')} checked={prendido(p.tipos)} /><span class="tg"></span><span>{p.texto}{p.detalle && <small class="sub"> ({p.detalle})</small>}</span></label>
+            ))}
+            <span class="sub">Si la moderación te pide que edites una reseña, te avisamos siempre.</span>
+            <p class="sub" id="avisos-ok" aria-live="polite"></p>
+          </div>
+        </div>
         <div class="acct-row">
           <div class="acct-lbl"><b>"¿Cómo te fue?"</b><span class="sub">En el inicio</span></div>
           <div class="acct-val">
@@ -287,6 +301,20 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
       try { await enviar({ seguir: false }); fila.remove(); } catch (err) { b.disabled = false; alert((err as Error).message); }
     });
   });
+
+  // Qué avisos querés
+  document.querySelectorAll<HTMLInputElement>('#avisos [data-tipos]').forEach((cb) => cb.addEventListener('change', async () => {
+    const ok = $('avisos-ok');
+    ok.textContent = 'Guardando…';
+    try {
+      const res = await fetch('/api/avisos/preferencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipos: cb.dataset.tipos!.split(','), activo: cb.checked }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo guardar.');
+      ok.textContent = cb.checked ? 'Listo, te lo avisamos.' : 'Listo, no te lo avisamos más.';
+    } catch (e) {
+      cb.checked = !cb.checked;
+      ok.textContent = (e as Error).message;
+    }
+  }));
 
   // Borrar la cuenta
   const formBorrar = $('form-borrar') as HTMLFormElement;
