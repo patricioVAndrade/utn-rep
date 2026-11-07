@@ -23,7 +23,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F8 | Formulario en pasos con borrador | Hecho | Escribir una reseña | 3 pasos (2 si venís desde un curso). El borrador queda en el navegador. **No están** el título ni el plan de estudios (no existen en la base) ni los puntajes por separado. El paso 1 usa listas desplegables en vez de botones. Los cursos que ya reseñaste aparecen deshabilitados. |
 | F9 | Barra de navegación inferior en celular | Hecho | Celular | — |
 | F10 | Notas de moderación en una reseña | Hecho (migración 4) | Curso, Finales, admin | Junta con F12 en "Respuesta del moderador": una por reseña o final, pública y sin nombre de quién la escribió. Se escribe desde Reportes o Reseñas del admin. |
-| F11 | Seguir una materia y aviso por mail | Falta (etapa 3) | — | Tabla nueva y envío de mails. |
+| F11 | Seguir una materia y aviso por mail | Parcial (migración 6) | Materia, curso y Mi cuenta | Panel "Seguir esta materia" (desde el curso se sigue su materia) y la lista en Mi cuenta con interruptor de mail y "Dejar de seguir", como la V6. Los avisos van con la migración 7. |
 | F12 | Respuestas a una reseña | Hecho como F10 | — | Solo responde el moderador (decisión de Pato). |
 | F13 | Contador "Hay X estudiantes en línea" | Falta (etapa 3) | — | Necesita registrar actividad reciente. |
 | F14 | Visitas | Falta (etapa 3) | — | Vercel Analytics las cuenta, pero no se pueden mostrar en la página sin un contador propio. |
@@ -73,7 +73,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Escribir, paso 1 y paso 2 | Hecho | `/nueva-resena` |
 | Reseña publicada | Hecho | `/resena-publicada?curso=ID`. Rango y logros van con la etapa 3. |
 | Mis reseñas | Parcial | `/mis-resenas` con Reseñas, Finales contados y Borradores, sin turno. "Te faltan reseñar" sale de los años que elegiste en el inicio (hasta que exista Mi inscripción). Sin rango ni logros. |
-| Mi cuenta | Casi completa | `/mi-cuenta` (tocando tu nombre arriba), como la V6: nombre a mostrar (cambia también en lo ya publicado), foto, mostrar u ocultar la ficha, años de cursada, "¿Cómo te fue?" y borrar la cuenta (dejando lo publicado como anónimo o borrándolo). Todo se guarda en la cuenta (migración 5). Faltan rango y logros (migración 8) y materias que seguís (migración 6). |
+| Mi cuenta | Casi completa | `/mi-cuenta` (tocando tu nombre arriba), como la V6: nombre a mostrar (cambia también en lo ya publicado), foto, mostrar u ocultar la ficha, años de cursada, "¿Cómo te fue?" y borrar la cuenta (dejando lo publicado como anónimo o borrándolo). Todo se guarda en la cuenta (migración 5). Materias que seguís: hecho (migración 6). Faltan rango y logros (migración 8). |
 | Mi inscripción (F29) | Falta | Espera tu voto |
 | Ingresar | Hecho | Ventana de ingreso con mail, Google y GitHub |
 | ¿Cómo funciona? | Hecho | `/sobre` |

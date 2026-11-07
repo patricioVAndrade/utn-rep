@@ -4,6 +4,7 @@ import Icon from '../../components/Icon.astro';
 import Stars from '../../components/Stars.astro';
 import CursoChips from '../../components/CursoChips.astro';
 import ShareButton from '../../components/ShareButton.astro';
+import SeguirMateria from '../../components/SeguirMateria.astro';
 import FinalesPanel from '../../components/FinalesPanel.astro';
 import { supabase } from '../../lib/supabase';
 import { anioLabel, compararCursos, nota, tiempoRelativo } from '../../lib/format';
@@ -238,6 +239,7 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
 
     <aside class="side" aria-label="Más sobre la materia">
       <FinalesPanel materiaId={materia.id} />
+      <SeguirMateria materiaId={materia.id} materiaNombre={materia.nombre} />
       <section class="panel cta">
         <h3>¿Cursaste {materia.nombre}?</h3>
         <div class="in">

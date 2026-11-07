@@ -79,3 +79,4 @@ export const reportes_resenas = [
   { id: 2, resena_id: 20, user_id: 'otro', automatico: false, motivo: 'Tiene datos personales', created_at: '2026-11-05T11:00:00Z' },
 ];
 export const perfiles = [];
+export const seguimientos = [{ user_id: 'u-demo', materia_id: 1, mail: true, created_at: '2026-11-01T10:00:00Z' }];

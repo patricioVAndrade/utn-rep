@@ -9,7 +9,15 @@ const user = Astro.locals.user;
 if (!user) return Astro.redirect('/');
 
 const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
-const [perfil, { data: auth }] = await Promise.all([leerPerfil(client, user.id), client.auth.getUser()]);
+const [perfil, { data: auth }, { data: seguidasRaw }] = await Promise.all([
+  leerPerfil(client, user.id),
+  client.auth.getUser(),
+  client.from('seguimientos').select('materia_id, mail, materias ( id, nombre, nivel )').eq('user_id', user.id).order('created_at', { ascending: true }),
+]);
+const seguidas = (seguidasRaw || [])
+  .map((x: any) => ({ mail: x.mail, materia: Array.isArray(x.materias) ? x.materias[0] : x.materias }))
+  .filter((x: any) => x.materia)
+  .sort((a: any, b: any) => a.materia.nivel - b.materia.nivel || a.materia.nombre.localeCompare(b.materia.nombre));
 const cuenta = auth?.user;
 const nombreGoogle = cuenta?.user_metadata?.full_name || cuenta?.user_metadata?.name || user.email.split('@')[0] || 'Usuario';
 const nombre = perfil.nombre_mostrar || nombreGoogle;
@@ -58,6 +66,23 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
           </div>
         </div>
       </form>
+
+      <section class="panel" id="seguis">
+        <h3>Materias que seguís</h3>
+        <div class="in">
+          {seguidas.length
+            ? seguidas.map((x: any) => (
+              <div class="follow" data-materia={x.materia.id}>
+                <span class:list={['yr', `y${x.materia.nivel}`]}>{x.materia.nivel}.º</span>
+                <a href={`/materia/${x.materia.id}`}>{x.materia.nombre}</a>
+                <label class="toggle sm"><input type="checkbox" data-mail checked={x.mail} /><span class="tg"></span><span>Mail</span></label>
+                <button type="button" class="linklike sub" data-dejar>Dejar de seguir</button>
+              </div>
+            ))
+            : <span class="sub" id="sin-seguidas">Todavía no seguís ninguna. En cada materia y en cada curso hay un botón "Seguir materia".</span>}
+          {seguidas.length > 0 && <span class="sub">Te avisamos en el sitio cuando hay reseñas o finales nuevos. "Mail" es para que también te llegue un mail.</span>}
+        </div>
+      </section>
 
       <section class="panel" id="tus-anios">
         <h2>Tus años de cursada</h2>
@@ -243,6 +268,24 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
     try { localStorage.removeItem('comoTeFue'); } catch {}
     document.getElementById('pausa')?.remove();
     guardar(on ? { preguntar_como_te_fue: true, pausar_como_te_fue: false } : { preguntar_como_te_fue: false }, $('preguntar-ok'), on ? 'Te vamos a preguntar en el inicio.' : 'No te preguntamos más.');
+  });
+
+  // Materias que seguís
+  document.querySelectorAll<HTMLElement>('#seguis .follow').forEach((fila) => {
+    const materia_id = Number(fila.dataset.materia);
+    const enviar = async (cuerpo: Record<string, unknown>) => {
+      const res = await fetch('/api/seguir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ materia_id, ...cuerpo }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo.');
+    };
+    fila.querySelector<HTMLInputElement>('[data-mail]')!.addEventListener('change', async (e) => {
+      const cb = e.target as HTMLInputElement;
+      try { await enviar({ mail: cb.checked }); } catch (err) { cb.checked = !cb.checked; alert((err as Error).message); }
+    });
+    fila.querySelector<HTMLButtonElement>('[data-dejar]')!.addEventListener('click', async (e) => {
+      const b = e.currentTarget as HTMLButtonElement;
+      b.disabled = true;
+      try { await enviar({ seguir: false }); fila.remove(); } catch (err) { b.disabled = false; alert((err as Error).message); }
+    });
   });
 
   // Borrar la cuenta

@@ -5,6 +5,7 @@ import Stars from '../../components/Stars.astro';
 import CursoChips from '../../components/CursoChips.astro';
 import ReviewCard from '../../components/ReviewCard.astro';
 import ShareButton from '../../components/ShareButton.astro';
+import SeguirMateria from '../../components/SeguirMateria.astro';
 import FinalesPanel from '../../components/FinalesPanel.astro';
 import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 import { supabaseAdmin } from '../../lib/supabase-admin';
@@ -248,6 +249,7 @@ const totalCursos = (otrosRaw || []).length;
 
     <aside class="side" aria-label="Datos del curso">
       {materia && <FinalesPanel materiaId={materia.id} />}
+      {materia && <SeguirMateria materiaId={materia.id} materiaNombre={materia.nombre} />}
 
       <section class="panel">
         <h3>Profesores de este curso</h3>

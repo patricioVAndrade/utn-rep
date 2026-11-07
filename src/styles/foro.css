@@ -398,6 +398,9 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .dibujos label:has(input:focus-visible) { outline: 3px solid var(--focus); }
 .acts-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .borrar { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--bad); background: var(--row-b); }
+.follow { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding-bottom: 5px; border-bottom: 1px dotted var(--line); }
+.follow > a { flex: 1 1 160px; min-width: 0; }
+.panel.seguir .btn { justify-self: start; }
 .author.preview { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .rep-tags { display: inline-flex; gap: 6px; align-items: center; }
 .pchips.palabras { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
