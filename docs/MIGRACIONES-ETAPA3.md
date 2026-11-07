@@ -40,12 +40,14 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108020000_resenas_edicion_plan.sql`. Vuelta atrás: `supabase/rollback/20261108020000_resenas_edicion_plan.sql`.
 - **Verificación esperada:** `columnas = 2`, `trigger = 1`, `puede_editar_condicion = true` y la cantidad de reseñas (todas con plan 2023).
 
-### 4. Moderación (F10, F12 y el resto de 3.6)
+### 4. Moderación (F10, F12 y el resto de 3.6) — **lista para correr en prueba**
 
-- **Respuesta del moderador:** como decidiste, solo el moderador responde, y se junta con las notas de moderación. Tabla `respuestas_moderador` (una por reseña o final). Se ve debajo de la reseña.
-- **"Pedirle que la edite":** marca en la reseña con el motivo. La persona lo ve en Mis reseñas (y como aviso cuando esté la 7).
-- **Registro de moderación:** tabla con quién hizo qué y cuándo (borró, dejó, respondió, pidió edición). Se ve en el admin.
-- **Palabras marcadas:** tabla con la lista, editable desde el admin. Al publicar, si una reseña tiene una, entra sola a Reportes aunque nadie la haya reportado.
+- **Respuesta del moderador:** como decidiste, solo el moderador responde, y se junta con las notas de moderación. Tabla `respuestas_moderador`: una por reseña o por experiencia de final. Es pública (se ve debajo de la reseña), no guarda quién de la moderación la escribió y solo el servidor la puede escribir.
+- **"Pedirle que la edite":** dos columnas en la reseña, el motivo y la fecha. Lo ve solo quien la escribió (en Mis reseñas, y como aviso cuando esté la 7); la vista pública no lo muestra y la persona no lo puede borrar a mano. Cuando cambia el texto, el pedido se borra solo.
+- **Registro de moderación:** tabla `registro_moderacion` con quién hizo qué y cuándo (borró, dejó, corrigió, respondió, pidió edición, palabras). Solo la lee el servidor; se ve en el admin.
+- **Palabras marcadas:** tabla `palabras_marcadas`, editable desde el admin, solo el servidor la lee. Al publicar, si una reseña tiene una, entra sola a Reportes como "automático". Para eso `reportes_resenas` acepta reportes sin persona, solo si están marcados como automáticos; nadie puede mandar uno automático desde el sitio.
+- **Archivo:** `supabase/migrations/20261108030000_moderacion.sql`. Vuelta atrás: `supabase/rollback/20261108030000_moderacion.sql` (borra respuestas, registro, palabras, pedidos y reportes automáticos; las reseñas no se tocan).
+- **Verificación esperada:** `tablas = 3`, `columnas_pedido = 2`, `trigger = 1`, `reportes_automaticos = 1`, `publico_lee_respuestas = true`, `publico_lee_registro = false`, `publico_lee_palabras = false`.
 
 ### 5. Perfil y preferencias (Mi cuenta)
 
