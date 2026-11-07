@@ -8,7 +8,7 @@
 import Icon from './Icon.astro';
 import Stars from './Stars.astro';
 import ShareButton from './ShareButton.astro';
-import { tiempoRelativo } from '../lib/format';
+import { COMO_TE_FUE, editadaEl, tiempoRelativo } from '../lib/format';
 
 interface Props {
   resena: any;
@@ -59,6 +59,7 @@ const fecha = resena.created_at ? new Date(resena.created_at) : null;
     <span>
       {curso ? <a href={curso.href}>{curso.label}</a> : <a href={`#resena-${resena.id}`}>#{resena.id}</a>}
       {fecha && <> · <time datetime={resena.created_at}>{tiempoRelativo(resena.created_at)}</time></>}
+      <span class="editada">{resena.updated_at ? ` · ${editadaEl(resena.updated_at)}` : ''}</span>
     </span>
     {resena.anio_cursado && <span class="tag">Cursó en {resena.anio_cursado}</span>}
   </div>
@@ -87,6 +88,13 @@ const fecha = resena.created_at ? new Date(resena.created_at) : null;
         <div class="review-edit-form hidden">
           <label class="sr" for={`edit-${resena.id}`}>Editar comentario</label>
           <textarea id={`edit-${resena.id}`} maxlength="2000" class="edit-textarea" rows="4">{resena.comentario}</textarea>
+          <label class="edit-cond">
+            <span>¿Cómo te fue?</span>
+            <select class="edit-condicion">
+              <option value="" selected={!resena.condicion_final}>Prefiero no decirlo</option>
+              {COMO_TE_FUE.map((c) => <option value={c.valor} selected={resena.condicion_final === c.valor}>{c.texto}</option>)}
+            </select>
+          </label>
           <div class="edit-acts">
             <button type="button" class="save-edit-btn btn primary">Guardar</button>
             <button type="button" class="cancel-edit-btn btn quiet">Cancelar</button>

@@ -356,6 +356,18 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .foro textarea.edit-textarea, .field input[type="text"], .field input[type="email"], .field select, .field textarea { font: 12px var(--f-body); padding: 7px 9px; border: 1px solid var(--line); background: var(--input-bg); color: var(--ink); width: 100%; border-radius: 0; }
 .foro textarea.edit-textarea { min-height: 90px; resize: vertical; line-height: 1.6; }
 .edit-acts { display: flex; gap: 6px; margin-top: 6px; }
+.edit-cond { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.foro .edit-cond select { font: 12px var(--f-body); padding: 5px 7px; border: 1px solid var(--line); background: var(--input-bg); color: var(--ink); border-radius: 0; }
+.editada { color: var(--muted); }
+/* "¿Cómo te fue?" (F38): franja del inicio y filas de Mis reseñas */
+.comofue, .comofue .cf-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.comofue { padding: 9px 12px; margin-bottom: 10px; background: var(--info-bg); border: 1px solid var(--head-a); border-left-width: 4px; font-size: 12px; }
+.comofue .cf-item { flex: 1 1 100%; }
+.comofue .q { flex: 1 1 260px; min-width: 0; }
+.comofue .q b { color: var(--ink); }
+.comofue .opts, .comofue .later { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.comofue .later { gap: 12px; }
+.mine-row .comofue { margin: 4px 0 0; padding: 6px 10px; }
 .post-tools { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; padding: 5px 8px; background: var(--row-a); border-top: 1px solid var(--line-soft); font-size: 11px; color: var(--muted); }
 .post-tools .group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .post.exp .message p { font-style: normal; }

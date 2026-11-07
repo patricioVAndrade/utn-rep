@@ -18,7 +18,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F3 | Buscador con sugerencias agrupadas | Hecho | Banner, en cualquier página; Enter abre `/buscar?q=` | Sugerencias agrupadas en Materias, Cursos y Profesores. La página de resultados suma Finales, filtros y qué hacer si no hay nada. |
 | F4 | Reparto de estrellas | Hecho | Curso y materia, "Cómo lo puntuaron" | — |
 | F5 | Rangos por cantidad de reseñas | Falta (etapa 3) | — | Necesita contar reseñas por persona y mostrarlo en público. |
-| F6 | Etiqueta de plan de estudios (2008 o 2023) | Falta (etapa 3) | — | La base no guarda el plan. Hace falta una columna nueva y la pregunta en el formulario. |
+| F6 | Etiqueta de plan de estudios (2008 o 2023) | Base lista, sin mostrar | — | Migración 3: columna `plan` con 2023 en todas. No se muestra ni se pregunta, como pidió Pato; queda lista para cuando convivan los dos planes. |
 | F7 | Otros cursos de la materia y comparador | Hecho | Botón "Comparar cursos" en la materia y en el curso; `/materia/ID/comparar` | Columnas: General, Reseñas, Promocionó, Regularizó y Quedó libre. **No están** Dificultad, Exigencia ni Claridad porque la base solo guarda el puntaje general (van con etapa 3 si los querés). Se ordena tocando los títulos y se filtra por turno. |
 | F8 | Formulario en pasos con borrador | Hecho | Escribir una reseña | 3 pasos (2 si venís desde un curso). El borrador queda en el navegador. **No están** el título ni el plan de estudios (no existen en la base) ni los puntajes por separado. El paso 1 usa listas desplegables en vez de botones. Los cursos que ya reseñaste aparecen deshabilitados. |
 | F9 | Barra de navegación inferior en celular | Hecho | Celular | — |
@@ -101,7 +101,8 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 
 | Código | Qué es | Estado | Nota |
 |---|---|---|---|
-| F38 | Completar "¿Cómo te fue?" en reseñas viejas | Propuesta para etapa 3 | Al entrar, una franja (no una ventana) con tus reseñas sin estado y tres botones: Promocioné, Regularicé, Quedé libre. Opciones "Ahora no" (vuelve en 30 días) y "No preguntar más". Solo pregunta por cursadas de años anteriores o reseñas con más de 4 meses. También se puede completar desde Mis reseñas. Cambio en la base: permitir editar `condicion_final` de la reseña propia (hoy solo se puede editar el comentario). |
+| 3.3 | "Editada el 12/11" | Hecho (migración 3) | Reseña y Mis reseñas | La fecha la pone la base (trigger) solo si cambia el texto, las estrellas o "¿Cómo te fue?"; los votos no cuentan como edición. |
+| F38 | Completar "¿Cómo te fue?" en reseñas viejas | Hecho (migración 3) | Inicio, Mis reseñas y Editar | Franja en el inicio, de a una reseña, con Promocioné, Regularicé y Quedé libre; "Ahora no" (30 días) y "No preguntar más" quedan en el navegador (`comoTeFue`) hasta que esté Mi cuenta con base. Solo pregunta por cursadas de años anteriores o reseñas de más de 4 meses. En Mis reseñas, cada reseña sin el dato lo pide; al editar una reseña hay un selector "¿Cómo te fue?". Las estrellas no se pueden cambiar. |
 
 ## Importar cuatrimestre (nuevo)
 

@@ -83,7 +83,9 @@ async function handleEdit(params: Record<string, string | undefined>, request: R
 
   const parsed = parseBody(resenaEditSchema, body);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
-  const { comentario } = parsed.data;
+  const cambios: { comentario?: string; condicion_final?: string | null } = {};
+  if (parsed.data.comentario !== undefined) cambios.comentario = parsed.data.comentario;
+  if (parsed.data.condicion_final !== undefined) cambios.condicion_final = parsed.data.condicion_final;
 
   // Verify ownership
   const { data: resena } = await supabase
@@ -100,17 +102,19 @@ async function handleEdit(params: Record<string, string | undefined>, request: R
     return json({ error: 'No podés editar una reseña que no es tuya.' }, 403);
   }
 
-  const { error: updateError } = await supabase
+  const { data: actualizada, error: updateError } = await supabase
     .from('resenas')
-    .update({ comentario })
-    .eq('id', resenaId);
+    .update(cambios)
+    .eq('id', resenaId)
+    .select('updated_at')
+    .maybeSingle();
 
   if (updateError) {
     console.error('Error updating resena:', updateError);
     return json({ error: 'No se pudo actualizar la reseña.' }, 500);
   }
 
-  return json({ success: true });
+  return json({ success: true, updated_at: actualizada?.updated_at ?? null });
 }
 
 /**

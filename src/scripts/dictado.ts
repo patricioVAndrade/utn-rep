@@ -1,4 +1,5 @@
 // Interacciones de la página /dictado/[id]: orden, paginación, edición, borrado, reportes y votos.
+import { editadaEl } from '../lib/format';
 function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Error desconocido';
 }
@@ -76,6 +77,19 @@ if (reviewsList) {
 }
 
 // ========== EDIT ==========
+const CONDICIONES: Record<string, [string, string]> = { PROMOCIONADO: ['Promocionó', 'prom'], REGULAR: ['Regularizó', 'reg'], LIBRE: ['Quedó libre', 'libre'] };
+function pintarCondicion(card: HTMLElement, valor: string) {
+  let pill = card.querySelector('.author .cond') as HTMLElement | null;
+  const c = CONDICIONES[valor];
+  if (!c) { pill?.remove(); return; }
+  if (!pill) {
+    pill = document.createElement('span');
+    card.querySelector('.author')?.append(pill);
+  }
+  pill.className = `cond ${c[1]}`;
+  pill.textContent = c[0];
+}
+
 document.querySelectorAll('.edit-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const card = btn.closest('.review-card') as HTMLElement | null;
@@ -105,6 +119,7 @@ document.querySelectorAll('.save-edit-btn').forEach((btn) => {
     const resenaId = card.getAttribute('data-id');
     const textarea = card.querySelector('.edit-textarea') as HTMLTextAreaElement | null;
     const newComment = textarea?.value?.trim();
+    const condSelect = card.querySelector('.edit-condicion') as HTMLSelectElement | null;
 
     if (!newComment || newComment.length < 10) {
       alert('El comentario debe tener al menos 10 caracteres.');
@@ -118,7 +133,7 @@ document.querySelectorAll('.save-edit-btn').forEach((btn) => {
       const res = await fetch('/api/resenas/' + resenaId, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ _method: 'PUT', comentario: newComment }),
+        body: JSON.stringify({ _method: 'PUT', comentario: newComment, condicion_final: condSelect?.value ?? undefined }),
       });
       const text = await res.text();
       let data;
@@ -132,6 +147,9 @@ document.querySelectorAll('.save-edit-btn').forEach((btn) => {
         comment.classList.remove('hidden');
       }
       card.querySelector('.review-edit-form')?.classList.add('hidden');
+      pintarCondicion(card, condSelect?.value || '');
+      const editada = card.querySelector('.editada');
+      if (editada && data.updated_at) editada.textContent = ` · ${editadaEl(data.updated_at)}`;
     } catch (err) {
       alert(getErrorMessage(err));
     } finally {

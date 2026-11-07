@@ -5,7 +5,7 @@ import Stars from '../components/Stars.astro';
 import ShareButton from '../components/ShareButton.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase-admin';
-import { mesaTexto } from '../lib/format';
+import { COMO_TE_FUE, editadaEl, mesaTexto } from '../lib/format';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/');
@@ -17,7 +17,7 @@ const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 const [{ data }, { data: finalesRaw }, { data: materiasRaw }] = await Promise.all([
   client
     .from('resenas')
-    .select('id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, created_at, dictados ( materia_id, cursos ( identificador ), materias ( id, nombre, nivel ) )')
+    .select('id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, condicion_final, created_at, updated_at, dictados ( materia_id, cursos ( identificador ), materias ( id, nombre, nivel ) )')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false }),
   client
@@ -46,6 +46,7 @@ if (misResenas.length) {
 const resenadas = new Set(misResenas.map((r) => r.materia?.id).filter(Boolean));
 const materiasJSON = JSON.stringify((materiasRaw || []).map((m: any) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel, hecha: resenadas.has(m.id) })));
 
+const comoMeFue = (v: string | null) => COMO_TE_FUE.find((c) => c.valor === v);
 const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t);
 ---
@@ -85,10 +86,17 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
                     ? <span class="cond reg">Reportada, en revisión</span>
                     : <span class="cond pub">Publicada</span>}
                   {r.es_anonima && <span class="tag">Anónima</span>}
+                  {comoMeFue(r.condicion_final) && <span class:list={['cond', comoMeFue(r.condicion_final)!.clase]}>{comoMeFue(r.condicion_final)!.texto}</span>}
                 </div>
                 <div><Stars value={r.calificacion_general} /> <span class="snip">{recorte(r.comentario || '')}</span></div>
+                {!r.condicion_final && (
+                  <div class="comofue" data-resena={r.id}>
+                    <span class="q">¿Cómo te fue? Sumalo a tu reseña.</span>
+                    <span class="opts">{COMO_TE_FUE.map((c) => <button type="button" class="btn quiet" data-cond={c.valor} data-clase={c.clase}>{c.texto}</button>)}</span>
+                  </div>
+                )}
                 <div class="bottom">
-                  <span class="sub">{fecha(r.created_at)}. {r.votos_utilidad ? `${r.votos_utilidad} dijeron que les sirvió` : 'Todavía sin votos'}</span>
+                  <span class="sub">{fecha(r.created_at)}{r.updated_at ? ` (${editadaEl(r.updated_at).toLowerCase()})` : ''}. {r.votos_utilidad ? `${r.votos_utilidad} dijeron que les sirvió` : 'Todavía sin votos'}</span>
                   <span class="acts">
                     <a class="btn quiet" href={`/dictado/${r.dictado_id}#resena-${r.id}`}><Icon name="edit" /> Editar</a>
                     <ShareButton mini titulo="Mirá mi reseña en UTN REP" ruta={`/dictado/${r.dictado_id}#resena-${r.id}`} />
@@ -164,6 +172,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
 <script is:inline type="application/json" id="materias-data" set:html={materiasJSON}></script>
 
 <script>
+  import { responderComoTeFue } from '../scripts/como-te-fue';
   // Pestañas
   const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.ptabs [data-tab]'));
   const abrir = (nombre: string) => tabs.forEach((t) => {
@@ -185,6 +194,25 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
     } catch {
       alert('No se pudo borrar. Probá de nuevo.');
       b.disabled = false;
+    }
+  }));
+
+  // "¿Cómo te fue?" en las reseñas que no lo dicen
+  document.querySelectorAll<HTMLElement>('.mine-row .comofue').forEach((box) => box.addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-cond]');
+    if (!b) return;
+    const botones = Array.from(box.querySelectorAll('button'));
+    botones.forEach((x) => (x.disabled = true));
+    try {
+      await responderComoTeFue(box.dataset.resena || '', b.dataset.cond || '');
+      const pill = document.createElement('span');
+      pill.className = `cond ${b.dataset.clase}`;
+      pill.textContent = b.textContent;
+      box.closest('.mine-row')?.querySelector('.top')?.append(pill);
+      box.remove();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'No se pudo guardar.');
+      botones.forEach((x) => (x.disabled = false));
     }
   }));
 

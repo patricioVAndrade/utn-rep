@@ -30,7 +30,7 @@ Todas corren en una transacción (si algo falla, no se aplica nada), se pueden v
 - **Para qué:** votar las experiencias de finales que te sirvieron (con contador y orden "Más útiles") y que Reportar vaya a la cola de Reportes del admin en vez de abrir un mail.
 - **Qué cambia:** tabla `votos_finales` (una fila por persona y experiencia, como los votos de reseñas), columna `votos_utilidad` en la experiencia y una función para votar que solo suma o resta de a uno. Tabla `reportes_finales`, igual a la de reseñas.
 
-### 3. Reseñas: fecha de edición, "¿Cómo te fue?" y plan de estudios (3.3, 3.4 y 3.5) — **lista para correr en prueba**
+### 3. Reseñas: fecha de edición, "¿Cómo te fue?" y plan de estudios (3.3, 3.4 y 3.5) — **corrida en prueba el 7/11, código subido**
 
 Las tres tocan la tabla `resenas`, así que van juntas.
 

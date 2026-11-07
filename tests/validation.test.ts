@@ -60,6 +60,18 @@ describe('resenaEditSchema', () => {
     expect(parseBody(resenaEditSchema, { comentario: 'muy corto' }).ok).toBe(false);
     expect(parseBody(resenaEditSchema, { comentario: 'Ahora sí es largo' })).toEqual({ ok: true, data: { comentario: 'Ahora sí es largo' } });
   });
+
+  it('deja completar "¿Cómo te fue?" sin tocar el texto', () => {
+    expect(parseBody(resenaEditSchema, { condicion_final: 'REGULAR' })).toEqual({ ok: true, data: { condicion_final: 'REGULAR' } });
+    expect(parseBody(resenaEditSchema, { condicion_final: '' })).toEqual({ ok: true, data: { condicion_final: null } });
+    expect(parseBody(resenaEditSchema, { condicion_final: 'APROBADO' }).ok).toBe(false);
+  });
+
+  it('no deja cambiar las estrellas ni mandar nada vacío', () => {
+    expect(parseBody(resenaEditSchema, {})).toEqual({ ok: false, error: 'No hay nada para cambiar.' });
+    const r = parseBody(resenaEditSchema, { comentario: 'Texto nuevo y largo', calificacion_general: 5 });
+    expect(r.ok && 'calificacion_general' in r.data).toBe(false);
+  });
 });
 
 describe('votoSchema', () => {

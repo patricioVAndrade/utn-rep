@@ -77,3 +77,18 @@ export function mesaTexto(mesa: string | null | undefined, anio: number | string
   if (m.startsWith('esp')) return `Mesa especial${a}`;
   return `Mesa de ${m}${a}`;
 }
+
+/** "Editada el 12/11" (vacío si nunca se editó). La fecha la pone la base al cambiar texto, estrellas o "¿Cómo te fue?". */
+export function editadaEl(fecha: string | null | undefined): string {
+  if (!fecha) return '';
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return '';
+  return `Editada el ${d.toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric', timeZone: 'America/Argentina/Cordoba' })}`;
+}
+
+/** Cómo le fue, en primera persona (para quien escribió la reseña) */
+export const COMO_TE_FUE = [
+  { valor: 'PROMOCIONADO', texto: 'Promocioné', clase: 'prom' },
+  { valor: 'REGULAR', texto: 'Regularicé', clase: 'reg' },
+  { valor: 'LIBRE', texto: 'Quedé libre', clase: 'libre' },
+] as const;

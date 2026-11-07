@@ -106,7 +106,9 @@ class Q {
       return nuevos;
     }
     const afectados = t.filter((x: any) => this.filters.every((f) => f(x)));
-    if (this.op === 'update') afectados.forEach((x: any) => Object.assign(x, this.payload));
+    // Como el trigger de la migración 3: la fecha de edición cambia solo si cambia el contenido
+    const edita = this.table === 'resenas' && ['comentario', 'calificacion_general', 'condicion_final'].some((k) => k in (this.payload || {}));
+    if (this.op === 'update') afectados.forEach((x: any) => Object.assign(x, this.payload, edita ? { updated_at: new Date().toISOString() } : {}));
     if (this.op === 'delete') T[this.table] = t.filter((x: any) => !afectados.includes(x));
     return afectados;
   }

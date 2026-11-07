@@ -27,9 +27,14 @@ export function resenaCreateSchema(currentYear = new Date().getFullYear()) {
   });
 }
 
+// Quien escribió la reseña puede cambiar el texto y completar "¿Cómo te fue?" (las estrellas no)
 export const resenaEditSchema = z.object({
-  comentario: comentario(10, 2000),
-});
+  comentario: comentario(10, 2000).optional(),
+  condicion_final: z.enum(CONDICIONES_FINALES, { errorMap: () => ({ message: 'Condición final inválida.' }) })
+    .nullable()
+    .or(z.literal('').transform(() => null))
+    .optional(),
+}).refine((d) => d.comentario !== undefined || d.condicion_final !== undefined, { message: 'No hay nada para cambiar.' });
 
 export const reporteSchema = z.object({
   resena_id: z.number({ required_error: 'ID de reseña inválido.', invalid_type_error: 'ID de reseña inválido.' }).int('ID de reseña inválido.').positive('ID de reseña inválido.'),
