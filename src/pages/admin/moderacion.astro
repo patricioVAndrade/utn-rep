@@ -1,0 +1,140 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminNav from '../../components/AdminNav.astro';
+import Icon from '../../components/Icon.astro';
+import { isAdmin } from '../../lib/admin';
+import { supabaseAdmin } from '../../lib/supabase-admin';
+import { ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+import { tokenCsrf } from '../../lib/admin-csrf';
+
+const user = Astro.locals.user;
+if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+const csrfToken = tokenCsrf(Astro.cookies);
+
+const [{ data: palabras }, { data: registro }] = await Promise.all([
+  supabaseAdmin.from('palabras_marcadas').select('id, palabra').order('palabra'),
+  supabaseAdmin.from('registro_moderacion').select('id, moderador_id, accion, resena_id, final_id, detalle, created_at').order('created_at', { ascending: false }).limit(150),
+]);
+
+// De qué materia y curso es cada reseña del registro (las borradas ya no están)
+const ids = [...new Set((registro || []).map((r: any) => r.resena_id).filter(Boolean))];
+const donde = new Map<number, { dictado: number; texto: string }>();
+if (ids.length) {
+  const { data } = await supabaseAdmin.from('resenas').select('id, dictado_id, dictados ( cursos ( identificador ), materias ( nombre ) )').in('id', ids);
+  const one = (x: any) => (Array.isArray(x) ? x[0] : x) || null;
+  (data || []).forEach((r: any) => {
+    const d = one(r.dictados);
+    donde.set(r.id, { dictado: r.dictado_id, texto: `${one(d?.materias)?.nombre || 'Materia'}, ${one(d?.cursos)?.identificador || ''}` });
+  });
+}
+
+const ACCIONES: Record<string, string> = {
+  borrar: 'Borró',
+  dejar: 'Dejó como estaba',
+  editar_texto: 'Corrigió el texto de',
+  responder: 'Respondió',
+  borrar_respuesta: 'Sacó la respuesta de',
+  pedir_edicion: 'Pidió que editen',
+  quitar_pedido: 'Sacó el pedido de edición de',
+  marcada_automatica: 'Mandó a Reportes',
+  agregar_palabra: 'Agregó la palabra',
+  quitar_palabra: 'Quitó la palabra',
+};
+const quien = (id: string | null) => (id === null ? 'Automático' : id === user.id ? 'Vos' : 'Otro admin');
+const fecha = (iso: string) => new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
+---
+
+<Layout title="Moderación - Panel de admin" crumbs={[{ label: 'Panel de admin', href: '/admin' }, { label: 'Moderación' }]}>
+  <div id="admin-csrf" hidden data-h={ADMIN_CSRF_HEADER} data-t={csrfToken}></div>
+  <div class="admin-wrap">
+    <AdminNav actual="moderacion" />
+    <div class="admin-main">
+      <div class="topic">
+        <div>
+          <h1>Moderación</h1>
+          <p>Las palabras que mandan una reseña a Reportes y todo lo que se hizo desde el panel.</p>
+        </div>
+      </div>
+
+      <section class="panel">
+        <h3>Palabras marcadas</h3>
+        <div class="in">
+          <span class="sub">Si una reseña nueva o editada tiene una de estas, entra sola a Reportes como "Automático". Sigue publicada hasta que decidas. No distingue mayúsculas ni acentos y busca la palabra entera (también sirven frases como "no vayan").</span>
+          <form class="filters afil" id="form-palabra">
+            <label class="sr" for="nueva-palabra">Palabra o frase</label>
+            <input id="nueva-palabra" class="ainput sm" maxlength="60" placeholder="Palabra o frase" required />
+            <button class="btn secondary" type="submit"><Icon name="plus" /> Agregar</button>
+          </form>
+          <ul class="pchips palabras" id="lista-palabras">
+            {(palabras || []).map((p: any) => (
+              <li data-id={p.id}><span>{p.palabra}</span><button type="button" class="x" aria-label={`Quitar ${p.palabra}`}>×</button></li>
+            ))}
+          </ul>
+          {!(palabras || []).length && <span class="sub" id="sin-palabras">Todavía no hay palabras.</span>}
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>Registro</h3>
+        <div class="in feed registro">
+          {(registro || []).map((r: any) => {
+            const lugar = r.resena_id ? donde.get(r.resena_id) : null;
+            return (
+              <div>
+                <span>
+                  <b>{quien(r.moderador_id)}</b> {ACCIONES[r.accion] || r.accion}{' '}
+                  {r.resena_id && (lugar
+                    ? <a href={`/dictado/${lugar.dictado}#resena-${r.resena_id}`}>la reseña de {lugar.texto}</a>
+                    : <span>la reseña #{r.resena_id}{r.accion === 'borrar' ? '' : ' (ya no está)'}</span>)}
+                  {r.final_id && <span>la experiencia de final #{r.final_id}</span>}
+                  {(r.accion === 'agregar_palabra' || r.accion === 'quitar_palabra' || r.accion === 'marcada_automatica') && r.detalle && <span> "{r.detalle}"</span>}
+                </span>
+                <span class="sub">{fecha(r.created_at)}{r.detalle && !['agregar_palabra', 'quitar_palabra', 'marcada_automatica'].includes(r.accion) ? `. ${r.detalle.length > 140 ? r.detalle.slice(0, 140) + '…' : r.detalle}` : ''}</span>
+              </div>
+            );
+          })}
+          {!(registro || []).length && <span class="sub">Todavía no hay nada registrado.</span>}
+        </div>
+      </section>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { adminFetch, aviso } from '../../scripts/admin-api';
+  const lista = document.getElementById('lista-palabras')!;
+  const quitar = (li: HTMLElement) => li.querySelector('.x')?.addEventListener('click', async () => {
+    try {
+      await adminFetch('/api/admin/moderacion', { accion: 'quitar_palabra', id: Number(li.dataset.id) });
+      li.remove();
+      aviso('Palabra quitada.');
+    } catch (e) {
+      aviso((e as Error).message, true);
+    }
+  });
+  lista.querySelectorAll<HTMLElement>('li').forEach(quitar);
+  document.getElementById('form-palabra')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('nueva-palabra') as HTMLInputElement;
+    try {
+      const { data } = await adminFetch<{ data: { id: number; palabra: string } }>('/api/admin/moderacion', { accion: 'agregar_palabra', palabra: input.value });
+      const li = document.createElement('li');
+      li.dataset.id = String(data.id);
+      const t = document.createElement('span');
+      t.textContent = data.palabra;
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'x';
+      x.textContent = '×';
+      x.setAttribute('aria-label', `Quitar ${data.palabra}`);
+      li.append(t, x);
+      lista.append(li);
+      quitar(li);
+      document.getElementById('sin-palabras')?.remove();
+      input.value = '';
+      aviso('Palabra agregada.');
+    } catch (err) {
+      aviso((err as Error).message, true);
+    }
+  });
+</script>

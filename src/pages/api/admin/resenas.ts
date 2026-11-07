@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { requireAdmin } from '../../../lib/admin-guards';
 import { json } from '../../../lib/http';
+import { registrar } from '../../../lib/moderacion';
 
 
 /**
@@ -34,6 +35,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.error('Error deleting review:', error);
       return json({ error: 'Error eliminando reseña.' }, 500);
     }
+    await registrar(user.id, 'borrar', { resena_id: Number(resena_id) || null, detalle: 'Desde Reseñas' });
     return json({ success: true });
   }
 
@@ -53,6 +55,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.error('Error editing review:', error);
       return json({ error: 'Error editando reseña.' }, 500);
     }
+    await registrar(user.id, 'editar_texto', { resena_id: Number(resena_id) || null, detalle: comentario.trim() });
     return json({ success: true });
   }
 

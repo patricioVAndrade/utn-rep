@@ -88,6 +88,7 @@ class Q {
     this.filters.push((r) => tests.some((t) => t(r)));
     return this;
   }
+  not(k: string, op: string, v: any) { if (op === 'is') this.filters.push((r) => (r[k] ?? null) !== v); else this.filters.push((r) => String(r[k]) !== String(v)); return this; }
   is(k: string, v: any) { this.filters.push((r) => (r[k] ?? null) === v); return this; }
   range(a: number, b: number) { this.off = a; return this.limit(b - a + 1); }
   insert(v: any) { this.op = 'insert'; this.payload = v; this.fields = [{ name: '*' }]; return this; }

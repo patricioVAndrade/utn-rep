@@ -17,7 +17,7 @@ const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 const [{ data }, { data: finalesRaw }, { data: materiasRaw }] = await Promise.all([
   client
     .from('resenas')
-    .select('id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, condicion_final, created_at, updated_at, dictados ( materia_id, cursos ( identificador ), materias ( id, nombre, nivel ) )')
+    .select('id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, condicion_final, created_at, updated_at, pedido_edicion, dictados ( materia_id, cursos ( identificador ), materias ( id, nombre, nivel ) )')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false }),
   client
@@ -89,6 +89,12 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
                   {comoMeFue(r.condicion_final) && <span class:list={['cond', comoMeFue(r.condicion_final)!.clase]}>{comoMeFue(r.condicion_final)!.texto}</span>}
                 </div>
                 <div><Stars value={r.calificacion_general} /> <span class="snip">{recorte(r.comentario || '')}</span></div>
+                {r.pedido_edicion && (
+                  <div class="notice pedido">
+                    <Icon name="alert" />
+                    <div><b>La moderación te pide que la edites.</b> {r.pedido_edicion} <a href={`/dictado/${r.dictado_id}#resena-${r.id}`}>Editarla</a></div>
+                  </div>
+                )}
                 {!r.condicion_final && (
                   <div class="comofue" data-resena={r.id}>
                     <span class="q">¿Cómo te fue? Sumalo a tu reseña.</span>

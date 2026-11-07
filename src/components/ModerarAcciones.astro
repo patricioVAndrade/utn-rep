@@ -1,0 +1,30 @@
+---
+/**
+ * Botones de moderación (migración 4) para una reseña o una experiencia de final:
+ * "Responder" (respuesta pública del moderador) y, en reseñas, "Pedirle que la edite".
+ * Los maneja src/scripts/admin-moderar.ts. La página tiene que tener #admin-csrf.
+ */
+interface Props {
+  resenaId?: number;
+  finalId?: number | string;
+  respuesta?: string | null;
+  pedido?: string | null;
+}
+const { resenaId, finalId, respuesta = null, pedido = null } = Astro.props;
+---
+<div class="moderar" data-resena={resenaId} data-final={finalId} data-respuesta={respuesta || ''} data-pedido={pedido || ''}>
+  <div class="moderar-btns">
+    <button type="button" class="btn quiet" data-abrir="responder">{respuesta ? 'Cambiar respuesta' : 'Responder'}</button>
+    {respuesta && <button type="button" class="btn quiet" data-quitar="borrar_respuesta">Sacar respuesta</button>}
+    {resenaId && <button type="button" class="btn quiet" data-abrir="pedir_edicion">{pedido ? 'Cambiar pedido' : 'Pedirle que la edite'}</button>}
+    {resenaId && pedido && <button type="button" class="btn quiet" data-quitar="quitar_pedido">Sacar pedido</button>}
+  </div>
+  <div class="moderar-form hidden">
+    <label class="sub" data-etiqueta></label>
+    <textarea class="edit-textarea" rows="3" maxlength="1000"></textarea>
+    <div class="edit-acts">
+      <button type="button" class="btn primary" data-enviar>Guardar</button>
+      <button type="button" class="btn quiet" data-cerrar>Cancelar</button>
+    </div>
+  </div>
+</div>

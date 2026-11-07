@@ -58,3 +58,23 @@ for (let i = 0; i < 14; i++) {
 export const votos_resenas = [{ user_id: 'u-demo', resena_id: 3 }];
 export const votos_finales = [];
 export const reportes_finales = [{ id: 1, final_id: 3, user_id: 'otro', motivo: 'Tiene el nombre de un compañero', created_at: '2026-11-05T12:00:00Z' }];
+
+// Moderación (migración 4)
+{
+  const mia = resenas.find((r) => r.user_id === 'u-demo');
+  if (mia) { mia.pedido_edicion = 'Sacá el apellido del ayudante, no lo pongas con nombre y apellido.'; mia.pedido_edicion_at = '2026-11-06T15:00:00Z'; }
+}
+export const respuestas_moderador = [
+  { id: 1, resena_id: 3, final_id: null, texto: 'Desde el 2.º cuatrimestre de 2026 la promoción pide 8 en cada parcial. Revisá el reglamento en el aula virtual.', created_at: '2026-11-05T10:00:00Z' },
+  { id: 2, resena_id: null, final_id: 2, texto: 'Ojo: desde diciembre de 2026 el final es solo escrito.', created_at: '2026-11-05T10:00:00Z' },
+];
+export const palabras_marcadas = [{ id: 1, palabra: 'boludo', created_at: '2026-11-01T10:00:00Z' }, { id: 2, palabra: 'no vayan', created_at: '2026-11-01T10:00:00Z' }];
+export const registro_moderacion = [
+  { id: 1, moderador_id: 'u-demo', accion: 'responder', resena_id: 3, final_id: null, detalle: 'Desde el 2.º cuatrimestre de 2026 la promoción pide 8…', created_at: '2026-11-05T10:00:00Z' },
+  { id: 2, moderador_id: null, accion: 'marcada_automatica', resena_id: 12, final_id: null, detalle: 'boludo', created_at: '2026-11-04T18:20:00Z' },
+  { id: 3, moderador_id: 'u-demo', accion: 'dejar', resena_id: 7, final_id: null, detalle: 'Desde Reportes', created_at: '2026-11-03T09:10:00Z' },
+];
+export const reportes_resenas = [
+  { id: 1, resena_id: 12, user_id: null, automatico: true, motivo: 'Palabra marcada: boludo', created_at: '2026-11-04T18:20:00Z' },
+  { id: 2, resena_id: 20, user_id: 'otro', automatico: false, motivo: 'Tiene datos personales', created_at: '2026-11-05T11:00:00Z' },
+];

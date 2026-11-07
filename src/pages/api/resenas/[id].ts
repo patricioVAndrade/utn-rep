@@ -4,6 +4,7 @@ import { isAdmin } from '../../../lib/admin';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { json, readJson } from '../../../lib/http';
 import { parseBody, resenaEditSchema } from '../../../lib/validation';
+import { registrar, revisarPalabras } from '../../../lib/moderacion';
 
 /** Shared delete logic */
 async function handleDelete(params: Record<string, string | undefined>, request: Request, cookies: AstroCookies) {
@@ -64,6 +65,8 @@ async function handleDelete(params: Record<string, string | undefined>, request:
     return json({ error: 'No autorizado para eliminar esta reseña (políticas de seguridad).' }, 403);
   }
 
+  if (userIsAdmin && resena.user_id !== user.id) await registrar(user.id, 'borrar', { resena_id: resenaId, detalle: 'Desde la página del curso' });
+
   return json({ success: true });
 }
 
@@ -113,6 +116,8 @@ async function handleEdit(params: Record<string, string | undefined>, request: R
     console.error('Error updating resena:', updateError);
     return json({ error: 'No se pudo actualizar la reseña.' }, 500);
   }
+
+  if (cambios.comentario) await revisarPalabras(resenaId, cambios.comentario);
 
   return json({ success: true, updated_at: actualizada?.updated_at ?? null });
 }

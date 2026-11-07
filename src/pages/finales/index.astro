@@ -53,8 +53,13 @@ if (user) {
   votadas = new Set((votos || []).map((x: any) => String(x.final_id)));
 }
 
+// Respuestas de la moderación (públicas, migración 4)
+const { data: respuestasRaw } = await supabase.from('respuestas_moderador').select('final_id, texto').not('final_id', 'is', null);
+const respuestaDe = new Map((respuestasRaw || []).map((r: any) => [String(r.final_id), r.texto as string]));
+
 const listaExperiencias = (experiencias || []).map((exp: any) => ({
   ...exp,
+  respuesta: respuestaDe.get(String(exp.id)) || null,
   materia: Array.isArray(exp.materias) ? exp.materias[0] : exp.materias,
   profesor_id: profesorId(exp.profesor_nombre),
 }));
@@ -168,6 +173,7 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
                         : <b>{exp.profesor_nombre || 'No lo indicó'}</b>}</span>
                     </div>
                     <p class="exp-comment">{exp.comentario}</p>
+                    {exp.respuesta && <div class="mod"><b>Respuesta del moderador</b>{exp.respuesta}</div>}
                     {isOwner && (
                       <div class="exp-edit-form hidden">
                         <label class="sr" for={`edit-final-${exp.id}`}>Editar experiencia</label>

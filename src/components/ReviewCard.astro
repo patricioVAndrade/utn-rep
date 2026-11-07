@@ -83,6 +83,7 @@ const fecha = resena.created_at ? new Date(resena.created_at) : null;
         <b>{resena.calificacion_general} de 5</b>
       </div>
       {resena.comentario && <p class="review-comment">{resena.comentario}</p>}
+      {resena.respuesta_moderador && <div class="mod"><b>Respuesta del moderador</b>{resena.respuesta_moderador}</div>}
 
       {esPropia && !compact && (
         <div class="review-edit-form hidden">

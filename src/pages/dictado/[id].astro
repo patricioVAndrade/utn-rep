@@ -64,8 +64,14 @@ const { data: resenas } = await supabase
   .eq('dictado_id', id)
   .order('created_at', { ascending: false });
 
-const resenasData = resenas || [];
-const resenaIds = resenasData.map((r) => r.id);
+const resenaIds = (resenas || []).map((r) => r.id);
+
+// Respuestas de la moderación (públicas, migración 4)
+const { data: respuestas } = resenaIds.length
+  ? await supabase.from('respuestas_moderador').select('resena_id, texto').in('resena_id', resenaIds)
+  : { data: [] as any[] };
+const respuestaDe = new Map((respuestas || []).map((r: any) => [r.resena_id, r.texto as string]));
+const resenasData = (resenas || []).map((r: any) => ({ ...r, respuesta_moderador: respuestaDe.get(r.id) || null }));
 
 // Reseñas propias y votos del usuario (RLS: cada uno solo ve sus filas)
 let misResenas = new Set<number>();

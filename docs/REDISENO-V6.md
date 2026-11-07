@@ -22,9 +22,9 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F7 | Otros cursos de la materia y comparador | Hecho | Botón "Comparar cursos" en la materia y en el curso; `/materia/ID/comparar` | Columnas: General, Reseñas, Promocionó, Regularizó y Quedó libre. **No están** Dificultad, Exigencia ni Claridad porque la base solo guarda el puntaje general (van con etapa 3 si los querés). Se ordena tocando los títulos y se filtra por turno. |
 | F8 | Formulario en pasos con borrador | Hecho | Escribir una reseña | 3 pasos (2 si venís desde un curso). El borrador queda en el navegador. **No están** el título ni el plan de estudios (no existen en la base) ni los puntajes por separado. El paso 1 usa listas desplegables en vez de botones. Los cursos que ya reseñaste aparecen deshabilitados. |
 | F9 | Barra de navegación inferior en celular | Hecho | Celular | — |
-| F10 | Notas de moderación en una reseña | Falta (etapa 3) | — | Tabla nueva. |
+| F10 | Notas de moderación en una reseña | Hecho (migración 4) | Curso, Finales, admin | Junta con F12 en "Respuesta del moderador": una por reseña o final, pública y sin nombre de quién la escribió. Se escribe desde Reportes o Reseñas del admin. |
 | F11 | Seguir una materia y aviso por mail | Falta (etapa 3) | — | Tabla nueva y envío de mails. |
-| F12 | Respuestas a una reseña | Falta (etapa 3) | — | Tabla nueva. |
+| F12 | Respuestas a una reseña | Hecho como F10 | — | Solo responde el moderador (decisión de Pato). |
 | F13 | Contador "Hay X estudiantes en línea" | Falta (etapa 3) | — | Necesita registrar actividad reciente. |
 | F14 | Visitas | Falta (etapa 3) | — | Vercel Analytics las cuenta, pero no se pueden mostrar en la página sin un contador propio. |
 | F15 | Ficha de usuario ocultable | Falta (etapa 3) | — | Hoy "por X" en Última reseña es texto, no enlace. |
@@ -54,7 +54,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Celular: lo importante arriba, "Ir a" en una línea, sin "Tu cuenta" en el inicio | Hecho | — |
 | "Por X" en Última reseña abre la ficha o el easter egg | Falta (etapa 3) | Va con F15 y F16. |
 | Foto de perfil: inicial por defecto | Hecho | Elegir foto en Mi cuenta va con la etapa 3. |
-| Mejoras del panel de admin | Parcial | Resumen, Reportes, Reseñas, Finales, Materias y cursos, Profesores e Importar cuatrimestre tienen el estilo de la V6 (listas con buscador, filtros y acciones en la fila). `/admin/gestion` redirige a la pantalla nueva. Usuarios, palabras marcadas, links abiertos de WhatsApp, registro de moderación y "Pedirle que la edite" van con la etapa 3. |
+| Mejoras del panel de admin | Parcial | Resumen, Reportes, Reseñas, Finales, Materias y cursos, Profesores e Importar cuatrimestre tienen el estilo de la V6 (listas con buscador, filtros y acciones en la fila). `/admin/gestion` redirige a la pantalla nueva. Con la migración 4: pantalla Moderación (palabras marcadas y registro de todo lo que se hace), "Responder" y "Pedirle que la edite" en Reportes y Reseñas (el pedido lo ve la persona en Mis reseñas y se borra solo al editar), y reportes automáticos por palabra marcada. Usuarios y links compartidos van con la migración 9. |
 | Cambios de profesores (F22 a F27) | Después de marzo 2027 | Lo que decidiste. |
 
 ## Pantallas de la V6 (23)

@@ -40,7 +40,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108020000_resenas_edicion_plan.sql`. Vuelta atrás: `supabase/rollback/20261108020000_resenas_edicion_plan.sql`.
 - **Verificación esperada:** `columnas = 2`, `trigger = 1`, `puede_editar_condicion = true` y la cantidad de reseñas (todas con plan 2023).
 
-### 4. Moderación (F10, F12 y el resto de 3.6) — **lista para correr en prueba**
+### 4. Moderación (F10, F12 y el resto de 3.6) — **corrida en prueba el 7/11, código subido**
 
 - **Respuesta del moderador:** como decidiste, solo el moderador responde, y se junta con las notas de moderación. Tabla `respuestas_moderador`: una por reseña o por experiencia de final. Es pública (se ve debajo de la reseña), no guarda quién de la moderación la escribió y solo el servidor la puede escribir.
 - **"Pedirle que la edite":** dos columnas en la reseña, el motivo y la fecha. Lo ve solo quien la escribió (en Mis reseñas, y como aviso cuando esté la 7); la vista pública no lo muestra y la persona no lo puede borrar a mano. Cuando cambia el texto, el pedido se borra solo.

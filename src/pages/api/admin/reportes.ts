@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { requireAdmin } from '../../../lib/admin-guards';
 import { json } from '../../../lib/http';
+import { registrar } from '../../../lib/moderacion';
 
 
 /**
@@ -89,6 +90,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.error('Error en reporte de final:', error);
       return json({ error: 'No se pudo completar.' }, 500);
     }
+    await registrar(user.id, action === 'dismiss_final' ? 'dejar' : 'borrar', { final_id: finalId, detalle: 'Desde Reportes' });
     return json({ success: true });
   }
 
@@ -109,6 +111,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     } else {
       return json({ error: 'Se requiere resena_id o reporte_ids.' }, 400);
     }
+    await registrar(user.id, 'dejar', { resena_id: Number(resena_id) || null, detalle: 'Desde Reportes' });
     return json({ success: true });
   }
 
@@ -124,6 +127,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.error('Error deleting review:', error);
       return json({ error: 'Error eliminando reseña.' }, 500);
     }
+    await registrar(user.id, 'borrar', { resena_id: Number(resena_id) || null, detalle: 'Desde Reportes' });
     return json({ success: true });
   }
 

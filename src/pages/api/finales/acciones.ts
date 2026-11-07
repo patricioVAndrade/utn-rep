@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { createSupabaseServerClient } from '../../../lib/supabase';
 import { isAdmin } from '../../../lib/admin';
+import { registrar } from '../../../lib/moderacion';
 import { json, readJson } from '../../../lib/http';
 import { finalAccionSchema, parseBody } from '../../../lib/validation';
 
@@ -37,6 +38,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.error('[Acciones Finales API] Error eliminando:', error);
       return json({ error: 'Error del servidor.' }, 500);
     }
+    if (exp.user_id !== user.id) await registrar(user.id, 'borrar', { final_id: accion.id, detalle: 'Desde Finales' });
     return json({ success: true });
   }
 

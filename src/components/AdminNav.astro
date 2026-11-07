@@ -3,7 +3,7 @@
 import { supabaseAdmin } from '../lib/supabase-admin';
 
 interface Props {
-  actual: 'resumen' | 'reportes' | 'resenas' | 'finales' | 'materias' | 'profesores' | 'importar';
+  actual: 'resumen' | 'reportes' | 'moderacion' | 'resenas' | 'finales' | 'materias' | 'profesores' | 'importar';
 }
 const { actual } = Astro.props;
 const [{ count: repResenas }, { count: repFinales }] = await Promise.all([
@@ -16,6 +16,7 @@ const cur = (s: string) => (s === actual ? 'page' : undefined);
 <nav class="anav" aria-label="Secciones del panel">
   <a href="/admin" aria-current={cur('resumen')}>Resumen</a>
   <a href="/admin/reportes" aria-current={cur('reportes')}>Reportes{(reportes || 0) > 0 && <span class="cnt">{reportes}</span>}</a>
+  <a href="/admin/moderacion" aria-current={cur('moderacion')}>Moderación</a>
   <a href="/admin/resenas" aria-current={cur('resenas')}>Reseñas</a>
   <a href="/admin/finales" aria-current={cur('finales')}>Finales</a>
   <a href="/admin/materias" aria-current={cur('materias')}>Materias y cursos</a>
