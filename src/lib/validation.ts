@@ -83,6 +83,30 @@ export const finalAccionSchema = z.discriminatedUnion('accion', [
 ], { errorMap: () => ({ message: 'Acción no válida.' }) });
 
 /** Returns the parsed data, or the first validation message. */
+// Mi cuenta (migración 5): cada campo es opcional, se guarda solo lo que llega
+export const perfilSchema = z.object({
+  nombre_mostrar: z.string({ invalid_type_error: 'Nombre inválido.' }).trim()
+    .max(40, 'El nombre puede tener hasta 40 caracteres.')
+    .refine((v) => v === '' || v.length >= 2, 'El nombre tiene que tener al menos 2 caracteres.')
+    .transform((v) => (v ? v.replace(/\s+/g, ' ') : null))
+    .nullable()
+    .optional(),
+  foto: z.enum(['inicial', 'google', 'dibujo'], { errorMap: () => ({ message: 'Foto inválida.' }) }).optional(),
+  dibujo: z.number().int().min(1).max(12).nullable().optional(),
+  mostrar_ficha: z.boolean().optional(),
+  anios_cursada: z.array(z.coerce.number().int().min(1).max(5), { invalid_type_error: 'Años inválidos.' })
+    .max(5)
+    .transform((a) => [...new Set(a)].sort())
+    .optional(),
+  preguntar_como_te_fue: z.boolean().optional(),
+  pausar_como_te_fue: z.boolean().optional(),
+}).strict('Hay un dato que no se puede cambiar desde acá.');
+
+export const borrarCuentaSchema = z.object({
+  resenas: z.enum(['anonimas', 'borrar'], { errorMap: () => ({ message: 'Elegí qué hacer con tus reseñas.' }) }),
+  confirmacion: z.literal('BORRAR', { errorMap: () => ({ message: 'Escribí BORRAR para confirmar.' }) }),
+});
+
 export function parseBody<T extends z.ZodTypeAny>(
   schema: T,
   body: unknown,

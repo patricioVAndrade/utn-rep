@@ -6,6 +6,7 @@ import ShareButton from '../components/ShareButton.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { COMO_TE_FUE, editadaEl, mesaTexto } from '../lib/format';
+import { leerPerfil } from '../lib/perfil';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/');
@@ -47,6 +48,9 @@ const resenadas = new Set(misResenas.map((r) => r.materia?.id).filter(Boolean));
 const materiasJSON = JSON.stringify((materiasRaw || []).map((m: any) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel, hecha: resenadas.has(m.id) })));
 
 const comoMeFue = (v: string | null) => COMO_TE_FUE.find((c) => c.valor === v);
+// Tus años, de tu cuenta (si los guardaste) o de este navegador
+const perfil = await leerPerfil(client, user.id);
+const aniosCuenta = perfil.guardado ? JSON.stringify(perfil.anios_cursada) : '';
 const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t);
 ---
@@ -157,7 +161,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
     <aside class="side">
       <section class="panel">
         <h3>Te faltan reseñar</h3>
-        <div class="in" id="faltan">
+        <div class="in" id="faltan" data-anios={aniosCuenta || undefined}>
           <span class="sub">Elegí qué años cursás en <a href="/mi-cuenta#tus-anios">Mi cuenta</a> y te mostramos acá las materias de esos años que todavía no reseñaste.</span>
         </div>
       </section>
@@ -271,7 +275,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
 
   // Te faltan reseñar: materias de tus años sin reseña
   let anios: number[] = [];
-  try { anios = (JSON.parse(localStorage.getItem('misAnios') || '[]') as unknown[]).map(Number).filter(Boolean); } catch {}
+  try { anios = (JSON.parse(document.getElementById('faltan')?.dataset.anios || localStorage.getItem('misAnios') || '[]') as unknown[]).map(Number).filter(Boolean); } catch {}
   if (anios.length) {
     const faltan = materias.filter((m) => anios.includes(m.nivel) && !m.hecha);
     const box = document.getElementById('faltan')!;

@@ -1,19 +1,63 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+import Avatar from '../components/Avatar.astro';
+import { createSupabaseServerClient } from '../lib/supabase';
+import { DIBUJOS, leerPerfil } from '../lib/perfil';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/');
+
+const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+const [perfil, { data: auth }] = await Promise.all([leerPerfil(client, user.id), client.auth.getUser()]);
+const cuenta = auth?.user;
+const nombreGoogle = cuenta?.user_metadata?.full_name || cuenta?.user_metadata?.name || user.email.split('@')[0] || 'Usuario';
+const nombre = perfil.nombre_mostrar || nombreGoogle;
+const proveedor = ({ google: 'Google', github: 'GitHub', email: 'Link por mail' } as Record<string, string>)[cuenta?.app_metadata?.provider || ''] || 'Link por mail';
+const desde = cuenta?.created_at ? new Date(cuenta.created_at).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) : null;
+const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pausa_hasta).getTime() > Date.now();
 ---
 
-<Layout title="Mi cuenta - UTN REP" description="Tus datos y tus años de cursada en UTN REP." tab="mis" crumbs={[{ label: 'Mi cuenta' }]}>
-  <div class="layout narrow">
+<Layout title="Mi cuenta - UTN REP" description="Cómo te ven en UTN REP, tus años de cursada y tu cuenta." tab="mis" crumbs={[{ label: 'Mi cuenta' }]}>
+  <div class="layout">
     <div class="main">
       <div class="topic">
         <div>
           <h1>Mi cuenta</h1>
-          <p>Tus datos y cómo querés ver el sitio.</p>
+          <p>Lo que ven los demás de vos y cómo querés usar el sitio. Se guarda solo, y te sigue en el celular y en la compu.</p>
         </div>
       </div>
+
+      <form class="form" id="como-te-ven" onsubmit="return false">
+        <div class="fhead"><span>Cómo te ven</span><span class="draft-note" data-estado aria-live="polite"></span></div>
+        <div class="fgrid">
+          <label for="nombre">Nombre a mostrar<small>Sale de tu cuenta de {proveedor === 'Link por mail' ? 'mail' : proveedor}. Podés cambiarlo</small></label>
+          <div class="field">
+            <input type="text" id="nombre" maxlength="40" value={perfil.nombre_mostrar || ''} placeholder={nombreGoogle} autocomplete="nickname" />
+            <span class="help">Sale en tus reseñas con nombre, también en las que ya publicaste. En las anónimas no se muestra nunca. Dejalo vacío para usar "{nombreGoogle}".</span>
+          </div>
+
+          <div class="lab" id="lab-foto">Foto<small>Se ve en tus reseñas con nombre</small></div>
+          <div class="field">
+            <div class="avatar-pick" role="radiogroup" aria-labelledby="lab-foto">
+              <label><input type="radio" name="foto" value="inicial" checked={perfil.foto === 'inicial'} /><Avatar nombre={nombre} /><b>Tu inicial</b><small>Recomendada</small></label>
+              <label class:list={{ off: !user.avatar }}><input type="radio" name="foto" value="google" checked={perfil.foto === 'google'} disabled={!user.avatar} /><Avatar nombre={nombre} foto="google" google={user.avatar} /><b>Tu foto de {proveedor === 'GitHub' ? 'GitHub' : 'Google'}</b><small>{user.avatar ? 'Te reconocen' : 'No hay foto'}</small></label>
+              <label><input type="radio" name="foto" value="dibujo" checked={perfil.foto === 'dibujo'} /><span class="av set">{DIBUJOS.map((d) => <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" set:html={d.svg} /></i>)}</span><b>Un dibujo</b><small>Elegís uno de {DIBUJOS.length}</small></label>
+            </div>
+            <div class:list={['dibujos', { hidden: perfil.foto !== 'dibujo' }]} role="radiogroup" aria-label="Dibujo">
+              {DIBUJOS.map((d) => (
+                <label title={d.nombre}><input type="radio" name="dibujo" value={d.id} checked={(perfil.dibujo || 1) === d.id} /><Avatar nombre={nombre} foto="dibujo" dibujo={d.id} class="sm" /><span class="sr">{d.nombre}</span></label>
+              ))}
+            </div>
+            {!user.avatar && <span class="help">Si entraste con el link por mail no hay foto: quedan la inicial o un dibujo.</span>}
+          </div>
+
+          <div class="lab">Tu ficha</div>
+          <div class="field">
+            <label class="toggle"><input type="checkbox" id="mostrar-ficha" checked={perfil.mostrar_ficha} /><span class="tg"></span><span>Mostrar mi ficha cuando tocan mi nombre <small class="sub">(rango, cantidad de reseñas y logros, nunca qué materias reseñaste)</small></span></label>
+          </div>
+        </div>
+      </form>
 
       <section class="panel" id="tus-anios">
         <h2>Tus años de cursada</h2>
@@ -23,8 +67,8 @@ if (!user) return Astro.redirect('/');
             <span class="sub">Podés elegir más de uno.</span>
           </div>
           <div class="acct-val">
-            <div class="yr-pick" id="mis-anios">
-              {[1, 2, 3, 4, 5].map((n) => <label><input type="checkbox" value={n} /> {n}.º año</label>)}
+            <div class="yr-pick" id="mis-anios" data-guardados={JSON.stringify(perfil.anios_cursada)} data-perfil={perfil.guardado ? '1' : ''}>
+              {[1, 2, 3, 4, 5].map((n) => <label><input type="checkbox" value={n} checked={perfil.anios_cursada.includes(n)} /> {n}.º año</label>)}
             </div>
             <p class="sub">Para qué sirve:</p>
             <ul class="acct-list sub">
@@ -37,42 +81,191 @@ if (!user) return Astro.redirect('/');
       </section>
 
       <section class="panel">
+        <h2>Avisos en el sitio</h2>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>"¿Cómo te fue?"</b><span class="sub">En el inicio</span></div>
+          <div class="acct-val">
+            <label class="toggle"><input type="checkbox" id="preguntar" checked={perfil.preguntar_como_te_fue} /><span class="tg"></span><span>Preguntarme cómo me fue en las materias que reseñé sin decirlo</span></label>
+            {pausada && perfil.preguntar_como_te_fue && <span class="sub" id="pausa">Lo pausaste con "Ahora no": vuelve a aparecer el {new Date(perfil.como_te_fue_pausa_hasta!).toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' })}.</span>}
+            <p class="sub" id="preguntar-ok" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="cuenta">
         <h2>Cuenta</h2>
         <div class="acct-row">
-          <div class="acct-lbl"><b>Nombre</b><span class="sub">Sale de tu cuenta. En las reseñas anónimas no se muestra nunca.</span></div>
-          <div class="acct-val"><b>{user.name}</b></div>
-        </div>
-        <div class="acct-row">
-          <div class="acct-lbl"><b>Mail</b></div>
-          <div class="acct-val">{user.email || '—'}</div>
-        </div>
-        <div class="acct-row">
-          <div class="acct-lbl"></div>
+          <div class="acct-lbl"><b>Datos</b></div>
           <div class="acct-val">
-            <form method="post" action="/api/auth/logout">
-              <button type="submit" class="btn quiet" data-logout>Cerrar sesión</button>
+            <div class="facts">
+              <div><span>Ingresás con</span><b>{proveedor}</b></div>
+              <div><span>Mail</span><b>{user.email || '—'}</b></div>
+              {desde && <div><span>En UTN REP desde</span><b>{desde}</b></div>}
+            </div>
+            <div class="acts-row">
+              <form method="post" action="/api/auth/logout"><button type="submit" class="btn quiet" data-logout>Cerrar sesión</button></form>
+              <button type="button" class="btn quiet danger" id="abrir-borrar"><Icon name="trash" /> Borrar mi cuenta</button>
+            </div>
+            <form class="borrar hidden" id="form-borrar">
+              <b>¿Qué hacemos con lo que publicaste?</b>
+              <label class="check"><input type="radio" name="resenas" value="anonimas" checked /> <span>Dejar mis reseñas y experiencias de finales como <b>anónimas</b>. Le siguen sirviendo a otros y ya nadie las puede asociar a vos.</span></label>
+              <label class="check"><input type="radio" name="resenas" value="borrar" /> <span><b>Borrarlas</b> junto con la cuenta.</span></label>
+              <label for="confirmar-borrar">Para confirmar, escribí <b>BORRAR</b>. No se puede deshacer.</label>
+              <input id="confirmar-borrar" class="ainput sm" autocomplete="off" />
+              <div class="acts-row">
+                <button type="submit" class="btn danger" id="confirmar-btn" disabled><Icon name="trash" /> Borrar mi cuenta</button>
+                <button type="button" class="btn quiet" id="cancelar-borrar">Cancelar</button>
+              </div>
+              <p class="sub" id="borrar-error" role="alert"></p>
             </form>
           </div>
         </div>
       </section>
     </div>
+
+    <aside class="side">
+      <section class="panel">
+        <h3>Así te ven los demás</h3>
+        <div class="in">
+          <div class="author preview" id="vista-previa">
+            <Avatar nombre={nombre} foto={perfil.foto} dibujo={perfil.dibujo} google={user.avatar} />
+            <span class="uname" id="vista-nombre">{nombre}</span>
+          </div>
+          <span class="sub">Así salís en tus reseñas con nombre. En las anónimas sale "Anónimo" y nadie ve tu foto ni tu nombre, salvo la moderación.</span>
+        </div>
+      </section>
+    </aside>
   </div>
 </Layout>
 
 <script>
-  const CLAVE = 'misAnios';
-  const leer = (): string[] => {
-    try { return (JSON.parse(localStorage.getItem(CLAVE) || '[]') as unknown[]).map(String); } catch { return []; }
+  import { DIBUJOS } from '../lib/perfil';
+  const $ = (id: string) => document.getElementById(id)!;
+  const estado = document.querySelector<HTMLElement>('#como-te-ven [data-estado]')!;
+
+  async function guardar(cambios: Record<string, unknown>, aviso: HTMLElement, ok = 'Guardado') {
+    aviso.textContent = 'Guardando…';
+    try {
+      const res = await fetch('/api/perfil', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cambios) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo guardar.');
+      aviso.textContent = ok;
+      return true;
+    } catch (e) {
+      aviso.textContent = (e as Error).message;
+      return false;
+    }
+  }
+
+  // Vista previa
+  const google = document.querySelector<HTMLImageElement>('.av.photo img')?.src || '';
+  const nombreInput = $('nombre') as HTMLInputElement;
+  const pintar = () => {
+    const nombre = nombreInput.value.trim() || nombreInput.placeholder;
+    $('vista-nombre').textContent = nombre;
+    const foto = document.querySelector<HTMLInputElement>('input[name="foto"]:checked')?.value || 'inicial';
+    const dibujo = Number(document.querySelector<HTMLInputElement>('input[name="dibujo"]:checked')?.value || 1);
+    const av = document.querySelector<HTMLElement>('#vista-previa .av')!;
+    av.className = 'av';
+    av.replaceChildren();
+    if (foto === 'google' && google) {
+      av.classList.add('photo');
+      const img = document.createElement('img');
+      img.src = google; img.alt = ''; img.referrerPolicy = 'no-referrer';
+      av.append(img);
+    } else if (foto === 'dibujo') {
+      av.classList.add('draw');
+      av.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${(DIBUJOS.find((d) => d.id === dibujo) || DIBUJOS[0]).svg}</svg>`;
+    } else {
+      av.textContent = nombre.charAt(0).toUpperCase();
+    }
+    document.querySelectorAll<HTMLElement>('.avatar-pick label:first-child .av').forEach((x) => { x.textContent = nombre.charAt(0).toUpperCase(); });
   };
-  const ok = document.getElementById('anios-ok');
-  document.querySelectorAll<HTMLInputElement>('#mis-anios input').forEach((cb) => {
-    cb.checked = leer().includes(cb.value);
-    cb.addEventListener('change', () => {
-      const set = new Set(leer());
-      if (cb.checked) set.add(cb.value); else set.delete(cb.value);
-      const lista = [...set].sort();
-      try { localStorage.setItem(CLAVE, JSON.stringify(lista)); } catch {}
-      if (ok) ok.textContent = lista.length ? `Listo: ${lista.map((a) => `${a}.º`).join(', ')} vienen abiertos en Materias.` : 'Listo: en Materias viene abierto solo 1.º.';
-    });
+
+  // Nombre: se guarda al salir del campo o con Enter
+  let ultimoNombre = nombreInput.value.trim();
+  const guardarNombre = async () => {
+    const v = nombreInput.value.trim();
+    if (v === ultimoNombre) return;
+    if (v && v.length < 2) { estado.textContent = 'El nombre tiene que tener al menos 2 caracteres.'; return; }
+    if (await guardar({ nombre_mostrar: v }, estado, v ? 'Nombre guardado' : `Vuelve a salir "${nombreInput.placeholder}"`)) {
+      ultimoNombre = v;
+      const saludo = document.querySelector('.me-link');
+      if (saludo) saludo.textContent = v || nombreInput.placeholder;
+    }
+  };
+  nombreInput.addEventListener('input', pintar);
+  nombreInput.addEventListener('change', guardarNombre);
+  nombreInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guardarNombre(); } });
+
+  // Foto
+  document.querySelectorAll<HTMLInputElement>('input[name="foto"]').forEach((r) => r.addEventListener('change', () => {
+    document.querySelector('.dibujos')!.classList.toggle('hidden', r.value !== 'dibujo');
+    pintar();
+    const dibujo = Number(document.querySelector<HTMLInputElement>('input[name="dibujo"]:checked')?.value || 1);
+    guardar(r.value === 'dibujo' ? { foto: 'dibujo', dibujo } : { foto: r.value }, estado, 'Foto guardada');
+  }));
+  document.querySelectorAll<HTMLInputElement>('input[name="dibujo"]').forEach((r) => r.addEventListener('change', () => {
+    pintar();
+    guardar({ foto: 'dibujo', dibujo: Number(r.value) }, estado, 'Dibujo guardado');
+  }));
+
+  ($('mostrar-ficha') as HTMLInputElement).addEventListener('change', (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    guardar({ mostrar_ficha: on }, estado, on ? 'Tu ficha se muestra' : 'Tu ficha queda oculta');
+  });
+
+  // Años de cursada: en tu cuenta y, para que el inicio abra rápido, también en este navegador
+  const CLAVE = 'misAnios';
+  const caja = $('mis-anios');
+  const okAnios = $('anios-ok');
+  const marcados = () => Array.from(caja.querySelectorAll<HTMLInputElement>('input:checked')).map((c) => Number(c.value));
+  const espejo = (lista: number[]) => { try { localStorage.setItem(CLAVE, JSON.stringify(lista.map(String))); } catch {} };
+  // Si antes los elegiste solo en este navegador, los pasamos a tu cuenta
+  const guardados: number[] = JSON.parse(caja.dataset.guardados || '[]');
+  let locales: number[] = [];
+  try { locales = (JSON.parse(localStorage.getItem(CLAVE) || '[]') as unknown[]).map(Number).filter((n) => n >= 1 && n <= 5); } catch {}
+  if (!guardados.length && locales.length) {
+    caja.querySelectorAll<HTMLInputElement>('input').forEach((c) => { c.checked = locales.includes(Number(c.value)); });
+    guardar({ anios_cursada: locales }, okAnios, 'Pasamos a tu cuenta los años que habías elegido en este navegador.');
+  } else {
+    espejo(guardados);
+  }
+  caja.querySelectorAll<HTMLInputElement>('input').forEach((cb) => cb.addEventListener('change', () => {
+    const lista = marcados();
+    espejo(lista);
+    guardar({ anios_cursada: lista }, okAnios, lista.length ? `Listo: ${lista.map((a) => `${a}.º`).join(', ')} vienen abiertos en Materias.` : 'Listo: en Materias viene abierto solo 1.º.');
+  }));
+
+  // "¿Cómo te fue?"
+  ($('preguntar') as HTMLInputElement).addEventListener('change', (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    try { localStorage.removeItem('comoTeFue'); } catch {}
+    document.getElementById('pausa')?.remove();
+    guardar(on ? { preguntar_como_te_fue: true, pausar_como_te_fue: false } : { preguntar_como_te_fue: false }, $('preguntar-ok'), on ? 'Te vamos a preguntar en el inicio.' : 'No te preguntamos más.');
+  });
+
+  // Borrar la cuenta
+  const formBorrar = $('form-borrar') as HTMLFormElement;
+  const confirmar = $('confirmar-borrar') as HTMLInputElement;
+  const btnBorrar = $('confirmar-btn') as HTMLButtonElement;
+  $('abrir-borrar').addEventListener('click', () => { formBorrar.classList.remove('hidden'); confirmar.focus(); });
+  $('cancelar-borrar').addEventListener('click', () => { formBorrar.classList.add('hidden'); confirmar.value = ''; btnBorrar.disabled = true; });
+  confirmar.addEventListener('input', () => { btnBorrar.disabled = confirmar.value.trim() !== 'BORRAR'; });
+  formBorrar.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btnBorrar.disabled = true;
+    const resenas = (formBorrar.querySelector<HTMLInputElement>('input[name="resenas"]:checked')?.value) || 'anonimas';
+    try {
+      const res = await fetch('/api/cuenta/borrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resenas, confirmacion: confirmar.value.trim() }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo borrar la cuenta.');
+      try { ['misAnios', 'comoTeFue', 'borradorResena', 'borradorFinal'].forEach((k) => localStorage.removeItem(k)); } catch {}
+      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null);
+      window.location.href = '/?cuenta_borrada=1';
+    } catch (err) {
+      $('borrar-error').textContent = (err as Error).message;
+      btnBorrar.disabled = false;
+    }
   });
 </script>

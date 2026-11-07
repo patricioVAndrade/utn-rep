@@ -91,6 +91,13 @@ class Q {
   not(k: string, op: string, v: any) { if (op === 'is') this.filters.push((r) => (r[k] ?? null) !== v); else this.filters.push((r) => String(r[k]) !== String(v)); return this; }
   is(k: string, v: any) { this.filters.push((r) => (r[k] ?? null) === v); return this; }
   range(a: number, b: number) { this.off = a; return this.limit(b - a + 1); }
+  upsert(v: any, o: any = {}) {
+    const k = o.onConflict || 'id';
+    const t = (T[this.table] = T[this.table] || []);
+    const ya = t.find((x: any) => x[k] === v[k]);
+    if (ya) { Object.assign(ya, v); this.op = 'noop'; this.payload = ya; return this; }
+    return this.insert(v);
+  }
   insert(v: any) { this.op = 'insert'; this.payload = v; this.fields = [{ name: '*' }]; return this; }
   update(v: any) { this.op = 'update'; this.payload = v; return this; }
   delete() { this.op = 'delete'; return this; }
@@ -101,6 +108,7 @@ class Q {
   maybeSingle() { this.mode = 'maybe'; return this; }
   write() {
     const t = (T[this.table] = T[this.table] || []);
+    if (this.op === 'noop') return [this.payload];
     if (this.op === 'insert') {
       const nuevos = (Array.isArray(this.payload) ? this.payload : [this.payload]).map((v: any) => ({ id: t.reduce((m: number, x: any) => (typeof x.id === 'number' && x.id > m ? x.id : m), 0) + 1, created_at: new Date().toISOString(), ...v }));
       nuevos.forEach((n: any) => t.push(n));
@@ -132,7 +140,13 @@ class Q {
 }
 
 const DEMO = process.env.MOCK_USER === '1';
-const auth = { getUser: async () => ({ data: { user: DEMO ? { id: 'u-demo', email: 'sofia@frc.utn.edu.ar', user_metadata: { full_name: 'Sofía Rivas' } } : null }, error: null }) };
+const meta: any = { full_name: 'Sofía Rivas' };
+const auth = {
+  getUser: async () => ({ data: { user: DEMO ? { id: 'u-demo', email: 'sofia@frc.utn.edu.ar', created_at: '2025-03-10T12:00:00Z', app_metadata: { provider: 'google' }, user_metadata: meta } : null }, error: null }),
+  updateUser: async ({ data }: any) => { Object.assign(meta, data); return { data: {}, error: null }; },
+  signOut: async () => ({ error: null }),
+  admin: { deleteUser: async () => ({ data: {}, error: null }) },
+};
 async function rpc(nombre: string, args: any) {
   if (nombre === 'votar_final') {
     const f = (T.experiencias_finales || []).find((x: any) => x.id === Number(args.p_final_id));
@@ -144,6 +158,12 @@ async function rpc(nombre: string, args: any) {
     return { data: f.votos_utilidad || 0, error: null };
   }
   if (nombre === 'check_rate_limit') return { data: true, error: null };
+  if (nombre === 'anonimizar_usuario') {
+    let n = 0;
+    for (const t of ['resenas', 'experiencias_finales']) (T[t] || []).forEach((r: any) => { if (r.user_id === args.p_user) { r.user_id = null; r.es_anonima = true; r.nombre_usuario = null; n++; } });
+    T.perfiles = (T.perfiles || []).filter((p: any) => p.user_id !== args.p_user);
+    return { data: n, error: null };
+  }
   return { data: null, error: null };
 }
 const client = { from: (t: string) => new Q(t), auth, rpc };

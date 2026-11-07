@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
 import Stars from '../components/Stars.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
+import { leerPerfil, preguntarComoTeFue } from '../lib/perfil';
 import { COMO_TE_FUE, anioLabel, nota, tiempoRelativo } from '../lib/format';
 
 // Materias, estadísticas por curso y las reseñas más recientes (solo lo que muestra el índice)
@@ -30,9 +31,12 @@ const user = Astro.locals.user;
 // o publicadas hace más de 4 meses (las de este año todavía pueden no haber terminado)
 type Pregunta = { id: number; materia: string; curso: string; anio: number };
 let preguntas: Pregunta[] = [];
+let misAnios: number[] | null = null;
 if (user) {
   const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
-  const { data } = await client
+  const perfil = await leerPerfil(client, user.id);
+  if (perfil.guardado) misAnios = perfil.anios_cursada;
+  const { data } = !preguntarComoTeFue(perfil) ? { data: [] } : await client
     .from('resenas')
     .select('id, anio_cursado, created_at, dictados ( cursos ( identificador ), materias ( nombre ) )')
     .eq('user_id', user.id)
@@ -139,8 +143,11 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
         {anios.map((a) => <a class:list={['yj', `y${a.n}`]} href={`#anio-${a.n}`}>{a.n}.º año</a>)}
         {materias.some((m) => m.es_electiva) && <button type="button" class="yj" id="solo-electivas" aria-pressed="false">Electivas</button>}
       </div>
+      {Astro.url.searchParams.has('cuenta_borrada') && !user && (
+        <div class="notice ok" role="status"><Icon name="check" /><div><b>Tu cuenta se borró.</b> Gracias por haber sumado a UTN REP.</div></div>
+      )}
       {user && (
-        <p class="sub yr-hint hidden" id="anios-hint">
+        <p class="sub yr-hint hidden" id="anios-hint" data-mis-anios={misAnios ? JSON.stringify(misAnios.map(String)) : undefined}>
           ¿Querés que tus años vengan abiertos? Elegilos en <a href="/mi-cuenta#tus-anios">Mi cuenta</a>.
         </p>
       )}
@@ -325,8 +332,10 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
       const b = (e.target as HTMLElement).closest('button');
       if (!b) return;
       if (b.hasAttribute('data-ahora-no') || b.hasAttribute('data-nunca')) {
-        apagarFranja(b.hasAttribute('data-nunca'));
+        const nunca = b.hasAttribute('data-nunca');
+        apagarFranja(nunca);
         cf.classList.add('hidden');
+        fetch('/api/perfil', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nunca ? { preguntar_como_te_fue: false } : { pausar_como_te_fue: true }) }).catch(() => null);
         return;
       }
       const item = b.closest<HTMLElement>('.cf-item');
@@ -370,7 +379,10 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
   const conSesion = !!document.getElementById('anios-hint');
   let mios: string[] = [];
   if (conSesion) {
-    try { mios = (JSON.parse(localStorage.getItem('misAnios') || '[]') as unknown[]).map(String); } catch {}
+    // Los de tu cuenta mandan; este navegador guarda una copia
+    const deCuenta = document.getElementById('anios-hint')?.dataset.misAnios;
+    if (deCuenta) { try { localStorage.setItem('misAnios', deCuenta); } catch {} }
+    try { mios = (JSON.parse(deCuenta || localStorage.getItem('misAnios') || '[]') as unknown[]).map(String); } catch {}
     if (!mios.length) document.getElementById('anios-hint')?.classList.remove('hidden');
   }
   const abiertos = new Set(mios.length ? mios : ['1']);

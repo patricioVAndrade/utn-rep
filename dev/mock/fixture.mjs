@@ -78,3 +78,4 @@ export const reportes_resenas = [
   { id: 1, resena_id: 12, user_id: null, automatico: true, motivo: 'Palabra marcada: boludo', created_at: '2026-11-04T18:20:00Z' },
   { id: 2, resena_id: 20, user_id: 'otro', automatico: false, motivo: 'Tiene datos personales', created_at: '2026-11-05T11:00:00Z' },
 ];
+export const perfiles = [];

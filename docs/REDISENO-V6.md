@@ -32,7 +32,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F17 | Escudos de rango | Falta (etapa 3) | — | Va con F5. |
 | F18 | Logros | Falta (etapa 3) | — | Tabla nueva. Los logros L1 a L7 están aprobados; L8 a L19 esperan tu voto. |
 | F19 | Filtros de finales | Hecho | Experiencias de finales | Mesa (Diciembre, Febrero/marzo, Julio, Especial) y materia. El filtro queda en la dirección, así que el link se puede compartir. Al costado: "Materias con más experiencias". Tarjeta como la que mandaste, con "Tomado por:" enlazado al profe cuando coincide y "Nueva" desde tu última visita (también "N nuevas" en la pestaña). Autor: "Publicar con mi nombre" al compartir (por defecto, anónima). Las viejas quedan anónimas. |
-| F20 | Recordar años abiertos | Hecho | Inicio y Mi cuenta | Sin sesión viene abierto solo 1.º. Con sesión, vienen abiertos los años que elegís en **Mi cuenta** (con la explicación de para qué sirve). Los años cerrados dicen "Hay reseñas nuevas" cuando las hay. Por ahora se guarda en el navegador; pasa a la cuenta con la migración de preferencias. |
+| F20 | Recordar años abiertos | Hecho | Inicio y Mi cuenta | Sin sesión viene abierto solo 1.º. Con sesión, vienen abiertos los años que elegís en **Mi cuenta** (con la explicación de para qué sirve). Los años cerrados dicen "Hay reseñas nuevas" cuando las hay. Desde la migración 5 se guarda en tu cuenta (te sigue en el celular y la compu); el navegador guarda una copia. Lo elegido antes solo en el navegador pasa solo a la cuenta al abrir Mi cuenta. |
 | F21 | "Me sirvió" en finales | Hecho | Experiencias de finales | Un voto por persona, contador en la tarjeta y orden "Más útiles". Reportar ya no abre un mail: va a la cola de Reportes del admin, junto con las reseñas. |
 | F28 | Compartir por WhatsApp | Parcial | Botón verde en curso, materia, profesor y comparador; "Compartir" en cada reseña y cada final; "Pasásela a tu curso" en Reseña publicada | Vista previa propia por página, como la V6: curso, materia, profesor y año tienen su imagen (`/og/curso/ID.png`, etc.) con nombre, etiquetas y nota, y el título lleva la nota. **Falta** el código corto `?de=` y el logro "Pasalo al grupo" (L8), que necesitan base. |
 
@@ -53,7 +53,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Cafecito con ícono que invite | Hecho | En el pie y en la columna del inicio. |
 | Celular: lo importante arriba, "Ir a" en una línea, sin "Tu cuenta" en el inicio | Hecho | — |
 | "Por X" en Última reseña abre la ficha o el easter egg | Falta (etapa 3) | Va con F15 y F16. |
-| Foto de perfil: inicial por defecto | Hecho | Elegir foto en Mi cuenta va con la etapa 3. |
+| Foto de perfil: inicial por defecto | Hecho | En Mi cuenta se elige inicial, foto de Google o uno de 6 dibujos (migración 5). Se ve en Mi cuenta; en las reseñas aparece con la ficha (migración 8). |
 | Mejoras del panel de admin | Parcial | Resumen, Reportes, Reseñas, Finales, Materias y cursos, Profesores e Importar cuatrimestre tienen el estilo de la V6 (listas con buscador, filtros y acciones en la fila). `/admin/gestion` redirige a la pantalla nueva. Con la migración 4: pantalla Moderación (palabras marcadas y registro de todo lo que se hace), "Responder" y "Pedirle que la edite" en Reportes y Reseñas (el pedido lo ve la persona en Mis reseñas y se borra solo al editar), y reportes automáticos por palabra marcada. Usuarios y links compartidos van con la migración 9. |
 | Cambios de profesores (F22 a F27) | Después de marzo 2027 | Lo que decidiste. |
 
@@ -73,7 +73,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Escribir, paso 1 y paso 2 | Hecho | `/nueva-resena` |
 | Reseña publicada | Hecho | `/resena-publicada?curso=ID`. Rango y logros van con la etapa 3. |
 | Mis reseñas | Parcial | `/mis-resenas` con Reseñas, Finales contados y Borradores, sin turno. "Te faltan reseñar" sale de los años que elegiste en el inicio (hasta que exista Mi inscripción). Sin rango ni logros. |
-| Mi cuenta | Parcial | `/mi-cuenta` (tocando tu nombre arriba): tus años de cursada y datos de la cuenta. Nombre, foto, ficha, rango, logros, materias que seguís, avisos y borrar la cuenta van con la etapa 3. |
+| Mi cuenta | Casi completa | `/mi-cuenta` (tocando tu nombre arriba), como la V6: nombre a mostrar (cambia también en lo ya publicado), foto, mostrar u ocultar la ficha, años de cursada, "¿Cómo te fue?" y borrar la cuenta (dejando lo publicado como anónimo o borrándolo). Todo se guarda en la cuenta (migración 5). Faltan rango y logros (migración 8) y materias que seguís (migración 6). |
 | Mi inscripción (F29) | Falta | Espera tu voto |
 | Ingresar | Hecho | Ventana de ingreso con mail, Google y GitHub |
 | ¿Cómo funciona? | Hecho | `/sobre` |
@@ -102,7 +102,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Código | Qué es | Estado | Nota |
 |---|---|---|---|
 | 3.3 | "Editada el 12/11" | Hecho (migración 3) | Reseña y Mis reseñas | La fecha la pone la base (trigger) solo si cambia el texto, las estrellas o "¿Cómo te fue?"; los votos no cuentan como edición. |
-| F38 | Completar "¿Cómo te fue?" en reseñas viejas | Hecho (migración 3) | Inicio, Mis reseñas y Editar | Franja en el inicio, de a una reseña, con Promocioné, Regularicé y Quedé libre; "Ahora no" (30 días) y "No preguntar más" quedan en el navegador (`comoTeFue`) hasta que esté Mi cuenta con base. Solo pregunta por cursadas de años anteriores o reseñas de más de 4 meses. En Mis reseñas, cada reseña sin el dato lo pide; al editar una reseña hay un selector "¿Cómo te fue?". Las estrellas no se pueden cambiar. |
+| F38 | Completar "¿Cómo te fue?" en reseñas viejas | Hecho (migración 3) | Inicio, Mis reseñas y Editar | Franja en el inicio, de a una reseña, con Promocioné, Regularicé y Quedé libre; "Ahora no" (30 días) y "No preguntar más" se guardan en tu cuenta (migración 5) y se cambian en Mi cuenta. Solo pregunta por cursadas de años anteriores o reseñas de más de 4 meses. En Mis reseñas, cada reseña sin el dato lo pide; al editar una reseña hay un selector "¿Cómo te fue?". Las estrellas no se pueden cambiar. |
 
 ## Importar cuatrimestre (nuevo)
 

@@ -49,7 +49,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108030000_moderacion.sql`. Vuelta atrás: `supabase/rollback/20261108030000_moderacion.sql` (borra respuestas, registro, palabras, pedidos y reportes automáticos; las reseñas no se tocan).
 - **Verificación esperada:** `tablas = 3`, `columnas_pedido = 2`, `trigger = 1`, `reportes_automaticos = 1`, `publico_lee_respuestas = true`, `publico_lee_registro = false`, `publico_lee_palabras = false`.
 
-### 5. Perfil y preferencias (Mi cuenta) — **lista para correr en prueba**
+### 5. Perfil y preferencias (Mi cuenta) — **corrida en prueba el 7/11, código subido**
 
 - **Para qué:** lo que falta de Mi cuenta como la V6.
 - **Tabla `perfiles`** (una fila por persona, se crea la primera vez que guarda algo): nombre para mostrar, foto elegida (inicial, Google o uno de 12 dibujos), si muestra la ficha, **tus años de cursada** (hoy quedan en el navegador; con esto te siguen en el celular y la compu) y si quiere que le pregunten "¿Cómo te fue?" (con la pausa de 30 días de "Ahora no"). Cada persona lee y cambia solo la suya; sin sesión no se lee nada.

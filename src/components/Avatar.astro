@@ -1,0 +1,22 @@
+---
+/** Foto de una persona según lo que eligió en Mi cuenta: su inicial, su foto de Google o un dibujo. */
+import { DIBUJOS } from '../lib/perfil';
+
+interface Props {
+  nombre: string;
+  foto?: 'inicial' | 'google' | 'dibujo' | string | null;
+  dibujo?: number | null;
+  google?: string | null;
+  class?: string;
+}
+const { nombre, foto = 'inicial', dibujo = null, google = null, class: clase = '' } = Astro.props;
+const d = foto === 'dibujo' ? DIBUJOS.find((x) => x.id === dibujo) || DIBUJOS[0] : null;
+const usaGoogle = foto === 'google' && !!google;
+---
+<span class:list={['av', clase, { photo: usaGoogle, draw: !!d }]} aria-hidden="true">
+  {usaGoogle
+    ? <img src={google} alt="" referrerpolicy="no-referrer" />
+    : d
+      ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" set:html={d.svg} />
+      : (nombre || '?').trim().charAt(0).toUpperCase()}
+</span>
