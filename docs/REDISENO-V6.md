@@ -72,7 +72,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Contar un final | Hecho | `/finales/nuevo` |
 | Escribir, paso 1 y paso 2 | Hecho | `/nueva-resena` |
 | Reseña publicada | Hecho | `/resena-publicada?curso=ID`. Rango y logros van con la etapa 3. |
-| Mis reseñas | Parcial | `/mis-resenas` con Reseñas, Finales contados y Borradores, sin turno. "Te faltan reseñar" sale de los años que elegiste en el inicio (hasta que exista Mi inscripción). Sin rango ni logros. Los finales contados se reconocen solo en este navegador, porque la base no guarda el autor. |
+| Mis reseñas | Parcial | `/mis-resenas` con Reseñas, Finales contados y Borradores, sin turno. "Te faltan reseñar" sale de los años que elegiste en el inicio (hasta que exista Mi inscripción). Sin rango ni logros. |
 | Mi cuenta | Falta (etapa 3) | — |
 | Mi inscripción (F29) | Falta | Espera tu voto |
 | Ingresar | Hecho | Ventana de ingreso con mail, Google y GitHub |
