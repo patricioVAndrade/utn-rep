@@ -30,13 +30,15 @@ Todas corren en una transacción (si algo falla, no se aplica nada), se pueden v
 - **Para qué:** votar las experiencias de finales que te sirvieron (con contador y orden "Más útiles") y que Reportar vaya a la cola de Reportes del admin en vez de abrir un mail.
 - **Qué cambia:** tabla `votos_finales` (una fila por persona y experiencia, como los votos de reseñas), columna `votos_utilidad` en la experiencia y una función para votar que solo suma o resta de a uno. Tabla `reportes_finales`, igual a la de reseñas.
 
-### 3. Reseñas: fecha de edición, "¿Cómo te fue?" y plan de estudios (3.3, 3.4 y 3.5)
+### 3. Reseñas: fecha de edición, "¿Cómo te fue?" y plan de estudios (3.3, 3.4 y 3.5) — **lista para correr en prueba**
 
 Las tres tocan la tabla `resenas`, así que van juntas.
 
 - **Fecha de edición:** columna `updated_at` que se llena sola al editar. En la reseña aparece "Editada el 12/11".
 - **"¿Cómo te fue?" en reseñas viejas (F38):** hoy cada persona solo puede editar el texto de su reseña. Se le permite también completar `condicion_final` (Promocioné, Regularicé, Quedé libre).
 - **Plan de estudios:** columna `plan` con 2023 en todas, sin mostrarla, como pediste.
+- **Archivo:** `supabase/migrations/20261108020000_resenas_edicion_plan.sql`. Vuelta atrás: `supabase/rollback/20261108020000_resenas_edicion_plan.sql`.
+- **Verificación esperada:** `columnas = 2`, `trigger = 1`, `puede_editar_condicion = true` y la cantidad de reseñas (todas con plan 2023).
 
 ### 4. Moderación (F10, F12 y el resto de 3.6)
 
