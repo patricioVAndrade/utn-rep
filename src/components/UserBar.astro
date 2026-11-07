@@ -16,7 +16,7 @@ const userIsAdmin = isAdmin(user?.id);
     <div class="left">
       <span>
         {user.avatar && <img class="mini-av" src={user.avatar} alt="" width="20" height="20" referrerpolicy="no-referrer" />}
-        {' '}<span id="greeting">Hola</span>, <a class="me-link" href="/mis-resenas">{user.name}</a>.
+        {' '}<span id="greeting">Hola</span>, <a class="me-link" href="/mi-cuenta">{user.name}</a>.
       </span>
       <a class="hide-sm" href="/mis-resenas">Mis reseñas</a>
       {userIsAdmin && <a class="hide-sm" href="/admin">Panel de admin</a>}

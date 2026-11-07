@@ -24,6 +24,7 @@ const [
   supabase.from('experiencias_finales').select('id', { count: 'exact', head: true }),
 ]);
 
+const user = Astro.locals.user;
 const materias = materiasRaw || [];
 const stats = statsRaw || [];
 const recientes = recientesRaw || [];
@@ -98,10 +99,11 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
         {anios.map((a) => <a class:list={['yj', `y${a.n}`]} href={`#anio-${a.n}`}>{a.n}.º año</a>)}
         {materias.some((m) => m.es_electiva) && <button type="button" class="yj" id="solo-electivas" aria-pressed="false">Electivas</button>}
       </div>
-      <div class="yr-pick" id="mis-anios">
-        <span class="sub">¿Qué año cursás? Esos vienen abiertos:</span>
-        {anios.map((a) => <label><input type="checkbox" value={a.n} /> {a.n}.º</label>)}
-      </div>
+      {user && (
+        <p class="sub yr-hint hidden" id="anios-hint">
+          ¿Querés que tus años vengan abiertos? Elegilos en <a href="/mi-cuenta#tus-anios">Mi cuenta</a>.
+        </p>
+      )}
 
       <div class="tbl" role="table" aria-label="Materias por año">
         <div class="thead" role="row">
@@ -111,7 +113,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
           <details class="year" id={`anio-${a.n}`}>
             <summary class:list={['cat yc', `y${a.n}`]}>
               <span class="cat-name"><span class="ydot">{a.n}.º</span>{anioLabel(a.n).replace(/^./, (c) => c.toUpperCase())}</span>
-              <small>{a.lista.length} materias · <a href={`/nivel/${a.n}`}>Ver el año</a></small>
+              <small><b class="hay-nuevas hidden"><svg class="folder new" aria-hidden="true"><use href="#folder" /></svg> <span class="hide-sm">Hay reseñas nuevas</span><span class="only-sm-inline">Nuevas</span></b>{a.lista.length} materias · <a href={`/nivel/${a.n}`}>Ver el año</a></small>
             </summary>
             {a.lista.map((m) => {
               const st = porMateria[m.id];
@@ -257,24 +259,24 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
     if (leyenda) leyenda.textContent = 'Tiene reseñas nuevas desde tu última visita';
   }
 
-  // Años: cerrados por defecto; los que elegís como "tus años" vienen abiertos
-  const CLAVE = 'misAnios';
-  const leer = (): string[] => {
-    try { return JSON.parse(localStorage.getItem(CLAVE) || '[]'); } catch { return []; }
-  };
+  // Años: con sesión, vienen abiertos los que elegiste en Mi cuenta; si no elegiste
+  // ninguno (o no iniciaste sesión), solo 1.º. Los demás, cerrados.
   const anios = Array.from(document.querySelectorAll<HTMLDetailsElement>('details.year'));
-  const mios = new Set(leer());
-  anios.forEach((d) => { if (mios.has(d.id.replace('anio-', '')) || location.hash === `#${d.id}`) d.open = true; });
-  document.querySelectorAll<HTMLInputElement>('#mis-anios input').forEach((cb) => {
-    cb.checked = mios.has(cb.value);
-    cb.addEventListener('change', () => {
-      const set = new Set(leer());
-      if (cb.checked) set.add(cb.value); else set.delete(cb.value);
-      try { localStorage.setItem(CLAVE, JSON.stringify([...set])); } catch {}
-      const d = document.getElementById(`anio-${cb.value}`) as HTMLDetailsElement | null;
-      if (d) d.open = cb.checked;
-    });
+  const conSesion = !!document.getElementById('anios-hint');
+  let mios: string[] = [];
+  if (conSesion) {
+    try { mios = (JSON.parse(localStorage.getItem('misAnios') || '[]') as unknown[]).map(String); } catch {}
+    if (!mios.length) document.getElementById('anios-hint')?.classList.remove('hidden');
+  }
+  const abiertos = new Set(mios.length ? mios : ['1']);
+  anios.forEach((d) => { if (abiertos.has(d.id.replace('anio-', '')) || location.hash === `#${d.id}`) d.open = true; });
+
+  // Año cerrado con reseñas nuevas: lo dice al costado (abierto ya se ve por las carpetas)
+  const avisarNuevas = () => anios.forEach((d) => {
+    const hay = Array.from(d.querySelectorAll('.row .nuevas')).some((b) => !b.classList.contains('hidden'));
+    d.querySelector('.hay-nuevas')?.classList.toggle('hidden', !hay);
   });
+  avisarNuevas();
   // "Ir a" abre el año
   document.querySelectorAll<HTMLAnchorElement>('.jump a').forEach((a) => {
     a.addEventListener('click', () => {
@@ -303,5 +305,6 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
     marcarLeido();
     document.querySelectorAll('.row .folder').forEach((f) => { f.classList.remove('new'); f.classList.add('old'); });
     document.querySelectorAll('.row .nuevas').forEach((b) => b.classList.add('hidden'));
+    avisarNuevas();
   });
 </script>

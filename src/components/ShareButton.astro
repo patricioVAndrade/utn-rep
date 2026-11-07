@@ -16,7 +16,7 @@ interface Props {
 }
 const { titulo, ruta, mini = false, label = 'Compartir' } = Astro.props;
 ---
-<button type="button" class:list={['btn', mini ? 'quiet' : 'wa']} data-share data-titulo={titulo} data-ruta={ruta} title={label}>
+<button type="button" class:list={['btn', mini ? 'quiet' : 'wa']} data-share data-titulo={titulo} data-ruta={ruta} title={label} data-nuevo={mini ? undefined : 'compartir'}>
   <Icon name="share" /> <span class="lbl">{label}</span>
 </button>
 

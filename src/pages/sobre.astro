@@ -34,7 +34,7 @@ const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boo
     titulo: 'Tus datos',
     preguntas: [
       { p: '¿Qué guardan de mí?', r: 'Tu nombre, tu mail y tu foto si entrás con Google o GitHub. El detalle completo está en <a href="/terminos">Términos y condiciones</a>.' },
-      { p: '¿Qué se guarda solo en mi navegador?', r: 'El modo noche, tu última visita (para marcar lo nuevo), los años que elegiste en el inicio y los borradores que dejaste a medio escribir. No sale de tu navegador.' },
+      { p: '¿Qué se guarda solo en mi navegador?', r: 'El modo noche, tu última visita (para marcar lo nuevo), los años que elegiste en Mi cuenta y los borradores que dejaste a medio escribir. No sale de tu navegador.' },
     ],
   },
 ];
@@ -69,6 +69,14 @@ const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boo
     </div>
 
     <aside class="side">
+      <section class="panel">
+        <h3>¿Ya usabas UTN REP?</h3>
+        <div class="in">
+          <span>Renovamos el diseño. Si buscás algo que estaba antes, te decimos dónde quedó.</span>
+          <a href="/que-cambio">Qué cambió</a>
+          <button type="button" class="btn quiet" data-ver-recorrido>Ver el recorrido de 30 segundos</button>
+        </div>
+      </section>
       <section class="panel">
         <h3>Empezá por acá</h3>
         <div class="in">

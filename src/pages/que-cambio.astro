@@ -1,0 +1,80 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+
+// Dónde quedó cada cosa del sitio anterior.
+const antesAhora: [string, string][] = [
+  ['El link "Inicio" arriba a la izquierda', 'El logo de UTN REP o la pestaña <b>Materias</b>'],
+  ['El buscador grande, solo en el inicio', 'El buscador arriba, <b>en todas las páginas</b>'],
+  ['"Materias destacadas" en tarjetas y los años por separado', 'Todas las materias en una lista por año, que se pliega. Arriba, <b>Ir a</b> para saltar a tu año'],
+  ['El cartel amarillo "Experiencias en Finales"', 'La pestaña <b>Experiencias de finales</b> (en el celular, <b>Finales</b> en la barra de abajo)'],
+  ['El iconito de hoja al lado de tu nombre', 'La pestaña <b>Mis reseñas</b>'],
+  ['Tu foto y tu nombre arriba a la derecha', 'Tu nombre en el saludo de arriba: lleva a <b>Mi cuenta</b>'],
+  ['"Cátedras" dentro de cada materia', '<b>Cursos</b>, como 1K3, cada uno con su turno, su equipo y sus reseñas'],
+  ['El sitio siempre oscuro', 'Claro de día y el interruptor <b>Modo noche</b> arriba a la derecha'],
+  ['El botón flotante del cafecito', 'Al pie de cada página y en la columna del costado'],
+];
+
+// Lo nuevo que ya funciona. Rangos, logros, ficha de autor, seguir materias y
+// "Me sirvió" en finales se suman acá cuando estén.
+const nuevo: { icon: string; t: string; d: string; href: string }[] = [
+  { icon: 'compare', t: 'Comparar cursos', d: 'Todos los cursos de una materia en una tabla.', href: '/' },
+  { icon: 'share', t: 'Compartir por WhatsApp', d: 'Mandá un curso o una reseña a tu grupo.', href: '/' },
+  { icon: 'final', t: 'Finales con filtros', d: 'Por mesa y por materia.', href: '/finales' },
+  { icon: 'pen', t: 'Escribir en pasos', d: 'Con borrador automático: no perdés lo escrito.', href: '/nueva-resena' },
+  { icon: 'book', t: 'Tus años, abiertos', d: 'Elegí en Mi cuenta qué años cursás y esos vienen abiertos.', href: '/mi-cuenta#tus-anios' },
+  { icon: 'moon', t: 'Modo noche', d: 'Para leer de noche o si te gusta oscuro.', href: '/' },
+];
+---
+
+<Layout title="Qué cambió - UTN REP" description="Dónde quedó cada cosa después del cambio de diseño de UTN REP, y qué hay de nuevo." tab="ayuda" crumbs={[{ label: '¿Cómo funciona?', href: '/sobre' }, { label: 'Qué cambió' }]}>
+  <div class="layout">
+    <div class="main">
+      <div class="topic">
+        <div>
+          <h1>Qué cambió en UTN REP</h1>
+          <p>Renovamos el diseño en diciembre de 2026. Si buscás algo que estaba antes, acá te decimos dónde quedó.</p>
+        </div>
+        <div class="actions"><button type="button" class="btn primary" data-ver-recorrido>Ver el recorrido de 30 segundos</button></div>
+      </div>
+
+      <div class="same">
+        <b><Icon name="check" /> Lo que no cambió</b>
+        <ul>
+          <li>Tu cuenta, tus reseñas y tus finales contados.</li>
+          <li>Una reseña por curso, y podés publicar como anónimo.</li>
+          <li>Buscar una materia, entrar y elegir el curso.</li>
+        </ul>
+      </div>
+
+      <h2 class="sec">Dónde quedó cada cosa</h2>
+      <div class="ba">
+        <table>
+          <thead><tr><th>Antes</th><th>Ahora</th></tr></thead>
+          <tbody>{antesAhora.map(([a, b]) => <tr><td>{a}</td><td set:html={b} /></tr>)}</tbody>
+        </table>
+      </div>
+
+      <h2 class="sec">Lo nuevo</h2>
+      <div class="newgrid">
+        {nuevo.map((n) => <a href={n.href}><Icon name={n.icon} /><b>{n.t}</b><span>{n.d}</span></a>)}
+      </div>
+    </div>
+
+    <aside class="side">
+      <section class="panel">
+        <h3>¿No encontrás algo?</h3>
+        <div class="in">
+          <span>Escribinos y lo sumamos a esta lista.</span>
+          <a href="mailto:patriciovandrade@gmail.com?subject=No%20encuentro%20algo%20en%20UTN%20REP">Reportar un problema</a>
+        </div>
+      </section>
+      <section class="panel">
+        <h3>Mientras te acostumbrás</h3>
+        <div class="in">
+          <span>Lo nuevo lleva una etiqueta <span class="nuevo-pill">Nuevo</span> hasta fin de abril.</span>
+        </div>
+      </section>
+    </aside>
+  </div>
+</Layout>

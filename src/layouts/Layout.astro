@@ -5,6 +5,7 @@ import Icon from '../components/Icon.astro';
 import UtnMark from '../components/UtnMark.astro';
 import UserBar from '../components/UserBar.astro';
 import LoginModal from '../components/LoginModal.astro';
+import Bienvenida from '../components/Bienvenida.astro';
 
 export type Tab = 'materias' | 'finales' | 'mis' | 'ayuda' | 'escribir';
 export interface Crumb { label: string; href?: string }
@@ -129,7 +130,7 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
         </div>
         <nav class="tabs" aria-label="Secciones">
           <a href="/" aria-current={cur('materias')}><Icon name="book" />Materias</a>
-          <a href="/finales" aria-current={cur('finales')}><Icon name="final" />Experiencias de finales</a>
+          <a href="/finales" aria-current={cur('finales')} data-nuevo="finales"><Icon name="final" />Experiencias de finales</a>
           {user && <a href="/mis-resenas" aria-current={cur('mis')}><Icon name="user" />Mis reseñas</a>}
           <a href="/sobre" aria-current={cur('ayuda')}><Icon name="info" />¿Cómo funciona?</a>
           <a class="write-tab" href="/nueva-resena" aria-current={cur('escribir')}><Icon name="pen" /> Escribir una reseña</a>
@@ -175,6 +176,7 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
     </div>
 
     {!user && <LoginModal />}
+    {!legacy && <Bienvenida />}
 
     <Analytics />
   </body>
@@ -205,6 +207,7 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
     document.querySelectorAll<HTMLAnchorElement>('a[href="/finales"]').forEach((a) => {
       if (!a.closest('.tabs, .bottombar') || a.querySelector('.nuevo-tag')) return;
       const tag = document.createElement('span');
+      a.querySelector('.nuevo-pill')?.remove();
       tag.className = 'nuevo-tag';
       tag.textContent = a.closest('.bottombar') ? String(n) : `${n} nueva${n !== 1 ? 's' : ''}`;
       a.append(tag);

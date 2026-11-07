@@ -81,8 +81,8 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
         </div>
         <div class="actions">
           {user
-            ? <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Contar mi experiencia de final</a>
-            : <button type="button" class="btn primary" data-login><Icon name="pen" /> Contar mi experiencia de final</button>}
+            ? <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Compartir mi experiencia</a>
+            : <button type="button" class="btn primary" data-login><Icon name="pen" /> Compartir mi experiencia</button>}
         </div>
       </div>
 
@@ -176,8 +176,8 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
         <div id="finales-vacio" class="empty hidden">
           <span>Todavía nadie contó un final con esos filtros.</span>
           {user
-            ? <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Contar mi experiencia de final</a>
-            : <button type="button" class="btn primary" data-login><Icon name="pen" /> Contar mi experiencia de final</button>}
+            ? <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Compartir mi experiencia</a>
+            : <button type="button" class="btn primary" data-login><Icon name="pen" /> Compartir mi experiencia</button>}
         </div>
       </div>
 
@@ -192,7 +192,7 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
         <div class="in">
           <span>Contá cómo fue la mesa: qué tomaron, si fue más difícil el práctico o el teórico y cómo te preparaste.</span>
           {user
-            ? <a class="btn primary big" href="/finales/nuevo"><Icon name="pen" /> Contar mi experiencia de final</a>
+            ? <a class="btn primary big" href="/finales/nuevo"><Icon name="pen" /> Compartir mi experiencia</a>
             : <button type="button" class="btn primary big" data-login><Icon name="user" /> Iniciar sesión para contarlo</button>}
         </div>
       </section>

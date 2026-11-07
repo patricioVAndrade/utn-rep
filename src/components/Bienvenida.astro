@@ -1,0 +1,35 @@
+---
+/**
+ * Cambio de diseño: cartel de bienvenida (una sola vez), recorrido de 30 segundos
+ * y etiquetas "Nuevo" hasta el 30/4/2027. Todo se guarda en el navegador.
+ */
+import Icon from './Icon.astro';
+import UtnMark from './UtnMark.astro';
+
+const user = Astro.locals.user;
+---
+<div id="bienvenida" class="welcome-wrap hidden" data-con-sesion={user ? '1' : undefined}>
+  <div class="veil" data-cerrar></div>
+  <div class="welcome" role="dialog" aria-modal="true" aria-labelledby="bienvenida-t">
+    <div class="wh"><UtnMark /><b id="bienvenida-t">UTN <span>REP</span> se renovó</b></div>
+    <div class="wb">
+      <p>Mismo sitio, mismas reseñas, otra cara. <b>Tu cuenta y todo lo que escribiste siguen igual.</b></p>
+      <ul>
+        <li>Las materias están todas en una lista, por año.</li>
+        <li>Los finales tienen su propia pestaña.</li>
+        <li>Tu cuenta está en tu nombre, arriba.</li>
+      </ul>
+      <div class="dark-tip"><Icon name="moon" /><span>¿Te gustaba oscuro? Activá el <b>Modo noche</b> arriba a la derecha.</span></div>
+      <div class="wacts">
+        <button type="button" class="btn primary big" data-recorrido>Mostrame qué cambió (30 segundos)</button>
+        <button type="button" class="btn quiet big" data-cerrar>Ahora no</button>
+      </div>
+      <span class="sub">Aparece una sola vez. Lo volvés a ver cuando quieras desde <a href="/sobre">¿Cómo funciona?</a> o en <a href="/que-cambio">la lista de cambios</a>.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { iniciarBienvenida } from '../scripts/bienvenida';
+  iniciarBienvenida();
+</script>

@@ -1,0 +1,78 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/');
+---
+
+<Layout title="Mi cuenta - UTN REP" description="Tus datos y tus años de cursada en UTN REP." tab="mis" crumbs={[{ label: 'Mi cuenta' }]}>
+  <div class="layout narrow">
+    <div class="main">
+      <div class="topic">
+        <div>
+          <h1>Mi cuenta</h1>
+          <p>Tus datos y cómo querés ver el sitio.</p>
+        </div>
+      </div>
+
+      <section class="panel" id="tus-anios">
+        <h2>Tus años de cursada</h2>
+        <div class="acct-row">
+          <div class="acct-lbl">
+            <b>¿Qué años cursás?</b>
+            <span class="sub">Podés elegir más de uno.</span>
+          </div>
+          <div class="acct-val">
+            <div class="yr-pick" id="mis-anios">
+              {[1, 2, 3, 4, 5].map((n) => <label><input type="checkbox" value={n} /> {n}.º año</label>)}
+            </div>
+            <p class="sub">Para qué sirve:</p>
+            <ul class="acct-list sub">
+              <li>En <a href="/">Materias</a>, esos años vienen abiertos y los demás cerrados. Si no elegís ninguno, viene abierto solo 1.º.</li>
+              <li>En <a href="/mis-resenas">Mis reseñas</a> te mostramos las materias de esos años que todavía no reseñaste.</li>
+            </ul>
+            <p class="sub" id="anios-ok" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Cuenta</h2>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>Nombre</b><span class="sub">Sale de tu cuenta. En las reseñas anónimas no se muestra nunca.</span></div>
+          <div class="acct-val"><b>{user.name}</b></div>
+        </div>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>Mail</b></div>
+          <div class="acct-val">{user.email || '—'}</div>
+        </div>
+        <div class="acct-row">
+          <div class="acct-lbl"></div>
+          <div class="acct-val">
+            <form method="post" action="/api/auth/logout">
+              <button type="submit" class="btn quiet" data-logout>Cerrar sesión</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const CLAVE = 'misAnios';
+  const leer = (): string[] => {
+    try { return (JSON.parse(localStorage.getItem(CLAVE) || '[]') as unknown[]).map(String); } catch { return []; }
+  };
+  const ok = document.getElementById('anios-ok');
+  document.querySelectorAll<HTMLInputElement>('#mis-anios input').forEach((cb) => {
+    cb.checked = leer().includes(cb.value);
+    cb.addEventListener('change', () => {
+      const set = new Set(leer());
+      if (cb.checked) set.add(cb.value); else set.delete(cb.value);
+      const lista = [...set].sort();
+      try { localStorage.setItem(CLAVE, JSON.stringify(lista)); } catch {}
+      if (ok) ok.textContent = lista.length ? `Listo: ${lista.map((a) => `${a}.º`).join(', ')} vienen abiertos en Materias.` : 'Listo: en Materias viene abierto solo 1.º.';
+    });
+  });
+</script>

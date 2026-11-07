@@ -261,7 +261,7 @@ const totalCursos = (otrosRaw || []).length;
                 <span class="sub">{o.st?.cantidad ? <><Stars value={o.st.promedio} /> {nota(o.st.promedio)} en {o.st.cantidad} reseña{o.st.cantidad !== 1 ? 's' : ''}</> : 'Sin reseñas todavía'}</span>
               </div>
             ))}
-            <a class="btn secondary big" href={`/materia/${materia?.id}/comparar?desde=${id}`}><Icon name="compare" /> Comparar los {totalCursos} cursos</a>
+            <a class="btn secondary big" href={`/materia/${materia?.id}/comparar?desde=${id}`} data-nuevo="comparar"><Icon name="compare" /> Comparar los {totalCursos} cursos</a>
           </div>
         </section>
       )}

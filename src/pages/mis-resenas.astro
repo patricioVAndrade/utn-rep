@@ -42,7 +42,7 @@ if (misResenas.length) {
   (reps || []).forEach((r: any) => reportadas.add(r.resena_id));
 }
 
-// Para "Te faltan reseñar": materias de los años que elegiste en el inicio
+// Para "Te faltan reseñar": materias de los años que elegiste en Mi cuenta
 const resenadas = new Set(misResenas.map((r) => r.materia?.id).filter(Boolean));
 const materiasJSON = JSON.stringify((materiasRaw || []).map((m: any) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel, hecha: resenadas.has(m.id) })));
 
@@ -129,7 +129,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
         ) : (
           <div class="empty">
             <span>Todavía no contaste ningún final.</span>
-            <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Contar mi experiencia de final</a>
+            <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Compartir mi experiencia</a>
           </div>
         )}
       </div>
@@ -144,7 +144,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
       <section class="panel">
         <h3>Te faltan reseñar</h3>
         <div class="in" id="faltan">
-          <span class="sub">Elegí qué años cursás en <a href="/">el inicio</a> y te mostramos acá las materias de esos años que todavía no reseñaste.</span>
+          <span class="sub">Elegí qué años cursás en <a href="/mi-cuenta#tus-anios">Mi cuenta</a> y te mostramos acá las materias de esos años que todavía no reseñaste.</span>
         </div>
       </section>
       <section class="panel">

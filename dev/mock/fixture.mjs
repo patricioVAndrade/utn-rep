@@ -6,7 +6,7 @@ const MAT = {
   1: ['Análisis Matemático I', 'Álgebra y Geometría Analítica', 'Física I', 'Inglés I', 'Lógica y Estructuras Discretas', 'Algoritmos y Estructuras de Datos', 'Arquitectura de Computadoras', 'Sistemas y Procesos de Negocio'],
   2: ['Análisis Matemático II', 'Física II', 'Ingeniería y Sociedad', 'Inglés II', 'Sintaxis y Semántica de los Lenguajes', 'Paradigmas de Programación', 'Sistemas Operativos', 'Análisis de Sistemas de Información'],
   3: ['Probabilidad y Estadística', 'Economía', 'Bases de Datos', 'Desarrollo de Software', 'Comunicación de Datos', 'Análisis Numérico', 'Diseño de Sistemas de Información', 'Desarrollo de Aplicaciones con Objetos'],
-  4: ['Legislación', 'Ingeniería y Calidad de Software', 'Redes de Datos', 'Investigación Operativa', 'Simulación', 'Tecnologías para la Automatización', 'Administración de Sistemas de Información'],
+  4: ['Legislación', 'Ingeniería y Calidad de Software', 'Redes de Datos', 'Investigación Operativa', 'Simulación', 'Tecnologías para la Automatización', 'Administración de Sistemas de Información', 'Gestión de la Mejora de Procesos', 'Green Software', 'DevOps'],
   5: ['Inteligencia Artificial', 'Ciencia de Datos', 'Sistemas de Gestión', 'Gestión Gerencial', 'Seguridad en los Sistemas de Información', 'Proyecto Final', 'Blockchain'],
 };
 const NOMBRES = ['Ana', 'Carlos', 'Marta', 'Jorge', 'Lucía', 'Pablo', 'Silvia', 'Diego', 'Laura', 'Gustavo', 'Paula', 'Ricardo', 'Valeria', 'Hernán', 'Carla', 'Martín'];
@@ -32,7 +32,7 @@ for (const n of [1, 2, 3, 4, 5]) {
     const ident = `${n}K${k}`; const c = { id: cid++, identificador: ident, anio_carrera: n, turno: TURNOS[(k - 1) % 3] }; cursos.push(c); cursoIds[ident] = c.id;
   }
   MAT[n].forEach((nombre, i) => {
-    const elec = (n === 5 && nombre === 'Blockchain') || (n === 3 && nombre === 'Desarrollo de Aplicaciones con Objetos');
+    const elec = ['Blockchain', 'Desarrollo de Aplicaciones con Objetos', 'Gestión de la Mejora de Procesos', 'Green Software', 'DevOps'].includes(nombre);
     const m = { id: mid++, nombre, nivel: n, es_electiva: elec, puntos_electiva: elec ? 4 : null };
     materias.push(m);
     const ncursos = elec ? 2 : 3 + Math.floor(rnd() * 6);

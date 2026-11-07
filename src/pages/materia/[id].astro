@@ -138,7 +138,7 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
           <p>{lista.length} curso{lista.length !== 1 ? 's' : ''}. Elegí uno para leer sus reseñas{lista.length > 1 ? ', o compará todos' : ''}.</p>
         </div>
         <div class="actions">
-          {lista.length > 1 && <a class="btn secondary" href={`/materia/${id}/comparar`}><Icon name="compare" /> Comparar los {lista.length} cursos</a>}
+          {lista.length > 1 && <a class="btn secondary" href={`/materia/${id}/comparar`} data-nuevo="comparar"><Icon name="compare" /> Comparar los {lista.length} cursos</a>}
           <a class="btn primary" href={escribir}><Icon name="pen" /> Escribir una reseña</a>
           <ShareButton titulo={`Reseñas de ${materia.nombre} en UTN REP`} />
         </div>

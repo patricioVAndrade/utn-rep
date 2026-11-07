@@ -123,6 +123,13 @@ describe('coincidencias con la base', () => {
     expect(buscarMateria('Green Software', MATERIAS, 4).materia).toBeNull();
   });
 
+  it('encuentra las electivas cargadas, con o sin "Electiva" en el nombre', () => {
+    const conElectivas = [...MATERIAS, { id: 8, nombre: 'Gestión de la Mejora de Procesos', nivel: 4, es_electiva: true }, { id: 9, nombre: 'Green Software', nivel: 4, es_electiva: true }];
+    expect(buscarMateria('Gestion de la Mejora de Procesos', conElectivas, 4).materia?.id).toBe(8);
+    expect(buscarMateria('Gestión de la Mejora de Procesos (Electiva)', conElectivas, 4).materia?.id).toBe(8);
+    expect(buscarMateria('GREEN SOFTWARE - Electiva', conElectivas, 4).materia?.id).toBe(9);
+  });
+
   it('encuentra al profesor con otro orden, sin acentos o con iniciales', () => {
     const indice = [
       { id: 1, nombre_completo: 'Vazquez De Novoa, Santiago Roberto' },
