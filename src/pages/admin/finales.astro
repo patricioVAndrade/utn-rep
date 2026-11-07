@@ -12,7 +12,7 @@ const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 
 const { data } = await supabaseAdmin
   .from('experiencias_finales')
-  .select('id, anio, mesa, profesor_nombre, comentario, created_at, materias ( id, nombre, nivel )')
+  .select('id, anio, mesa, profesor_nombre, comentario, created_at, es_anonima, nombre_usuario, materias ( id, nombre, nivel )')
   .order('created_at', { ascending: false })
   .limit(300);
 const finales = (data || []).map((f: any) => ({ ...f, materia: one(f.materias) }));
@@ -39,7 +39,7 @@ const finales = (data || []).map((f: any) => ({ ...f, materia: one(f.materias) }
             </div>
             <span>{f.comentario}</span>
             <div class="bottom">
-              <span class="sub">Contada {tiempoRelativo(f.created_at).toLowerCase()}</span>
+              <span class="sub">{f.es_anonima === false ? <b>{f.nombre_usuario}</b> : <>Anónima{f.nombre_usuario && <> ({f.nombre_usuario})</>}</>} · contada {tiempoRelativo(f.created_at).toLowerCase()}</span>
               <span class="acts"><button type="button" class="btn danger" data-borrar={f.id}><Icon name="trash" /> Borrar</button></span>
             </div>
           </article>

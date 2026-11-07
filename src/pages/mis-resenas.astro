@@ -20,7 +20,7 @@ const [{ data }, { data: finalesRaw }, { data: materiasRaw }] = await Promise.al
     .select('id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, created_at, dictados ( materia_id, cursos ( identificador ), materias ( id, nombre, nivel ) )')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false }),
-  supabase
+  client
     .from('experiencias_finales')
     .select('id, anio, mesa, comentario, created_at, materias ( id, nombre, nivel )')
     .eq('user_id', user.id)

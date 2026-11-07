@@ -21,7 +21,7 @@ const [
     .order('created_at', { ascending: false })
     .limit(1000),
   supabase.from('resenas_publicas').select('id', { count: 'exact', head: true }),
-  supabase.from('experiencias_finales').select('id', { count: 'exact', head: true }),
+  supabase.from('experiencias_finales_publicas').select('id', { count: 'exact', head: true }),
 ]);
 
 const user = Astro.locals.user;

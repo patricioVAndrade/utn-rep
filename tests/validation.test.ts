@@ -90,8 +90,14 @@ describe('finalCreateSchema', () => {
   it('convierte ids y años que llegan como string', () => {
     expect(parseBody(schema, final)).toEqual({
       ok: true,
-      data: { materia_id: 4, anio: 2024, mesa: 'Febrero', profesor_nombre: null, comentario: 'Tomaron un práctico largo.' },
+      data: { materia_id: 4, anio: 2024, mesa: 'Febrero', profesor_nombre: null, comentario: 'Tomaron un práctico largo.', con_nombre: false },
     });
+  });
+
+  it('es anónima salvo que pida publicar con su nombre', () => {
+    const r = parseBody(schema, { ...final, con_nombre: true });
+    expect(r.ok && r.data.con_nombre).toBe(true);
+    expect(parseBody(schema, { ...final, con_nombre: 'si' }).ok).toBe(false);
   });
 
   it('rechaza materia inválida, año fuera de rango y textos largos', () => {

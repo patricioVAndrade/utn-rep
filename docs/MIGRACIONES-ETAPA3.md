@@ -14,7 +14,7 @@ Todas corren en una transacción (si algo falla, no se aplica nada), se pueden v
 
 ## El orden y qué hace cada una
 
-### 1. Autor y anonimato en las experiencias de finales — **lista para correr**
+### 1. Autor y anonimato en las experiencias de finales — **corrida en prueba el 7/11, código subido**
 
 - **Para qué:** el interruptor "Publicar con mi nombre" al compartir un final, y que la tarjeta diga el nombre o "Anónimo". Hoy todas dicen "Anónimo" porque no se guarda nada.
 - **Qué cambia en la base:**

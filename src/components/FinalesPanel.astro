@@ -7,9 +7,9 @@ interface Props { materiaId: number | string; nombre?: string }
 const { materiaId } = Astro.props;
 
 const [{ count }, { data: ultimas }] = await Promise.all([
-  supabase.from('experiencias_finales').select('id', { count: 'exact', head: true }).eq('materia_id', materiaId),
+  supabase.from('experiencias_finales_publicas').select('id', { count: 'exact', head: true }).eq('materia_id', materiaId),
   supabase
-    .from('experiencias_finales')
+    .from('experiencias_finales_publicas')
     .select('comentario, mesa, anio')
     .eq('materia_id', materiaId)
     .order('created_at', { ascending: false })

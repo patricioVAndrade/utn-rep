@@ -53,6 +53,6 @@ for (const n of [1, 2, 3, 4, 5]) {
 }
 for (let i = 0; i < 14; i++) {
   const m = pick(materias);
-  experiencias_finales.push({ id: `f${i}`, user_id: i === 0 ? 'u-demo' : 'otro', materia_id: m.id, anio: 2026 - Math.floor(rnd() * 3), mesa: pick(['Diciembre', 'Febrero', 'Julio', 'Especial']), profesor_nombre: rnd() < .3 ? null : pick(profesores).nombre_completo, comentario: pick(['Tomaron dos ejercicios prácticos y una pregunta de teoría. Duró tres horas, corrigieron en el día.', 'Oral con el titular. Pregunta mucho sobre los TPs, tené todo fresco.', 'Escrito largo, el práctico fue más difícil que en los parciales. Repasen series y límites.']), created_at: new Date(Date.UTC(2026, 10, 6) - i * 5 * 86400000).toISOString() });
+  experiencias_finales.push({ id: `f${i}`, user_id: i === 0 ? 'u-demo' : 'otro', es_anonima: i % 3 !== 1, nombre_usuario: i === 0 ? 'Sofía Rivas' : pick(ALUMNOS), materia_id: m.id, anio: 2026 - Math.floor(rnd() * 3), mesa: pick(['Diciembre', 'Febrero', 'Julio', 'Especial']), profesor_nombre: rnd() < .3 ? null : pick(profesores).nombre_completo, comentario: pick(['Tomaron dos ejercicios prácticos y una pregunta de teoría. Duró tres horas, corrigieron en el día.', 'Oral con el titular. Pregunta mucho sobre los TPs, tené todo fresco.', 'Escrito largo, el práctico fue más difícil que en los parciales. Repasen series y límites.']), created_at: new Date(Date.UTC(2026, 10, 6) - i * 5 * 86400000).toISOString() });
 }
 export const votos_resenas = [{ user_id: 'u-demo', resena_id: 3 }];

@@ -16,7 +16,10 @@ function stats_dictados() {
 function resenas_publicas() {
   return T.resenas.map((r: any) => ({ ...r, nombre_usuario: r.es_anonima ? null : r.nombre_usuario, user_id: undefined }));
 }
-const tabla = (n: string) => (n === 'stats_dictados' ? stats_dictados() : n === 'resenas_publicas' ? resenas_publicas() : T[n] || []);
+function experiencias_finales_publicas() {
+  return (T.experiencias_finales || []).map(({ user_id, ...f }: any) => ({ ...f, es_anonima: f.es_anonima !== false, nombre_usuario: f.es_anonima === false ? f.nombre_usuario : null }));
+}
+const tabla = (n: string) => (n === 'stats_dictados' ? stats_dictados() : n === 'resenas_publicas' ? resenas_publicas() : n === 'experiencias_finales_publicas' ? experiencias_finales_publicas() : T[n] || []);
 
 // Relaciones: hijo -> (tabla, cómo encontrar filas)
 function rel(parentTable: string, row: any, name: string): any {

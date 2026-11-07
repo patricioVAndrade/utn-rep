@@ -4,6 +4,7 @@ import { checkRateLimit } from '../../../lib/rate-limit';
 import { createSupabaseServerClient } from '../../../lib/supabase';
 import { json, readJson } from '../../../lib/http';
 import { finalCreateSchema, parseBody } from '../../../lib/validation';
+import { displayName } from '../../../lib/user';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
@@ -21,7 +22,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const parsed = parseBody(finalCreateSchema(), body);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
-  const { materia_id, anio, mesa, profesor_nombre, comentario } = parsed.data;
+  const { materia_id, anio, mesa, profesor_nombre, comentario, con_nombre } = parsed.data;
 
   const { data: materia } = await supabaseAdmin
     .from('materias')
@@ -32,7 +33,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const { error: insertError } = await supabaseAdmin
     .from('experiencias_finales')
-    .insert({ user_id: user.id, materia_id, anio, mesa, profesor_nombre, comentario });
+    .insert({
+      user_id: user.id, materia_id, anio, mesa, profesor_nombre, comentario,
+      // Anónima por defecto. El nombre se guarda igual, para la moderación.
+      es_anonima: !con_nombre,
+      nombre_usuario: displayName(user).slice(0, 120),
+    });
 
   if (insertError) {
     console.error('[Finales Crear API] Error:', insertError);

@@ -91,7 +91,7 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
 
           <div class="lab">Privacidad</div>
           <div class="field">
-            <span class="help" style="font-size:11.5px">Se publica como <b>anónima</b>: no mostramos quién la contó.</span>
+            <label class="check"><input type="checkbox" id="con-nombre" /> <span>Publicar con mi nombre. Si no lo marcás, se publica como <b>anónima</b>: tu nombre no se muestra a nadie; solo la moderación puede verlo.</span></label>
           </div>
         </div>
         <div class="fbar">
@@ -127,6 +127,7 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
   const materiaInput = $('materia_search') as HTMLInputElement;
   const profesor = $('profesor') as HTMLInputElement;
   const comentario = $('comentario') as HTMLTextAreaElement;
+  const conNombre = $('con-nombre') as HTMLInputElement;
   const anioViejo = $('anio-viejo') as HTMLSelectElement;
   const yr = $('materia-yr');
   const original = submitBtn.innerHTML;
@@ -158,7 +159,7 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
   function guardar() {
     clearTimeout(timer);
     timer = window.setTimeout(() => {
-      try { localStorage.setItem(CLAVE, JSON.stringify({ materia: materiaInput.value, mesa, anio, viejo: anioViejo.value, profesor: profesor.value, comentario: comentario.value, t: Date.now() })); } catch {}
+      try { localStorage.setItem(CLAVE, JSON.stringify({ materia: materiaInput.value, mesa, anio, viejo: anioViejo.value, profesor: profesor.value, comentario: comentario.value, conNombre: conNombre.checked, t: Date.now() })); } catch {}
       $('draft-note').textContent = 'Borrador guardado';
     }, 400);
   }
@@ -171,6 +172,7 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
       if (b.viejo) anioViejo.value = b.viejo;
       profesor.value = b.profesor || '';
       comentario.value = b.comentario || '';
+      conNombre.checked = !!b.conNombre;
       $('draft-note').textContent = 'Recuperamos tu borrador';
     }
   } catch {}
@@ -178,6 +180,7 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
   const contar = () => { $('contador').textContent = String(comentario.value.length); };
   contar();
   [profesor, comentario, anioViejo].forEach((x) => x.addEventListener('input', () => { contar(); guardar(); }));
+  conNombre.addEventListener('change', guardar);
 
   const mostrarError = (texto: string) => {
     errorText.textContent = texto;
@@ -201,7 +204,7 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
       const response = await fetch('/api/finales/crear', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ materia_id, anio: anioFinal, mesa, profesor_nombre: profesor.value.trim(), comentario: comentario.value }),
+        body: JSON.stringify({ materia_id, anio: anioFinal, mesa, profesor_nombre: profesor.value.trim(), comentario: comentario.value, con_nombre: conNombre.checked }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Ocurrió un error al guardar.');

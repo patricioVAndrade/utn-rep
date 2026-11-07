@@ -26,7 +26,7 @@ if (palabras.length > 0) {
     supabase.from('stats_dictados').select('dictado_id, cantidad, promedio'),
     supabase.from('profesores').select('id, nombre_completo, dictado_profesores ( dictados ( id, materias ( nombre ), cursos ( identificador ) ) )'),
     supabase
-      .from('experiencias_finales')
+      .from('experiencias_finales_publicas')
       .select('id, anio, mesa, comentario, created_at, materias ( id, nombre, nivel )')
       .order('created_at', { ascending: false })
       .limit(2000),

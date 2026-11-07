@@ -53,6 +53,7 @@ export function finalCreateSchema(currentYear = new Date().getFullYear()) {
       .transform((v) => (v ? v : null)),
     comentario: z.string({ required_error: 'Faltan completar campos obligatorios.' }).trim()
       .min(10, 'El comentario debe tener entre 10 y 1000 caracteres.').max(1000, 'El comentario debe tener entre 10 y 1000 caracteres.'),
+    con_nombre: z.boolean().optional().default(false),
   });
 }
 

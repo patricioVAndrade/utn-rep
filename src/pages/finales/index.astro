@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Icon from '../../components/Icon.astro';
 import ShareButton from '../../components/ShareButton.astro';
-import { supabase } from '../../lib/supabase';
+import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 import { isAdmin } from '../../lib/admin';
 import { anioLabel, mesaTexto, tiempoRelativo } from '../../lib/format';
 import { buscarProfesor, indexar } from '../../lib/importar';
@@ -10,12 +10,14 @@ import { buscarProfesor, indexar } from '../../lib/importar';
 const user = Astro.locals.user;
 const userIsAdmin = isAdmin(user?.id);
 
-// Experiencias de finales (user_id se usa solo acá en el servidor, para saber cuáles son tuyas)
+// Experiencias de finales: la vista pública no tiene user_id ni el nombre de los anónimos.
+// Cuáles son tuyas se pregunta aparte, con tu sesión (cada uno lee solo las suyas).
 const { data: experiencias } = await supabase
-  .from('experiencias_finales')
+  .from('experiencias_finales_publicas')
   .select(`
     id,
-    user_id,
+    es_anonima,
+    nombre_usuario,
     anio,
     mesa,
     profesor_nombre,
@@ -34,6 +36,13 @@ const profesorId = (nombre?: string | null) => {
   if (!profDe.has(nombre)) profDe.set(nombre, buscarProfesor(nombre, indiceProf).profesor_id);
   return profDe.get(nombre) ?? null;
 };
+
+let mias = new Set<string>();
+if (user) {
+  const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+  const { data } = await client.from('experiencias_finales').select('id').eq('user_id', user.id);
+  mias = new Set((data || []).map((x: any) => String(x.id)));
+}
 
 const listaExperiencias = (experiencias || []).map((exp: any) => ({
   ...exp,
@@ -109,7 +118,7 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
       <div id="finales-container" style="display:grid;gap:12px">
         {listaExperiencias.length > 0 ? (
           listaExperiencias.map((exp: any, idx: number) => {
-            const isOwner = user?.id === exp.user_id;
+            const isOwner = mias.has(String(exp.id));
             return (
               <article
                 class:list={['post exp final-card', { 'final-extra': idx >= 10 }, { hidden: idx >= 10 || (materiaInicial && String(exp.materia?.id) !== materiaInicial) || (mesaInicial && claveMesa(exp.mesa) !== mesaInicial) }]}
@@ -130,7 +139,9 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
                 <div class="post-main">
                   <div class="author">
                     <div class="avatar" aria-hidden="true"><span><Icon name="user" /></span></div>
-                    <span class="uname anon">Anónimo</span>
+                    {exp.es_anonima === false && exp.nombre_usuario
+                      ? <span class="uname">{exp.nombre_usuario}</span>
+                      : <span class="uname anon">Anónimo</span>}
                     <span class="sub">{isOwner ? 'La contaste vos' : `Contada ${tiempoRelativo(exp.created_at).toLowerCase()}`}</span>
                   </div>
                   <div class="message">
