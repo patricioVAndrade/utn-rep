@@ -8,7 +8,13 @@
 import Icon from './Icon.astro';
 import Stars from './Stars.astro';
 import ShareButton from './ShareButton.astro';
+import Quien from './Quien.astro';
+import Escudo from './Escudo.astro';
+import LogroIcono from './LogroIcono.astro';
 import { COMO_TE_FUE, editadaEl, tiempoRelativo } from '../lib/format';
+import { DIBUJOS } from '../lib/perfil';
+import { rango } from '../lib/logros';
+import type { Autor } from '../lib/fichas';
 
 interface Props {
   resena: any;
@@ -23,6 +29,8 @@ interface Props {
   compact?: boolean;
   /** Curso al que pertenece, para mostrarlo en la cabecera */
   curso?: { label: string; href: string };
+  /** Foto y ficha de quien la escribió (no se pasa en las anónimas) */
+  autor?: Autor;
 }
 
 const {
@@ -35,6 +43,7 @@ const {
   nombreAnonimo,
   compact = false,
   curso,
+  autor,
 } = Astro.props;
 
 const CONDICIONES: Record<string, { label: string; className: string }> = {
@@ -46,6 +55,10 @@ const condicion = resena.condicion_final ? CONDICIONES[resena.condicion_final] :
 const votos = resena.votos_utilidad || 0;
 const nombre = resena.es_anonima ? 'Anónimo' : resena.nombre_usuario || 'Estudiante';
 const fecha = resena.created_at ? new Date(resena.created_at) : null;
+const conAutor = !resena.es_anonima && autor ? autor : undefined;
+const dibujo = conAutor?.foto === 'dibujo' ? DIBUJOS.find((d) => d.id === conAutor.dibujo) || DIBUJOS[0] : null;
+const ficha = conAutor && !conAutor.ficha.privada ? conAutor.ficha : null;
+const suRango = ficha ? rango(ficha.resenas) : null;
 ---
 <article
   class:list={['post review-card', { 'review-extra hidden': hidden }]}
@@ -66,9 +79,17 @@ const fecha = resena.created_at ? new Date(resena.created_at) : null;
   <div class="post-main">
     <div class="author">
       <div class="avatar" aria-hidden="true">
-        <span>{resena.es_anonima ? <Icon name="user" /> : nombre.charAt(0).toUpperCase()}</span>
+        <span class:list={{ draw: !!dibujo }}>{resena.es_anonima
+          ? <Icon name="user" />
+          : conAutor?.google
+            ? <img src={conAutor.google} alt="" referrerpolicy="no-referrer" loading="lazy" />
+            : dibujo
+              ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" set:html={dibujo.svg} />
+              : nombre.charAt(0).toUpperCase()}</span>
       </div>
-      <span class:list={['uname', { anon: resena.es_anonima }]}>{nombre}</span>
+      <Quien nombre={nombre} anonimo={resena.es_anonima} ficha={conAutor?.ficha} />
+      {suRango && <span class="rankline"><Escudo rango={suRango.id} /> {suRango.nombre}</span>}
+      {ficha && ficha.logros.length > 0 && <span class="logros extra">{ficha.logros.map((l) => <LogroIcono id={l} />)}</span>}
       {resena.es_anonima && userIsAdmin && nombreAnonimo && (
         <span class="admin-peek" title="Visible solo para admin">({nombreAnonimo})</span>
       )}

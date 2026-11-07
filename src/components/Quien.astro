@@ -1,0 +1,90 @@
+---
+/**
+ * Nombre de quien escribió, que se toca y abre su ficha (V6, F16 a F18).
+ * - Anónimo: cartel con una teoría al azar ("Tocá de nuevo para otra teoría").
+ * - Ficha privada: solo el nombre y un aviso.
+ * - Sin datos (por ejemplo, sin dueño): el nombre solo, sin ficha.
+ */
+import type { Ficha } from '../lib/fichas';
+import { TEORIAS_ANONIMO, rango } from '../lib/logros';
+import Escudo from './Escudo.astro';
+import LogroIcono from './LogroIcono.astro';
+
+interface Props {
+  nombre: string;
+  anonimo?: boolean;
+  ficha?: Ficha | null;
+  /** Clase extra para el nombre */
+  class?: string;
+}
+const { nombre, anonimo = false, ficha = null, class: clase = '' } = Astro.props;
+const r = ficha && !ficha.privada ? rango(ficha.resenas) : null;
+const mascara = '<path d="M6 16c6-3 12-3 18 0 6-3 12-3 18 0 0 10-4 18-10 18-4 0-6-4-8-4s-4 4-8 4c-6 0-10-8-10-18z" stroke-linejoin="round"/><ellipse cx="15" cy="22" rx="4" ry="2.5" fill="currentColor"/><ellipse cx="33" cy="22" rx="4" ry="2.5" fill="currentColor"/>';
+---
+{anonimo ? (
+  <details class="who-d egg-d">
+    <summary><span class:list={['uname anon', clase]}>Anónimo</span></summary>
+    <div class="card egg" role="dialog" aria-label="Sobre Anónimo">
+      <div class="ch">¿Quién es Anónimo?</div>
+      <div class="cb">
+        <svg class="mask" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" set:html={mascara} />
+        <q data-teorias={JSON.stringify(TEORIAS_ANONIMO)}>{TEORIAS_ANONIMO[0]}</q>
+        <span class="sub">Tocá de nuevo para otra teoría.</span>
+      </div>
+    </div>
+  </details>
+) : !ficha ? (
+  <span class:list={['uname', clase]}>{nombre}</span>
+) : ficha.privada ? (
+  <details class="who-d">
+    <summary><span class:list={['uname', clase]}>{nombre}</span></summary>
+    <div class="card" role="dialog" aria-label={`Ficha de ${nombre}`}>
+      <div class="ch">{nombre}</div>
+      <div class="cb"><span>Esta persona prefiere mantener su ficha privada.</span></div>
+    </div>
+  </details>
+) : (
+  <details class="who-d">
+    <summary><span class:list={['uname', clase]}>{nombre}</span></summary>
+    <div class="card" role="dialog" aria-label={`Ficha de ${nombre}`}>
+      <div class="ch">{r && <Escudo rango={r.id} />} {nombre}</div>
+      <div class="cb">
+        {r && <div class="row2"><span>Rango</span><b>{r.nombre}</b></div>}
+        <div class="row2"><span>Reseñas escritas</span><b>{ficha.resenas}</b></div>
+        <div class="row2"><span>Finales contados</span><b>{ficha.finales}</b></div>
+        <div class="row2"><span>Votos de "Me sirvió"</span><b>{ficha.votos}</b></div>
+        {ficha.desde && <div class="row2"><span>En UTN REP desde</span><b>{ficha.desde}</b></div>}
+        {ficha.logros.length > 0 && (
+          <div><span class="sub">Logros</span><div class="logros" style="margin-top:3px">{ficha.logros.map((l) => <LogroIcono id={l} />)}</div></div>
+        )}
+      </div>
+      <div class="cf">No mostramos qué materias ni qué cursos reseñó. Cada persona puede ocultar su ficha desde Mi cuenta.</div>
+    </div>
+  </details>
+)}
+
+<script>
+  // Una ficha abierta por vez; se cierra al tocar afuera o con Escape.
+  // En "Anónimo", cada vez que se abre sale otra teoría.
+  const abiertas = () => document.querySelectorAll<HTMLDetailsElement>('details.who-d[open]');
+  document.addEventListener('toggle', (e) => {
+    const d = e.target as HTMLDetailsElement;
+    if (!(d instanceof HTMLDetailsElement) || !d.classList.contains('who-d') || !d.open) return;
+    abiertas().forEach((o) => { if (o !== d) o.open = false; });
+    const q = d.querySelector<HTMLElement>('q[data-teorias]');
+    if (!q) return;
+    if (d.dataset.vista) {
+      const lista: string[] = JSON.parse(q.dataset.teorias || '[]');
+      const i = (lista.indexOf(q.textContent || '') + 1 + Math.floor(Math.random() * (lista.length - 1))) % lista.length;
+      q.textContent = lista[i];
+    }
+    d.dataset.vista = '1';
+  }, true);
+  document.addEventListener('click', (e) => {
+    const t = e.target as Element;
+    abiertas().forEach((d) => { if (!d.contains(t)) d.open = false; });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') abiertas().forEach((d) => { d.open = false; });
+  });
+</script>

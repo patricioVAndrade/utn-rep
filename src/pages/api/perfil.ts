@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../lib/supabase';
+import { supabaseAdmin } from '../../lib/supabase-admin';
 import { json, readJson } from '../../lib/http';
 import { parseBody, perfilSchema } from '../../lib/validation';
 
@@ -29,6 +30,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (error) {
     console.error('Error guardando perfil:', error);
     return json({ error: 'No se pudo guardar. Probá de nuevo.' }, 500);
+  }
+
+  // La foto de Google la guarda el servidor (nadie la puede escribir desde el sitio):
+  // solo si la persona eligió mostrarla, y se borra si elige otra cosa (migración 8)
+  if ('foto' in campos) {
+    const url = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+    const valida = typeof url === 'string' && url.startsWith('https://') && url.length <= 500;
+    const foto_url = campos.foto === 'google' && valida ? url : null;
+    const { error: e2 } = await supabaseAdmin.from('perfiles').update({ foto_url }).eq('user_id', user.id);
+    if (e2) console.error('Error guardando foto_url:', e2.message);
   }
 
   // El nombre también va a la sesión, para que el saludo de arriba lo use enseguida

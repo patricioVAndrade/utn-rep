@@ -1,9 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
+import Escudo from '../components/Escudo.astro';
+import LogroIcono from '../components/LogroIcono.astro';
+import { LOGROS, RANGOS } from '../lib/logros';
 
 // Preguntas plegables por tema, como en la V6. Las más consultadas vienen abiertas.
-// La parte de rangos y logros se suma cuando estén (etapa 3).
+// Rangos y logros (migración 8) va antes de "Tus datos".
 const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boolean }[] }[] = [
   {
     titulo: 'Lo básico',
@@ -56,6 +59,38 @@ const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boo
       </div>
 
       {grupos.map((g) => (
+        <>
+        {g.titulo === 'Tus datos' && (
+          <section class="faq-group" id="rangos">
+            <h2>Rangos y logros</h2>
+            <details class="faq" open>
+              <summary>¿Qué son los escudos al lado de los nombres?</summary>
+              <div>
+                <div class="ranks-table">
+                  {RANGOS.map((r, i) => {
+                    const hasta = RANGOS[i + 1]?.desde;
+                    const txt = r.desde === 1 ? '1 reseña' : hasta ? `${r.desde} a ${hasta - 1} reseñas` : `${r.desde} reseñas o más`;
+                    return <div><Escudo rango={r.id} /><b>{r.nombre}</b><span>{txt}</span></div>;
+                  })}
+                </div>
+                <p class="sub" style="margin:6px 0 0">El rango sale de cuántas reseñas escribiste, también las anónimas (sin decir cuáles son).</p>
+              </div>
+            </details>
+            <details class="faq">
+              <summary>¿Qué son los logros?</summary>
+              <div>
+                <p style="margin:0 0 6px">Medallas por cosas puntuales. Se ganan solos, te llega un aviso y no se pierden:</p>
+                <div class="ranks-table">
+                  {LOGROS.map((l) => <div style="grid-template-columns:24px minmax(0,1fr)"><LogroIcono id={l.id} /><span><b>{l.nombre}</b>: {l.como.charAt(0).toLowerCase() + l.como.slice(1)}.</span></div>)}
+                </div>
+              </div>
+            </details>
+            <details class="faq">
+              <summary>¿Quién ve mi ficha?</summary>
+              <div>Cualquiera que toque tu nombre en una reseña con nombre ve tu rango, cuántas reseñas y finales contaste, los "Me sirvió" que juntaste y tus logros. Nunca qué materias ni qué cursos reseñaste. La podés ocultar desde <a href="/mi-cuenta">Mi cuenta</a>. En las reseñas anónimas no hay ficha.</div>
+            </details>
+          </section>
+        )}
         <section class="faq-group">
           <h2>{g.titulo}</h2>
           {g.preguntas.map((q) => (
@@ -65,6 +100,7 @@ const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boo
             </details>
           ))}
         </section>
+        </>
       ))}
     </div>
 

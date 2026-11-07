@@ -2,6 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
 import Stars from '../components/Stars.astro';
+import Quien from '../components/Quien.astro';
+import { autoresDeResenas } from '../lib/fichas';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { leerPerfil, preguntarComoTeFue } from '../lib/perfil';
 import { COMO_TE_FUE, anioLabel, nota, tiempoRelativo } from '../lib/format';
@@ -121,6 +123,8 @@ const destCurso = destDictado ? (Array.isArray(destDictado.cursos) ? destDictado
 const destMateria = destDictado ? (Array.isArray(destDictado.materias) ? destDictado.materias[0] : destDictado.materias)?.nombre : '';
 const recortar = (t: string, n = 180) => (t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t);
 const autor = (r: { es_anonima: boolean; nombre_usuario: string | null }) => (r.es_anonima ? 'Anónimo' : r.nombre_usuario || 'Estudiante');
+// Fichas de quienes aparecen en "Última reseña" y en la destacada
+const autores = await autoresDeResenas([...Object.values(ultima).map((r) => r.id), ...(destacada ? [destacada.id] : [])]);
 const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
 ---
 
@@ -199,7 +203,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
                   <div class="c"><Stars value={st.promedio} /><div class="score">{nota(st.promedio)} de 5</div></div>
                   <div class="c num hide-sm">{st.count}<div class="score">reseñas</div></div>
                   <div class="last hide-sm">
-                    {ult ? <>{tiempoRelativo(ult.created_at)}<br />por <b>{autor(ult)}</b></> : '—'}
+                    {ult ? <>{tiempoRelativo(ult.created_at)}<br />por <Quien nombre={autor(ult)} anonimo={ult.es_anonima} ficha={autores.get(ult.id)?.ficha} /></> : '—'}
                   </div>
                 </div>
               ) : (
@@ -264,7 +268,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
           <h3><Icon name="thumb" /> Reseña destacada</h3>
           <div class="in">
             <a href={`/dictado/${destacada.dictado_id}#resena-${destacada.id}`}><b>{destMateria}{destCurso ? `, ${destCurso}` : ''}</b></a>
-            <span class="sub"><Stars value={destacada.calificacion_general} /> por {autor(destacada)}</span>
+            <span class="sub"><Stars value={destacada.calificacion_general} /> por <Quien nombre={autor(destacada)} anonimo={destacada.es_anonima} ficha={autores.get(destacada.id)?.ficha} /></span>
             <blockquote class="quote-mini">"{recortar(destacada.comentario || '')}"</blockquote>
             <span class="sub">Le sirvió a <b>{destacada.votos_utilidad} personas</b>. Es la más votada del sitio: si otra la supera, toma su lugar.</span>
           </div>

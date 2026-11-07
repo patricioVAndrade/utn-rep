@@ -17,7 +17,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F2 | Carpetas de "nuevas desde tu última visita" | Hecho | Inicio, carpeta amarilla y "hay nuevas" | Se guarda en el navegador, no en la cuenta: en otro dispositivo empieza de cero. La primera vez marca como nuevas las de las últimas dos semanas. Arriba dice "Tu última visita". |
 | F3 | Buscador con sugerencias agrupadas | Hecho | Banner, en cualquier página; Enter abre `/buscar?q=` | Sugerencias agrupadas en Materias, Cursos y Profesores. La página de resultados suma Finales, filtros y qué hacer si no hay nada. |
 | F4 | Reparto de estrellas | Hecho | Curso y materia, "Cómo lo puntuaron" | — |
-| F5 | Rangos por cantidad de reseñas | Falta (etapa 3) | — | Necesita contar reseñas por persona y mostrarlo en público. |
+| F5 | Rangos por cantidad de reseñas | Hecho (migración 8) | Reseñas, ficha, Mi cuenta, Reseña publicada, ¿Cómo funciona? | Sale de contar reseñas (también las anónimas, sin decir cuáles): 1 Ingresante, 2 a 4 Cursante, 5 a 14 Referente, 15 o más Leyenda. `src/lib/logros.ts`. |
 | F6 | Etiqueta de plan de estudios (2008 o 2023) | Base lista, sin mostrar | — | Migración 3: columna `plan` con 2023 en todas. No se muestra ni se pregunta, como pidió Pato; queda lista para cuando convivan los dos planes. |
 | F7 | Otros cursos de la materia y comparador | Hecho | Botón "Comparar cursos" en la materia y en el curso; `/materia/ID/comparar` | Columnas: General, Reseñas, Promocionó, Regularizó y Quedó libre. **No están** Dificultad, Exigencia ni Claridad porque la base solo guarda el puntaje general (van con etapa 3 si los querés). Se ordena tocando los títulos y se filtra por turno. |
 | F8 | Formulario en pasos con borrador | Hecho | Escribir una reseña | 3 pasos (2 si venís desde un curso). El borrador queda en el navegador. **No están** el título ni el plan de estudios (no existen en la base) ni los puntajes por separado. El paso 1 usa listas desplegables en vez de botones. Los cursos que ya reseñaste aparecen deshabilitados. |
@@ -27,10 +27,10 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F12 | Respuestas a una reseña | Hecho como F10 | — | Solo responde el moderador (decisión de Pato). |
 | F13 | Contador "Hay X estudiantes en línea" | Falta (etapa 3) | — | Necesita registrar actividad reciente. |
 | F14 | Visitas | Falta (etapa 3) | — | Vercel Analytics las cuenta, pero no se pueden mostrar en la página sin un contador propio. |
-| F15 | Ficha de usuario ocultable | Falta (etapa 3) | — | Hoy "por X" en Última reseña es texto, no enlace. |
-| F16 | Easter egg de Anónimo | Falta (etapa 3) | — | Va junto con F15. |
-| F17 | Escudos de rango | Falta (etapa 3) | — | Va con F5. |
-| F18 | Logros | Falta (etapa 3) | — | Tabla nueva. Los logros L1 a L7 están aprobados; L8 a L19 esperan tu voto. |
+| F15 | Ficha de usuario ocultable | Hecho (migración 8) | Nombre en cada reseña, "por X" en Última reseña (inicio y año) y en la destacada | `Quien.astro`. La arma el servidor con `src/lib/fichas.ts` (el user_id no llega al navegador). Rango, reseñas, finales, "Me sirvió", desde qué año y logros. Se oculta en Mi cuenta. |
+| F16 | Easter egg de Anónimo | Hecho | Igual que F15 | Máscara y una teoría; cada vez que se abre sale otra (`TEORIAS_ANONIMO`). El logro secreto "Detective" (L9) espera tu voto. |
+| F17 | Escudos de rango | Hecho | Al lado del nombre en las reseñas | `Escudo.astro`, los cuatro de la V6. |
+| F18 | Logros | Hecho L1 a L6 (migración 8) | Ficha, al lado del nombre (no en el celular), Mi cuenta (todos, con cómo se gana el que falta), Reseña publicada, ¿Cómo funciona? | Los da la base con triggers y avisa. L7 espera los cambios de profesores (2027); L8 a L19 esperan tu voto. |
 | F19 | Filtros de finales | Hecho | Experiencias de finales | Mesa (Diciembre, Febrero/marzo, Julio, Especial) y materia. El filtro queda en la dirección, así que el link se puede compartir. Al costado: "Materias con más experiencias". Tarjeta como la que mandaste, con "Tomado por:" enlazado al profe cuando coincide y "Nueva" desde tu última visita (también "N nuevas" en la pestaña). Autor: "Publicar con mi nombre" al compartir (por defecto, anónima). Las viejas quedan anónimas. |
 | F20 | Recordar años abiertos | Hecho | Inicio y Mi cuenta | Sin sesión viene abierto solo 1.º. Con sesión, vienen abiertos los años que elegís en **Mi cuenta** (con la explicación de para qué sirve). Los años cerrados dicen "Hay reseñas nuevas" cuando las hay. Desde la migración 5 se guarda en tu cuenta (te sigue en el celular y la compu); el navegador guarda una copia. Lo elegido antes solo en el navegador pasa solo a la cuenta al abrir Mi cuenta. |
 | F21 | "Me sirvió" en finales | Hecho | Experiencias de finales | Un voto por persona, contador en la tarjeta y orden "Más útiles". Reportar ya no abre un mail: va a la cola de Reportes del admin, junto con las reseñas. |
@@ -52,8 +52,8 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Colores por año | Hecho | 1.º azul, 2.º verde, 3.º turquesa, 4.º bordó, 5.º violeta. |
 | Cafecito con ícono que invite | Hecho | En el pie y en la columna del inicio. |
 | Celular: lo importante arriba, "Ir a" en una línea, sin "Tu cuenta" en el inicio | Hecho | — |
-| "Por X" en Última reseña abre la ficha o el easter egg | Falta (etapa 3) | Va con F15 y F16. |
-| Foto de perfil: inicial por defecto | Hecho | En Mi cuenta se elige inicial, foto de Google o uno de 6 dibujos (migración 5). Se ve en Mi cuenta; en las reseñas aparece con la ficha (migración 8). |
+| "Por X" en Última reseña abre la ficha o el easter egg | Hecho | Inicio, página del año y reseña destacada. La ficha se abre hacia la izquierda. |
+| Foto de perfil: inicial por defecto | Hecho | En Mi cuenta se elige inicial, foto de Google o uno de 6 dibujos (migración 5). Se ve en Mi cuenta y en tus reseñas con nombre (migración 8; la foto de Google la guarda el servidor al elegirla). |
 | Mejoras del panel de admin | Parcial | Resumen, Reportes, Reseñas, Finales, Materias y cursos, Profesores e Importar cuatrimestre tienen el estilo de la V6 (listas con buscador, filtros y acciones en la fila). `/admin/gestion` redirige a la pantalla nueva. Con la migración 4: pantalla Moderación (palabras marcadas y registro de todo lo que se hace), "Responder" y "Pedirle que la edite" en Reportes y Reseñas (el pedido lo ve la persona en Mis reseñas y se borra solo al editar), y reportes automáticos por palabra marcada. Usuarios y links compartidos van con la migración 9. |
 | Cambios de profesores (F22 a F27) | Después de marzo 2027 | Lo que decidiste. |
 
@@ -71,9 +71,9 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Experiencias de finales | Hecho | `/finales` |
 | Contar un final | Hecho | `/finales/nuevo` |
 | Escribir, paso 1 y paso 2 | Hecho | `/nueva-resena` |
-| Reseña publicada | Hecho | `/resena-publicada?curso=ID`. Rango y logros van con la etapa 3. |
+| Reseña publicada | Hecho | `/resena-publicada?curso=ID`. Con el cartel de rango ("Subiste a…") y los logros, y los nuevos de los últimos 15 minutos. |
 | Mis reseñas | Parcial | `/mis-resenas` con Reseñas, Finales contados y Borradores, sin turno. "Te faltan reseñar" sale de los años que elegiste en el inicio (hasta que exista Mi inscripción). Sin rango ni logros. |
-| Mi cuenta | Casi completa | `/mi-cuenta` (tocando tu nombre arriba), como la V6: nombre a mostrar (cambia también en lo ya publicado), foto, mostrar u ocultar la ficha, años de cursada, "¿Cómo te fue?" y borrar la cuenta (dejando lo publicado como anónimo o borrándolo). Todo se guarda en la cuenta (migración 5). Materias que seguís: hecho (migración 6). Faltan rango y logros (migración 8). |
+| Mi cuenta | Casi completa | `/mi-cuenta` (tocando tu nombre arriba), como la V6: nombre a mostrar (cambia también en lo ya publicado), foto, mostrar u ocultar la ficha, años de cursada, "¿Cómo te fue?" y borrar la cuenta (dejando lo publicado como anónimo o borrándolo). Todo se guarda en la cuenta (migración 5). Materias que seguís: hecho (migración 6). Rango y logros: hecho (migración 8). |
 | Mi inscripción (F29) | Falta | Espera tu voto |
 | Ingresar | Hecho | Ventana de ingreso con mail, Google y GitHub |
 | ¿Cómo funciona? | Hecho | `/sobre` |

@@ -10,6 +10,7 @@ import FinalesPanel from '../../components/FinalesPanel.astro';
 import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 import { supabaseAdmin } from '../../lib/supabase-admin';
 import { isAdmin } from '../../lib/admin';
+import { autoresDeResenas } from '../../lib/fichas';
 import { anioLabel, compararCursos, nota, tiempoRelativo } from '../../lib/format';
 
 const user = Astro.locals.user;
@@ -66,6 +67,9 @@ const { data: resenas } = await supabase
   .order('created_at', { ascending: false });
 
 const resenaIds = (resenas || []).map((r) => r.id);
+
+// Foto y ficha de quien escribió cada reseña con nombre (migración 8)
+const autores = await autoresDeResenas(resenaIds);
 
 // Respuestas de la moderación (públicas, migración 4)
 const { data: respuestas } = resenaIds.length
@@ -230,6 +234,7 @@ const totalCursos = (otrosRaw || []).length;
                 logueado={!!user}
                 userIsAdmin={userIsAdmin}
                 nombreAnonimo={nombresAnonimos[resena.id]}
+                autor={autores.get(resena.id)}
               />
             ))}
           </div>

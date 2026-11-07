@@ -3,6 +3,9 @@ import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { turnoLabel } from '../lib/format';
+import Escudo from '../components/Escudo.astro';
+import LogroIcono from '../components/LogroIcono.astro';
+import { LOGROS, logroPorId, progresoRango, rango } from '../lib/logros';
 
 // Pantalla que aparece después de publicar una reseña (?curso=ID del curso)
 const user = Astro.locals.user;
@@ -13,10 +16,11 @@ if (!user) return Astro.redirect(`/dictado/${dictadoId}`);
 const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 const { client: userClient } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
 
-const [{ data: dictado }, { data: mia }, { data: mias }] = await Promise.all([
+const [{ data: dictado }, { data: mia }, { data: mias }, { data: logrosRaw }] = await Promise.all([
   supabase.from('dictados').select('id, materia_id, cursos ( identificador, turno ), materias ( id, nombre, nivel )').eq('id', dictadoId).single(),
   userClient.from('resenas').select('id, dictado_id').eq('user_id', user.id).eq('dictado_id', dictadoId).maybeSingle(),
   userClient.from('resenas').select('dictado_id').eq('user_id', user.id),
+  userClient.from('logros_usuario').select('logro, ganado_at').eq('user_id', user.id),
 ]);
 if (!dictado || !mia) return Astro.redirect(`/dictado/${dictadoId}`);
 
@@ -33,6 +37,16 @@ if (idsResenados.length) {
 }
 const faltan = (delAnio || []).filter((m: any) => !materiasResenadas.has(m.id)).length;
 
+// Rango y logros (migración 8): lo que ganaste con esta reseña
+const n = (mias || []).length;
+const miRango = rango(n);
+const subiste = !!miRango && miRango.desde === n;
+const prog = progresoRango(n);
+const ORDEN = LOGROS.map((l) => l.id as string);
+const misLogros = (logrosRaw || []).map((l: any) => l.logro as string).filter((l) => ORDEN.includes(l)).sort((a, b) => ORDEN.indexOf(a) - ORDEN.indexOf(b));
+const hace15 = Date.now() - 15 * 60 * 1000;
+const nuevos = (logrosRaw || []).filter((l: any) => new Date(l.ganado_at).getTime() > hace15).map((l: any) => logroPorId(l.logro)?.nombre).filter(Boolean);
+
 const ruta = `/dictado/${dictadoId}`;
 const nombre = `${materia?.nombre || 'la materia'}, ${curso?.identificador || 'tu curso'}`;
 const mensaje = `Escribí una reseña de ${nombre} en UTN REP. Si cursaste, sumá la tuya así la próxima camada elige mejor 👉`;
@@ -48,6 +62,22 @@ const mensaje = `Escribí una reseña de ${nombre} en UTN REP. Si cursaste, sum�
           <p>Es de <b>{materia?.nombre}</b>, curso <b>{curso?.identificador}</b>{curso?.turno ? `, turno ${turnoLabel(curso.turno).toLowerCase()}` : ''}. Ya la puede leer cualquiera que busque ese curso.</p>
         </div>
       </div>
+
+      {miRango && (
+        <div class="unlock">
+          <div class="u-badge"><Escudo rango={miRango.id} /></div>
+          <div>
+            <b>{subiste ? (n === 1 ? 'Ya sos Ingresante' : `Subiste a ${miRango.nombre}`) : `Sos ${miRango.nombre}`}</b>
+            <span class="sub">
+              {`${n} ${n === 1 ? 'reseña' : 'reseñas'}. `}
+              {subiste && n > 1 ? 'Tu escudo nuevo ya se ve en todas tus reseñas. ' : ''}
+              {prog.siguiente ? `Con ${prog.faltan} más llegás a ${prog.siguiente.nombre}.` : 'Es el rango más alto.'}
+              {nuevos.length > 0 && <> {nuevos.length === 1 ? 'Logro nuevo' : 'Logros nuevos'}: <b class="inline">{nuevos.join(', ')}</b>.</>}
+            </span>
+          </div>
+          {misLogros.length > 0 && <div class="logros">{misLogros.map((l) => <LogroIcono id={l} />)}</div>}
+        </div>
+      )}
 
       <section class="share-box">
         <h2><Icon name="share" /> Pasásela a tu curso</h2>

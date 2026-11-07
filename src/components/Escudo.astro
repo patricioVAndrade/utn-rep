@@ -1,0 +1,17 @@
+---
+/** Escudo del rango (Ingresante, Cursante, Referente o Leyenda), como en la V6. */
+import type { RangoId } from '../lib/logros';
+import { RANGOS } from '../lib/logros';
+
+interface Props { rango: RangoId; class?: string }
+const { rango, class: clase = '' } = Astro.props;
+const nombre = RANGOS.find((r) => r.id === rango)?.nombre || '';
+const EMBLEMA: Record<RangoId, string> = {
+  ing: '<path d="M5 9.5l3-2.5 3 2.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  cur: '<path d="M5 8l3-2.5L11 8M5 11.5L8 9l3 2.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  ref: '<path d="M8 4.6l1.1 2.3 2.5.3-1.8 1.7.5 2.5L8 10.2l-2.3 1.2.5-2.5-1.8-1.7 2.5-.3z" fill="#fff"/>',
+  leg: '<path d="M4.5 11h7l.6-5-2.4 1.8L8 5l-1.7 2.8L3.9 6z" fill="#fff"/>',
+};
+const svg = '<path d="M8 .8l7 2.6v5.1c0 4.3-3 7.4-7 8.9-4-1.5-7-4.6-7-8.9V3.4z" fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width=".8"/>' + EMBLEMA[rango];
+---
+<svg class:list={['badge', rango, clase]} viewBox="0 0 16 18" role="img" aria-label={`Rango ${nombre}`} set:html={svg} />

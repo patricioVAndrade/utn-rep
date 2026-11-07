@@ -46,7 +46,7 @@ for (const n of [1, 2, 3, 4, 5]) {
       for (let r = 0; r < nres; r++) {
         const anon = rnd() < .3; const autor = pick(ALUMNOS);
         const dias = Math.floor(rnd() * 200);
-        resenas.push({ id: rid++, dictado_id: d.id, calificacion_general: 1 + Math.floor(rnd() * 5 * 0.8 + rnd() * 1.4) > 5 ? 5 : 1 + Math.floor(rnd() * 5 * 0.8 + rnd() * 1.4), anio_cursado: 2026 - Math.floor(rnd() * 4), comentario: pick(TEXTOS), es_anonima: anon, nombre_usuario: autor, es_alumno_utn: rnd() < .4, condicion_final: pick(['PROMOCIONADO', 'REGULAR', 'LIBRE', null, null]), votos_utilidad: Math.floor(rnd() * 12), created_at: new Date(Date.UTC(2026, 10, 6) - dias * 86400000 - r * 3600000).toISOString(), user_id: autor === 'Sofía Rivas' ? 'u-demo' : null });
+        resenas.push({ id: rid++, dictado_id: d.id, calificacion_general: 1 + Math.floor(rnd() * 5 * 0.8 + rnd() * 1.4) > 5 ? 5 : 1 + Math.floor(rnd() * 5 * 0.8 + rnd() * 1.4), anio_cursado: 2026 - Math.floor(rnd() * 4), comentario: pick(TEXTOS), es_anonima: anon, nombre_usuario: autor, es_alumno_utn: rnd() < .4, condicion_final: pick(['PROMOCIONADO', 'REGULAR', 'LIBRE', null, null]), votos_utilidad: Math.floor(rnd() * 12), created_at: new Date(Date.UTC(2026, 10, 6) - dias * 86400000 - r * 3600000).toISOString(), user_id: autor === 'Sofía Rivas' ? 'u-demo' : 'u-' + autor.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, '-') });
       }
     }
   });
@@ -78,7 +78,30 @@ export const reportes_resenas = [
   { id: 1, resena_id: 12, user_id: null, automatico: true, motivo: 'Palabra marcada: boludo', created_at: '2026-11-04T18:20:00Z' },
   { id: 2, resena_id: 20, user_id: 'otro', automatico: false, motivo: 'Tiene datos personales', created_at: '2026-11-05T11:00:00Z' },
 ];
-export const perfiles = [];
+export const perfiles = [
+  { user_id: 'u-tomas-quiroga', nombre_mostrar: null, foto: 'dibujo', dibujo: 3, foto_url: null, mostrar_ficha: true, anios_cursada: [], preguntar_como_te_fue: true, como_te_fue_pausa_hasta: null },
+  { user_id: 'u-mica-ledesma', nombre_mostrar: null, foto: 'inicial', dibujo: null, foto_url: null, mostrar_ficha: false, anios_cursada: [], preguntar_como_te_fue: true, como_te_fue_pausa_hasta: null },
+];
+
+// Logros (migración 8): los mismos criterios que revisar_logros en la base
+export const logros_usuario = [];
+{
+  const dar = (u, l) => { if (u && !logros_usuario.some((x) => x.user_id === u && x.logro === l)) logros_usuario.push({ user_id: u, logro: l, ganado_at: '2026-11-07T12:00:00Z' }); };
+  const nivelDe = new Map(dictados.map((d) => [d.id, materias.find((m) => m.id === d.materia_id)?.nivel]));
+  const matDe = new Map(dictados.map((d) => [d.id, d.materia_id]));
+  const primeraDeMateria = new Map();
+  [...resenas].sort((a, b) => a.created_at.localeCompare(b.created_at)).forEach((r) => { const m = matDe.get(r.dictado_id); if (!primeraDeMateria.has(m)) primeraDeMateria.set(m, r.user_id); });
+  primeraDeMateria.forEach((u) => dar(u, 'L2'));
+  const usuarios = [...new Set(resenas.map((r) => r.user_id))];
+  usuarios.forEach((u) => {
+    const suyas = resenas.filter((r) => r.user_id === u);
+    if (suyas.length) dar(u, 'L1');
+    if (suyas.reduce((a, r) => a + r.votos_utilidad, 0) >= 10) dar(u, 'L3');
+    if (suyas.some((r) => { const h = (new Date(r.created_at).getUTCHours() + 21) % 24; return h >= 2 && h <= 4; })) dar(u, 'L5');
+    if (new Set(suyas.map((r) => nivelDe.get(r.dictado_id)).filter((n) => n >= 1 && n <= 5)).size === 5) dar(u, 'L6');
+  });
+  experiencias_finales.forEach((f) => dar(f.user_id, 'L4'));
+}
 export const seguimientos = [{ user_id: 'u-demo', materia_id: 1, mail: true, created_at: '2026-11-01T10:00:00Z' }];
 export const preferencias_aviso = [];
 export const notificaciones = [

@@ -1,4 +1,6 @@
 ---
+import Quien from '../../components/Quien.astro';
+import { autoresDeResenas } from '../../lib/fichas';
 import Layout from '../../layouts/Layout.astro';
 import Icon from '../../components/Icon.astro';
 import Stars from '../../components/Stars.astro';
@@ -24,7 +26,7 @@ if (error) console.error('Error trayendo materias:', error.message);
 const materiaIds = materias?.map((m) => m.id) || [];
 type Agg = { promedio: number; count: number; cursos: number };
 const porMateria: Record<number, Agg> = {};
-const ultima: Record<number, { created_at: string; autor: string }> = {};
+const ultima: Record<number, { id: number; created_at: string; autor: string; anonima: boolean }> = {};
 const delMes = new Map<number, number>();
 let cursoDe = new Map<number, { curso: string; materia: number }>();
 
@@ -51,14 +53,14 @@ if (materiaIds.length > 0) {
   if (dictadoIds.length > 0) {
     const { data: recientes } = await supabase
       .from('resenas_publicas')
-      .select('dictado_id, created_at, nombre_usuario, es_anonima')
+      .select('id, dictado_id, created_at, nombre_usuario, es_anonima')
       .in('dictado_id', dictadoIds)
       .order('created_at', { ascending: false })
       .limit(500);
     const hace30 = Date.now() - 30 * 86400000;
     (recientes || []).forEach((r) => {
       const mid = materiaDeDictado.get(r.dictado_id);
-      if (mid && !ultima[mid]) ultima[mid] = { created_at: r.created_at, autor: r.es_anonima ? 'Anónimo' : r.nombre_usuario || 'Estudiante' };
+      if (mid && !ultima[mid]) ultima[mid] = { id: r.id, anonima: !!r.es_anonima, created_at: r.created_at, autor: r.es_anonima ? 'Anónimo' : r.nombre_usuario || 'Estudiante' };
       if (new Date(r.created_at).getTime() > hace30) delMes.set(r.dictado_id, (delMes.get(r.dictado_id) || 0) + 1);
     });
     const masIds = [...delMes.keys()];
@@ -85,6 +87,8 @@ const comentados = [...delMes.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
   .map(([id, n]) => ({ id, n, ...cursoDe.get(id) }))
   .filter((x) => x.curso);
 const fecha = (iso: string) => ((Date.now() - new Date(iso).getTime()) / 86400000 < 7 ? tiempoRelativo(iso) : new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }));
+// Fichas de quienes aparecen en "Última reseña" (migración 8)
+const autores = await autoresDeResenas(Object.values(ultima).map((u) => u.id));
 ---
 
 <Layout
@@ -147,7 +151,7 @@ const fecha = (iso: string) => ((Date.now() - new Date(iso).getTime()) / 8640000
                   <>
                     <div class="c"><Stars value={st.promedio} /><div class="score">{nota(st.promedio)} de 5</div></div>
                     <div class="c num hide-sm">{st.count}<div class="score">reseñas</div></div>
-                    <div class="last hide-sm">{ult ? <>{fecha(ult.created_at)}<br />por <b>{ult.autor}</b></> : '—'}</div>
+                    <div class="last hide-sm">{ult ? <>{fecha(ult.created_at)}<br />por <Quien nombre={ult.autor} anonimo={ult.anonima} ficha={autores.get(ult.id)?.ficha} /></> : '—'}</div>
                   </>
                 ) : (
                   <>
