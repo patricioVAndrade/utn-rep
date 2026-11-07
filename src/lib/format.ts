@@ -67,3 +67,13 @@ export function nota(n: number): string {
 export function compararCursos(a: string, b: string): number {
   return (a || '').localeCompare(b || '', 'es', { numeric: true });
 }
+
+/** "Mesa de julio 2026", "Mesa de febrero / marzo 2026", "Mesa especial 2026" */
+export function mesaTexto(mesa: string | null | undefined, anio: number | string | null | undefined): string {
+  const m = (mesa || '').trim().toLowerCase();
+  const a = anio ? ` ${anio}` : '';
+  if (!m) return `Mesa${a}`;
+  if (m.startsWith('feb')) return `Mesa de febrero / marzo${a}`;
+  if (m.startsWith('esp')) return `Mesa especial${a}`;
+  return `Mesa de ${m}${a}`;
+}

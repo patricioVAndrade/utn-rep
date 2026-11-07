@@ -186,6 +186,31 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
   const anteriorVisita = visitaAnterior();
   const spanVisita = document.getElementById('ultima-visita');
   if (spanVisita && anteriorVisita) spanVisita.textContent = `Tu última visita: ${textoVisita(anteriorVisita)}`;
+
+  // "N nuevas" en la pestaña de finales: contadas desde tu visita anterior
+  async function finalesNuevos(desde: number) {
+    let fechas: string[] | null = null;
+    try {
+      const c = JSON.parse(sessionStorage.getItem('finalesUltimas') || 'null');
+      if (c && Date.now() - c.t < 5 * 60 * 1000) fechas = c.fechas;
+    } catch {}
+    if (!fechas) {
+      const r = await fetch('/api/finales/ultimas.json').catch(() => null);
+      if (!r?.ok) return;
+      fechas = ((await r.json()).fechas || []) as string[];
+      try { sessionStorage.setItem('finalesUltimas', JSON.stringify({ t: Date.now(), fechas })); } catch {}
+    }
+    const n = fechas.filter((f) => new Date(f).getTime() > desde).length;
+    if (!n) return;
+    document.querySelectorAll<HTMLAnchorElement>('a[href="/finales"]').forEach((a) => {
+      if (!a.closest('.tabs, .bottombar') || a.querySelector('.nuevo-tag')) return;
+      const tag = document.createElement('span');
+      tag.className = 'nuevo-tag';
+      tag.textContent = a.closest('.bottombar') ? String(n) : `${n} nueva${n !== 1 ? 's' : ''}`;
+      a.append(tag);
+    });
+  }
+  if (anteriorVisita) finalesNuevos(anteriorVisita);
 </script>
 
 <script>

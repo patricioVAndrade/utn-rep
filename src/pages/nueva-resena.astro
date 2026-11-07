@@ -95,7 +95,7 @@ const crumbs = [
           </div>
           <div id="msg-success" class="notice ok hidden" role="status">
             <Icon name="check" />
-            <div><b>¡Reseña publicada!</b><p>Gracias por contar tu experiencia. Te llevamos al curso…</p></div>
+            <div><b>¡Reseña publicada!</b><p>Gracias por contar tu experiencia. Un segundo…</p></div>
           </div>
           <div id="msg-error" class="notice bad hidden" role="alert">
             <Icon name="alert" />
@@ -519,7 +519,7 @@ const crumbs = [
           try { localStorage.removeItem(CLAVE); } catch {}
           $('msg-success').classList.remove('hidden');
           $('msg-success').scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setTimeout(() => { window.location.href = '/dictado/' + dictadoId + '?publicada=1'; }, 1200);
+          setTimeout(() => { window.location.href = '/resena-publicada?curso=' + dictadoId; }, 700);
         } catch (err) {
           console.error('Error enviando reseña:', err);
           msgError.querySelector('b').textContent = 'No se pudo publicar';

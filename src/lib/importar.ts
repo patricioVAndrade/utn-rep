@@ -92,9 +92,9 @@ export function formatoApellidoNombre(nombre: string): string {
   return `${partes[partes.length - 1]}, ${partes.slice(0, -1).join(' ')}`;
 }
 
-type Indice = { prof: BaseProfesor; clave: string; apellidos: string[]; nombres: string[]; todas: string[] };
+export type Indice = { prof: BaseProfesor; clave: string; apellidos: string[]; nombres: string[]; todas: string[] };
 
-function indexar(profesores: BaseProfesor[]): Indice[] {
+export function indexar(profesores: BaseProfesor[]): Indice[] {
   return profesores.map((prof) => {
     const n = norm(prof.nombre_completo);
     const [ap, no] = n.includes(',') ? n.split(',', 2) : ['', n];

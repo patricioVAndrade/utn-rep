@@ -2,7 +2,6 @@
 import Layout from '../../layouts/Layout.astro';
 import Icon from '../../components/Icon.astro';
 import { supabase } from '../../lib/supabase';
-import { anioLabel } from '../../lib/format';
 
 const user = Astro.locals.user;
 
@@ -13,21 +12,26 @@ if (!user) {
 
 const [{ data: materias }, { data: profesores }] = await Promise.all([
   supabase.from('materias').select('id, nombre, nivel').order('nivel', { ascending: true }).order('nombre', { ascending: true }),
-  supabase.from('profesores').select('id, nombre_completo').order('nombre_completo', { ascending: true }),
+  supabase.from('profesores').select('id, nombre_completo').order('nombre_completo', { ascending: true }).range(0, 19999),
 ]);
 
 const listaMaterias = materias || [];
 const listaProfesores = profesores || [];
 
-// Años desde el actual hasta 2015
+// ¿Viene desde una materia? (?materia=ID)
+const materiaParam = Number(Astro.url.searchParams.get('materia'));
+const materiaInicial = listaMaterias.find((m: any) => m.id === materiaParam) || null;
+const etiqueta = (m: any) => `${m.nombre} (${m.nivel}.º año)`;
+
+// Este año, el anterior y "Antes" (abre la lista desde 2015)
 const currentYear = new Date().getFullYear();
-const aniosDisponibles = Array.from({ length: currentYear - 2014 }, (_, i) => currentYear - i);
+const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => currentYear - 2 - i);
 ---
 
 <Layout
-  title="Contar mi final - UTN REP"
+  title="Contar mi experiencia de final - UTN REP"
   tab="finales"
-  crumbs={[{ label: 'Experiencias de finales', href: '/finales' }, { label: 'Contar mi final' }]}
+  crumbs={[{ label: 'Experiencias de finales', href: '/finales' }, { label: 'Contar mi experiencia de final' }]}
 >
   <div class="layout">
     <div class="main">
@@ -37,50 +41,61 @@ const aniosDisponibles = Array.from({ length: currentYear - 2014 }, (_, i) => cu
       </div>
 
       <form id="final-form" class="form" novalidate>
-        <h1 class="fhead"><span>Contar mi final</span></h1>
+        <h1 class="fhead"><span>Contar mi experiencia de final</span><span class="draft-note" id="draft-note">Se guarda como borrador</span></h1>
         <div class="fgrid">
-          <label for="materia_search">Materia<small>Escribí y elegí de la lista.</small></label>
+          <label for="materia_search">Materia</label>
           <div class="field">
-            <input type="text" id="materia_search" list="lista-materias" autocomplete="off" required placeholder="Por ejemplo: Análisis Matemático I" />
+            <input type="text" id="materia_search" list="lista-materias" autocomplete="off" required placeholder="Por ejemplo: Análisis Matemático I" value={materiaInicial ? etiqueta(materiaInicial) : ''} />
             <datalist id="lista-materias">
-              {listaMaterias.map((m: any) => <option data-id={m.id} value={`${m.nombre} (${anioLabel(m.nivel)})`}></option>)}
+              {listaMaterias.map((m: any) => <option data-id={m.id} data-nivel={m.nivel} value={etiqueta(m)}></option>)}
             </datalist>
+            <span class="help"><span id="materia-yr" class:list={['yr', materiaInicial ? `y${materiaInicial.nivel}` : 'hidden']}>{materiaInicial ? `${materiaInicial.nivel}.º` : ''}</span> Se autocompleta mientras escribís.</span>
           </div>
 
-          <label for="anio">Año en que rendiste</label>
+          <div class="lab" id="lab-mesa">Mesa</div>
           <div class="field">
-            <select id="anio" required>
-              <option value="" disabled selected>Elegí el año…</option>
-              {aniosDisponibles.map((anio) => <option value={anio}>{anio}</option>)}
+            <div class="seg" role="radiogroup" aria-labelledby="lab-mesa">
+              {[['Diciembre', 'Diciembre'], ['Febrero', 'Febrero / marzo'], ['Julio', 'Julio'], ['Especial', 'Especial']].map(([v, l]) => (
+                <button type="button" role="radio" data-mesa={v} aria-checked="false" aria-pressed="false">{l}</button>
+              ))}
+            </div>
+          </div>
+
+          <div class="lab" id="lab-anio">Año</div>
+          <div class="field">
+            <div class="seg" role="radiogroup" aria-labelledby="lab-anio">
+              <button type="button" role="radio" data-anio={currentYear} aria-checked="true" aria-pressed="true">{currentYear}</button>
+              <button type="button" role="radio" data-anio={currentYear - 1} aria-checked="false" aria-pressed="false">{currentYear - 1}</button>
+              <button type="button" role="radio" data-anio="antes" aria-checked="false" aria-pressed="false">Antes</button>
+            </div>
+            <label class="sr" for="anio-viejo">Año</label>
+            <select id="anio-viejo" class="hidden">
+              {aniosViejos.map((a) => <option value={a}>{a}</option>)}
             </select>
           </div>
 
-          <label for="mesa">Mesa</label>
+          <label for="profesor">¿Quién te tomó?<small>Opcional</small></label>
           <div class="field">
-            <select id="mesa" required>
-              <option value="" disabled selected>Elegí la mesa…</option>
-              <option value="Diciembre">Diciembre</option>
-              <option value="Febrero">Febrero / Marzo</option>
-              <option value="Julio">Julio</option>
-              <option value="Especial">Mesa especial</option>
-            </select>
+            <input type="text" id="profesor" list="lista-profes" autocomplete="off" maxlength="120" placeholder="Por ejemplo: Benítez" />
+            <datalist id="lista-profes">
+              {listaProfesores.map((p: any) => <option value={p.nombre_completo}></option>)}
+            </datalist>
+            <span class="help">Si elegís un nombre de la lista, la experiencia queda enlazada a su página.</span>
           </div>
 
-          <label for="profesor">Profesor que tomó<small>Opcional</small></label>
+          <label for="comentario">Tu experiencia<small>Mínimo 10 caracteres</small></label>
           <div class="field">
-            <select id="profesor">
-              <option value="" selected>No me acuerdo</option>
-              {listaProfesores.map((p: any) => <option value={p.nombre_completo}>{p.nombre_completo}</option>)}
-            </select>
+            <textarea id="comentario" required rows="6" maxlength="1000" placeholder="¿Fue escrito, oral o en máquina? ¿Cuánto duró? ¿Qué temas entraron?"></textarea>
+            <span class="help">Ayuda contar: si fue escrito, oral o en máquina, cuánto duró, qué temas entraron y cómo corrigieron. <span id="contador">0</span>/1000</span>
           </div>
 
-          <label for="comentario">Tu experiencia<small>Mínimo 10 caracteres.</small></label>
+          <div class="lab">Privacidad</div>
           <div class="field">
-            <textarea id="comentario" required rows="6" maxlength="1000" placeholder="¿Cómo fue la mesa? ¿Fue más difícil el práctico o el teórico? ¿Qué temas salieron?"></textarea>
+            <span class="help" style="font-size:11.5px">Se publica como <b>anónima</b>: no mostramos quién la contó.</span>
           </div>
         </div>
         <div class="fbar">
-          <a href="/finales">Volver a los finales</a>
+          <a class="btn quiet" href={materiaInicial ? `/materia/${materiaInicial.id}` : '/finales'}>Cancelar</a>
           <button type="submit" id="submit-btn" class="btn primary"><Icon name="pen" /> Publicar experiencia</button>
         </div>
       </form>
@@ -88,14 +103,15 @@ const aniosDisponibles = Array.from({ length: currentYear - 2014 }, (_, i) => cu
 
     <aside class="side">
       <section class="panel guide">
-        <h3>Qué contar</h3>
+        <h3>Qué le sirve a quien rinde</h3>
         <div class="in">
-          <ul>
-            <li class="good">Qué temas tomaron y en qué formato.</li>
-            <li class="good">Cuánto duró y cómo corrigieron.</li>
-            <li class="good">Qué te sirvió para prepararlo.</li>
-            <li class="bad">No compartas enunciados con datos personales.</li>
-          </ul>
+          <ol class="steps">
+            <li>Modalidad: escrito, oral o en máquina.</li>
+            <li>Cuánto duró.</li>
+            <li>Qué temas tomaron.</li>
+            <li>Cómo corrigieron y si hubo coloquio.</li>
+          </ol>
+          <span class="sub">No copies enunciados con datos personales.</span>
         </div>
       </section>
     </aside>
@@ -103,12 +119,65 @@ const aniosDisponibles = Array.from({ length: currentYear - 2014 }, (_, i) => cu
 </Layout>
 
 <script>
-  const form = document.getElementById('final-form') as HTMLFormElement;
-  const errorBox = document.getElementById('form-error') as HTMLDivElement;
-  const errorText = document.getElementById('form-error-text') as HTMLElement;
-  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
-  const searchInput = document.getElementById('materia_search') as HTMLInputElement;
+  const $ = (id: string) => document.getElementById(id)!;
+  const form = $('final-form') as HTMLFormElement;
+  const errorBox = $('form-error');
+  const errorText = $('form-error-text');
+  const submitBtn = $('submit-btn') as HTMLButtonElement;
+  const materiaInput = $('materia_search') as HTMLInputElement;
+  const profesor = $('profesor') as HTMLInputElement;
+  const comentario = $('comentario') as HTMLTextAreaElement;
+  const anioViejo = $('anio-viejo') as HTMLSelectElement;
+  const yr = $('materia-yr');
   const original = submitBtn.innerHTML;
+  const CLAVE = 'borradorFinal';
+
+  let mesa = '';
+  let anio = '';
+  const elegir = (attr: string, valor: string) => {
+    document.querySelectorAll<HTMLButtonElement>(`[${attr}]`).forEach((b) => {
+      const on = b.getAttribute(attr) === valor;
+      b.setAttribute('aria-checked', String(on));
+      b.setAttribute('aria-pressed', String(on));
+    });
+  };
+  document.querySelectorAll<HTMLButtonElement>('[data-mesa]').forEach((b) => b.addEventListener('click', () => { mesa = b.dataset.mesa || ''; elegir('data-mesa', mesa); guardar(); }));
+  document.querySelectorAll<HTMLButtonElement>('[data-anio]').forEach((b) => b.addEventListener('click', () => { anio = b.dataset.anio || ''; elegir('data-anio', anio); anioViejo.classList.toggle('hidden', anio !== 'antes'); guardar(); }));
+  anio = document.querySelector<HTMLButtonElement>('[data-anio][aria-checked="true"]')?.dataset.anio || '';
+
+  const opcionMateria = () => Array.from(document.querySelectorAll<HTMLOptionElement>('#lista-materias option')).find((o) => o.value === materiaInput.value) || null;
+  const pintarMateria = () => {
+    const o = opcionMateria();
+    yr.className = o ? `yr y${o.dataset.nivel}` : 'yr hidden';
+    yr.textContent = o ? `${o.dataset.nivel}.º` : '';
+  };
+  materiaInput.addEventListener('input', () => { pintarMateria(); guardar(); });
+
+  // Borrador en este navegador
+  let timer: number | undefined;
+  function guardar() {
+    clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      try { localStorage.setItem(CLAVE, JSON.stringify({ materia: materiaInput.value, mesa, anio, viejo: anioViejo.value, profesor: profesor.value, comentario: comentario.value, t: Date.now() })); } catch {}
+      $('draft-note').textContent = 'Borrador guardado';
+    }, 400);
+  }
+  try {
+    const b = JSON.parse(localStorage.getItem(CLAVE) || 'null');
+    if (b && (b.comentario || '').trim()) {
+      if (!materiaInput.value) materiaInput.value = b.materia || '';
+      if (b.mesa) { mesa = b.mesa; elegir('data-mesa', mesa); }
+      if (b.anio) { anio = b.anio; elegir('data-anio', anio); anioViejo.classList.toggle('hidden', anio !== 'antes'); }
+      if (b.viejo) anioViejo.value = b.viejo;
+      profesor.value = b.profesor || '';
+      comentario.value = b.comentario || '';
+      $('draft-note').textContent = 'Recuperamos tu borrador';
+    }
+  } catch {}
+  pintarMateria();
+  const contar = () => { $('contador').textContent = String(comentario.value.length); };
+  contar();
+  [profesor, comentario, anioViejo].forEach((x) => x.addEventListener('input', () => { contar(); guardar(); }));
 
   const mostrarError = (texto: string) => {
     errorText.textContent = texto;
@@ -119,39 +188,25 @@ const aniosDisponibles = Array.from({ length: currentYear - 2014 }, (_, i) => cu
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorBox.classList.add('hidden');
-
-    // El datalist da el texto; buscamos el id real de la materia
-    let materia_id = '';
-    for (const option of Array.from(document.querySelectorAll('#lista-materias option'))) {
-      const opt = option as HTMLOptionElement;
-      if (opt.value === searchInput.value) {
-        materia_id = opt.getAttribute('data-id') || '';
-        break;
-      }
-    }
-
-    const anio = (document.getElementById('anio') as HTMLSelectElement).value;
-    const mesa = (document.getElementById('mesa') as HTMLSelectElement).value;
-    const profesor_nombre = (document.getElementById('profesor') as HTMLSelectElement).value;
-    const comentario = (document.getElementById('comentario') as HTMLTextAreaElement).value;
-
+    const materia_id = opcionMateria()?.dataset.id || '';
+    const anioFinal = anio === 'antes' ? anioViejo.value : anio;
     if (!materia_id) return mostrarError('Elegí una materia de la lista.');
-    if (!anio) return mostrarError('Elegí el año en que rendiste.');
     if (!mesa) return mostrarError('Elegí la mesa.');
-    if (comentario.trim().length < 10) return mostrarError('Contá tu experiencia en al menos 10 caracteres.');
+    if (!anioFinal) return mostrarError('Elegí el año en que rendiste.');
+    if (comentario.value.trim().length < 10) return mostrarError('Contá tu experiencia en al menos 10 caracteres.');
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spin"></span> Publicando…';
-
     try {
       const response = await fetch('/api/finales/crear', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ materia_id, anio, mesa, profesor_nombre, comentario }),
+        body: JSON.stringify({ materia_id, anio: anioFinal, mesa, profesor_nombre: profesor.value.trim(), comentario: comentario.value }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Ocurrió un error al guardar.');
-      window.location.href = '/finales';
+      try { localStorage.removeItem(CLAVE); } catch {}
+      window.location.href = `/finales?materia=${materia_id}`;
     } catch (err: any) {
       mostrarError(err.message);
       submitBtn.disabled = false;

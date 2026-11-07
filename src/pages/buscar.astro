@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Stars from '../components/Stars.astro';
 import CursoChips from '../components/CursoChips.astro';
 import { supabase } from '../lib/supabase';
-import { anioLabel, compararCursos, nota } from '../lib/format';
+import { compararCursos, mesaTexto, nota } from '../lib/format';
 
 const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 80);
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -103,7 +103,6 @@ const resaltar = (texto: string) => {
   marcas.forEach(([a, b]) => { if (a < pos) return; out += esc(texto.slice(pos, a)) + '<mark>' + esc(texto.slice(a, b)) + '</mark>'; pos = b; });
   return out + esc(texto.slice(pos));
 };
-const mesaTexto = (f: any) => `Mesa de ${(f.mesa || '').toLowerCase().startsWith('feb') ? 'febrero / marzo' : (f.mesa || '').toLowerCase()} ${f.anio}`.replace('Mesa de  ', 'Mesa ');
 const recorte = (s: string, n = 90) => (s.length > n ? s.slice(0, n).replace(/\s+\S*$/, '') + '…' : s);
 
 // Si no hay resultados, sugerimos materias con más reseñas
@@ -185,7 +184,7 @@ if (q && total === 0) {
               <h3>Experiencias de finales</h3>
               {finales.map((f, i) => (
                 <a class:list={['res', { 'extra hidden': i >= MAX }]} href={`/finales?materia=${f.materia.id}`}>
-                  <span><b set:html={resaltar(f.materia.nombre)} /> <span class="mesa-mini">{mesaTexto(f)}</span></span>
+                  <span><b set:html={resaltar(f.materia.nombre)} /> <span class="mesa-mini">{mesaTexto(f.mesa, f.anio)}</span></span>
                   <span class="sub">"{recorte(f.comentario || '')}"</span>
                 </a>
               ))}

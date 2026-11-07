@@ -672,6 +672,8 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
   .bottombar { display: grid; grid-template-columns: repeat(4, 1fr); position: sticky; bottom: 0; z-index: 40; background: var(--box); border-top: 2px solid var(--amber); box-shadow: 0 -2px 8px var(--shadow); padding-bottom: env(safe-area-inset-bottom, 0px); }
   .foro .bottombar a, .bottombar button { display: grid; justify-items: center; gap: 2px; padding: 7px 2px 6px; font: 10.5px var(--f-body); color: var(--muted); min-height: 52px; background: none; border: 0; cursor: pointer; }
   .bottombar svg { width: 20px; height: 20px; }
+  .foro .bottombar a { position: relative; }
+  .bottombar .nuevo-tag { position: absolute; top: 3px; left: calc(50% + 6px); padding: 0 5px; }
   .foro .bottombar a[aria-current] { color: var(--link); font-weight: bold; box-shadow: inset 0 3px 0 var(--link); }
   .foro .bottombar a.write { color: var(--amber-ink); background: linear-gradient(var(--amber-hi), var(--amber)); font-weight: bold; }
   .foot { padding-bottom: 14px; }

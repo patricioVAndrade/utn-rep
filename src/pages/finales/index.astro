@@ -1,9 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Icon from '../../components/Icon.astro';
+import ShareButton from '../../components/ShareButton.astro';
 import { supabase } from '../../lib/supabase';
 import { isAdmin } from '../../lib/admin';
-import { anioLabel, tiempoRelativo } from '../../lib/format';
+import { anioLabel, mesaTexto, tiempoRelativo } from '../../lib/format';
+import { buscarProfesor, indexar } from '../../lib/importar';
 
 const user = Astro.locals.user;
 const userIsAdmin = isAdmin(user?.id);
@@ -23,10 +25,22 @@ const { data: experiencias } = await supabase
   `)
   .order('created_at', { ascending: false });
 
+// "Tomado por": si el nombre coincide con un profesor cargado, va con link a su página
+const { data: profesores } = await supabase.from('profesores').select('id, nombre_completo').range(0, 19999);
+const indiceProf = indexar(profesores || []);
+const profDe = new Map<string, number | null>();
+const profesorId = (nombre?: string | null) => {
+  if (!nombre || nombre.trim().length < 3) return null;
+  if (!profDe.has(nombre)) profDe.set(nombre, buscarProfesor(nombre, indiceProf).profesor_id);
+  return profDe.get(nombre) ?? null;
+};
+
 const listaExperiencias = (experiencias || []).map((exp: any) => ({
   ...exp,
   materia: Array.isArray(exp.materias) ? exp.materias[0] : exp.materias,
+  profesor_id: profesorId(exp.profesor_nombre),
 }));
+const reportar = (exp: any) => `mailto:patriciovandrade@gmail.com?subject=${encodeURIComponent(`Reporte de experiencia de final #${exp.id}`)}&body=${encodeURIComponent(`Experiencia de ${exp.materia?.nombre || 'una materia'} (${mesaTexto(exp.mesa, exp.anio)}).\nMotivo: `)}`;
 
 // Mesas para filtrar (lo guardado es "Diciembre", "Febrero", "Julio" o "Especial")
 const MESAS = [
@@ -67,9 +81,14 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
         </div>
         <div class="actions">
           {user
-            ? <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Contar mi final</a>
-            : <button type="button" class="btn primary" data-login><Icon name="pen" /> Contar mi final</button>}
+            ? <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Contar mi experiencia de final</a>
+            : <button type="button" class="btn primary" data-login><Icon name="pen" /> Contar mi experiencia de final</button>}
         </div>
+      </div>
+
+      <div id="finales-nuevas" class="notice soft hidden" role="status">
+        <Icon name="info" />
+        <span><b></b> desde tu última visita (<span data-desde></span>). Están marcadas con "Nueva".</span>
       </div>
 
       {listaExperiencias.length > 0 && (
@@ -94,43 +113,57 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
             return (
               <article
                 class:list={['post exp final-card', { 'final-extra': idx >= 10 }, { hidden: idx >= 10 || (materiaInicial && String(exp.materia?.id) !== materiaInicial) || (mesaInicial && claveMesa(exp.mesa) !== mesaInicial) }]}
+                id={`final-${exp.id}`}
                 data-materia-id={exp.materia?.id}
                 data-mesa={claveMesa(exp.mesa)}
                 data-id={exp.id}
+                data-creado={exp.created_at}
               >
                 <div class="post-head">
                   <span>
-                    {exp.materia?.nivel && <span class:list={['yr', `y${exp.materia.nivel}`]}>{anioLabel(exp.materia.nivel)}</span>}{' '}
+                    {exp.materia?.nivel && <span class:list={['yr', `y${exp.materia.nivel}`]}>{exp.materia.nivel}.º</span>}{' '}
                     <a href={`/materia/${exp.materia?.id}`}>{exp.materia?.nombre}</a>
+                    <span class="nuevo-tag hidden" data-nueva>Nueva</span>
                   </span>
-                  <span class="mesa">Mesa {exp.mesa ? `${exp.mesa} ${exp.anio}` : exp.anio}</span>
+                  <span class="mesa">{mesaTexto(exp.mesa, exp.anio)}</span>
                 </div>
-                <div class="message">
-                  <div class="kv">
-                    <span class="chip"><Icon name="user" /> {exp.profesor_nombre || 'No recuerda el profe'}</span>
-                    <span class="chip"><Icon name="clock" /> Contado {tiempoRelativo(exp.created_at).toLowerCase()}</span>
+                <div class="post-main">
+                  <div class="author">
+                    <div class="avatar" aria-hidden="true"><span><Icon name="user" /></span></div>
+                    <span class="uname anon">Anónimo</span>
+                    <span class="sub">{isOwner ? 'La contaste vos' : `Contada ${tiempoRelativo(exp.created_at).toLowerCase()}`}</span>
                   </div>
-                  <p class="exp-comment">{exp.comentario}</p>
-                  {isOwner && (
-                    <div class="exp-edit-form hidden">
-                      <label class="sr" for={`edit-final-${exp.id}`}>Editar experiencia</label>
-                      <textarea id={`edit-final-${exp.id}`} class="edit-textarea" rows="4" maxlength="1000">{exp.comentario}</textarea>
-                      <div class="edit-acts">
-                        <button type="button" class="save-edit-btn btn primary">Guardar</button>
-                        <button type="button" class="cancel-edit-btn btn quiet">Cancelar</button>
-                      </div>
+                  <div class="message">
+                    <div class="kv">
+                      <span class="tag">Tomado por: {exp.profesor_id
+                        ? <a href={`/profesor/${exp.profesor_id}`}>{exp.profesor_nombre}</a>
+                        : <b>{exp.profesor_nombre || 'No lo indicó'}</b>}</span>
                     </div>
-                  )}
+                    <p class="exp-comment">{exp.comentario}</p>
+                    {isOwner && (
+                      <div class="exp-edit-form hidden">
+                        <label class="sr" for={`edit-final-${exp.id}`}>Editar experiencia</label>
+                        <textarea id={`edit-final-${exp.id}`} class="edit-textarea" rows="4" maxlength="1000">{exp.comentario}</textarea>
+                        <div class="edit-acts">
+                          <button type="button" class="save-edit-btn btn primary">Guardar</button>
+                          <button type="button" class="cancel-edit-btn btn quiet">Cancelar</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {(isOwner || userIsAdmin) && (
-                  <div class="post-tools">
-                    <span></span>
+                <div class="post-tools">
+                  <div class="group">
+                    {!isOwner && <a class="btn quiet" href={reportar(exp)} title="Reportar esta experiencia"><Icon name="flag" /> Reportar</a>}
+                    <ShareButton mini titulo="Mirá cómo tomaron este final en UTN REP" ruta={`/finales?materia=${exp.materia?.id}#final-${exp.id}`} />
+                  </div>
+                  {(isOwner || userIsAdmin) && (
                     <div class="group">
                       {isOwner && <button type="button" class="edit-btn btn quiet"><Icon name="edit" /> Editar</button>}
                       <button type="button" class="delete-btn btn danger"><Icon name="trash" /> Eliminar</button>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </article>
             );
           })
@@ -143,8 +176,8 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
         <div id="finales-vacio" class="empty hidden">
           <span>Todavía nadie contó un final con esos filtros.</span>
           {user
-            ? <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Contar mi final</a>
-            : <button type="button" class="btn primary" data-login><Icon name="pen" /> Contar mi final</button>}
+            ? <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Contar mi experiencia de final</a>
+            : <button type="button" class="btn primary" data-login><Icon name="pen" /> Contar mi experiencia de final</button>}
         </div>
       </div>
 
@@ -159,14 +192,14 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
         <div class="in">
           <span>Contá cómo fue la mesa: qué tomaron, si fue más difícil el práctico o el teórico y cómo te preparaste.</span>
           {user
-            ? <a class="btn primary big" href="/finales/nuevo"><Icon name="pen" /> Contar mi final</a>
+            ? <a class="btn primary big" href="/finales/nuevo"><Icon name="pen" /> Contar mi experiencia de final</a>
             : <button type="button" class="btn primary big" data-login><Icon name="user" /> Iniciar sesión para contarlo</button>}
         </div>
       </section>
 
       {masContadas.length > 0 && (
         <section class="panel">
-          <h3>Materias con más finales contados</h3>
+          <h3>Materias con más experiencias</h3>
           <div class="in feed">
             {masContadas.map((m) => (
               <div>
@@ -182,7 +215,24 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
 </Layout>
 
 <script>
+  import { visitaAnterior, textoVisita } from '../../scripts/visitas';
   const cards = Array.from(document.querySelectorAll<HTMLElement>('.final-card'));
+
+  // "Nueva": contadas después de tu visita anterior
+  const anterior = visitaAnterior();
+  if (anterior) {
+    const nuevas = cards.filter((c) => new Date(c.dataset.creado || 0).getTime() > anterior);
+    nuevas.forEach((c) => c.querySelector('[data-nueva]')?.classList.remove('hidden'));
+    const aviso = document.getElementById('finales-nuevas');
+    if (aviso && nuevas.length) {
+      aviso.querySelector('b')!.textContent = `${nuevas.length} experiencia${nuevas.length !== 1 ? 's' : ''} nueva${nuevas.length !== 1 ? 's' : ''}`;
+      aviso.querySelector('[data-desde]')!.textContent = textoVisita(anterior);
+      aviso.classList.remove('hidden');
+    }
+  }
+  // Link directo a una experiencia que estaba plegada
+  const destino = location.hash.startsWith('#final-') ? document.getElementById(location.hash.slice(1)) : null;
+  if (destino?.classList.contains('final-extra')) { destino.classList.remove('hidden', 'final-extra'); destino.scrollIntoView(); }
   const showMoreBtn = document.getElementById('show-more-btn') as HTMLButtonElement | null;
   const vacio = document.getElementById('finales-vacio');
   const selMateria = document.getElementById('filtro-materia') as HTMLSelectElement | null;

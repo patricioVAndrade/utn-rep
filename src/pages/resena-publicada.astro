@@ -1,0 +1,104 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+import { supabase, createSupabaseServerClient } from '../lib/supabase';
+import { turnoLabel } from '../lib/format';
+
+// Pantalla que aparece después de publicar una reseña (?curso=ID del curso)
+const user = Astro.locals.user;
+const dictadoId = parseInt(Astro.url.searchParams.get('curso') || '');
+if (!Number.isInteger(dictadoId) || dictadoId <= 0) return Astro.redirect('/');
+if (!user) return Astro.redirect(`/dictado/${dictadoId}`);
+
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
+const { client: userClient } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+
+const [{ data: dictado }, { data: mia }, { data: mias }] = await Promise.all([
+  supabase.from('dictados').select('id, materia_id, cursos ( identificador, turno ), materias ( id, nombre, nivel )').eq('id', dictadoId).single(),
+  userClient.from('resenas').select('id, dictado_id').eq('user_id', user.id).eq('dictado_id', dictadoId).maybeSingle(),
+  userClient.from('resenas').select('dictado_id').eq('user_id', user.id),
+]);
+if (!dictado || !mia) return Astro.redirect(`/dictado/${dictadoId}`);
+
+const curso = one((dictado as any).cursos);
+const materia = one((dictado as any).materias);
+
+// Materias de ese año que todavía no reseñó
+const { data: delAnio } = await supabase.from('materias').select('id').eq('nivel', materia?.nivel || 0);
+const idsResenados = (mias || []).map((r: any) => r.dictado_id);
+let materiasResenadas = new Set<number>();
+if (idsResenados.length) {
+  const { data } = await supabase.from('dictados').select('id, materia_id').in('id', idsResenados);
+  materiasResenadas = new Set((data || []).map((d: any) => d.materia_id));
+}
+const faltan = (delAnio || []).filter((m: any) => !materiasResenadas.has(m.id)).length;
+
+const ruta = `/dictado/${dictadoId}`;
+const nombre = `${materia?.nombre || 'la materia'}, ${curso?.identificador || 'tu curso'}`;
+const mensaje = `Escribí una reseña de ${nombre} en UTN REP. Si cursaste, sumá la tuya así la próxima camada elige mejor 👉`;
+---
+
+<Layout title="Reseña publicada - UTN REP" crumbs={[{ label: materia?.nombre || 'Materia', href: `/materia/${materia?.id}` }, { label: curso?.identificador || 'Curso', href: ruta }, { label: 'Reseña publicada' }]}>
+  <div class="layout single">
+    <div class="main">
+      <div class="done-box">
+        <span class="big-check"><Icon name="check" /></span>
+        <div>
+          <h1>¡Listo! Tu reseña ya está publicada</h1>
+          <p>Es de <b>{materia?.nombre}</b>, curso <b>{curso?.identificador}</b>{curso?.turno ? `, turno ${turnoLabel(curso.turno).toLowerCase()}` : ''}. Ya la puede leer cualquiera que busque ese curso.</p>
+        </div>
+      </div>
+
+      <section class="share-box">
+        <h2><Icon name="share" /> Pasásela a tu curso</h2>
+        <p class="sub" style="margin:0">Es donde se decide la inscripción. Te armamos el mensaje:</p>
+        <div class="wa-msg" id="wa-msg" data-ruta={ruta}>{mensaje} <span class="link-curso">{`utnrep.app${ruta}`}</span></div>
+        <div class="sh-acts">
+          <a class="btn wa" id="enviar-wa" href={`https://wa.me/?text=${encodeURIComponent(`${mensaje} https://utnrep.app${ruta}`)}`} target="_blank" rel="noopener"><Icon name="share" /> Enviar por WhatsApp</a>
+          <button type="button" class="btn quiet" id="copiar-link"><Icon name="link" /> <span>Copiar link</span></button>
+        </div>
+      </section>
+
+      <div class="paths">
+        <a href={`/finales/nuevo?materia=${materia?.id}`}>
+          <Icon name="final" />
+          <b>¿Rendiste el final?</b>
+          <span class="sub">Contá cómo fue la mesa</span>
+        </a>
+        <a href={`/nueva-resena?from=${encodeURIComponent(`/nivel/${materia?.nivel}`)}`}>
+          <Icon name="pen" />
+          <b>Reseñar otro curso</b>
+          <span class="sub">{faltan > 0 ? `Te quedan ${faltan} materia${faltan !== 1 ? 's' : ''} de este año` : 'Ya reseñaste todas las de este año'}</span>
+        </a>
+        <a href={`${ruta}#resena-${mia.id}`}>
+          <Icon name="book" />
+          <b>Ver tu reseña</b>
+          <span class="sub">Así la ven los demás</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // Con el dominio real del sitio donde esté corriendo (en las pruebas no es utnrep.app)
+  const msg = document.getElementById('wa-msg');
+  const ruta = msg?.dataset.ruta || '/';
+  const url = new URL(ruta, location.origin).href;
+  const link = msg?.querySelector('.link-curso');
+  if (link) link.textContent = url.replace(/^https?:\/\//, '');
+  const wa = document.getElementById('enviar-wa') as HTMLAnchorElement | null;
+  const texto = (msg?.firstChild?.textContent || '').trim();
+  if (wa) wa.href = `https://wa.me/?text=${encodeURIComponent(`${texto} ${url}`)}`;
+  document.getElementById('copiar-link')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    const lbl = btn.querySelector('span');
+    try {
+      await navigator.clipboard.writeText(url);
+      if (lbl) lbl.textContent = '¡Copiado!';
+    } catch {
+      if (lbl) lbl.textContent = url;
+    }
+    setTimeout(() => { if (lbl) lbl.textContent = 'Copiar link'; }, 2500);
+  });
+</script>
