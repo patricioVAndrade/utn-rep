@@ -121,6 +121,10 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
 <Layout
   title={seoTitle}
   description={seoDescription}
+  ogImage={`/og/materia/${id}.png`}
+  ogTitle={totalResenas
+    ? `${materia.nombre}: ${promedioGeneral.toFixed(1).replace('.', ',')} ★ en ${totalResenas} reseña${totalResenas === 1 ? '' : 's'} | UTN REP`
+    : `${materia.nombre} | UTN REP`}
   schema={JSON.stringify(schemaObject)}
   tab="materias"
   crumbs={[{ label: 'Materias', href: '/' }, { label, href: `/nivel/${nivel}` }, { label: materia.nombre }]}

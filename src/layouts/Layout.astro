@@ -15,6 +15,8 @@ interface Props {
   description?: string;
   /** Imagen para previsualización en WhatsApp/Twitter (opcional) */
   ogImage?: string;
+  /** Título de la vista previa al compartir, si es distinto del de la pestaña */
+  ogTitle?: string;
   /** JSON-LD (Datos Estructurados) en formato string para Google (opcional) */
   schema?: string;
   /** Pestaña del banner que queda marcada */
@@ -31,6 +33,7 @@ const {
   title,
   description = 'Reseñas reales de materias, cátedras y profesores de Ingeniería en Sistemas — UTN FRC. Elegí mejor tu cursada.',
   ogImage = '/og-image.png',
+  ogTitle,
   schema,
   tab,
   crumbs,
@@ -61,7 +64,7 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={ogTitle || title} />
     <meta property="og:description" content={description} />
     <meta property="og:locale" content="es_AR" />
     <meta property="og:site_name" content="UTN REP" />
@@ -70,7 +73,7 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
     <meta property="og:image:height" content="630" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
+    <meta name="twitter:title" content={ogTitle || title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
 

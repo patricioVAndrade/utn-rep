@@ -108,6 +108,7 @@ const reportar = `mailto:patriciovandrade@gmail.com?subject=${encodeURIComponent
 <Layout
   title={seoTitle}
   description={seoDescription}
+  ogImage={`/og/profesor/${profesor.id}.png`}
   schema={schemaProfesor}
   tab="materias"
   crumbs={[{ label: 'Materias', href: '/' }, { label: 'Profesores' }, { label: profesor.nombre_completo }]}

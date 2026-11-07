@@ -135,6 +135,10 @@ const totalCursos = (otrosRaw || []).length;
 <Layout
   title={`${curso?.identificador || ''} - ${materia?.nombre || ''} - UTN REP`}
   description={`Reseñas del curso ${curso?.identificador || ''} de ${materia?.nombre || ''} en la UTN FRC: nota, cuántos promocionan y qué dicen los alumnos.`}
+  ogImage={`/og/curso/${id}.png`}
+  ogTitle={totalResenas
+    ? `${materia?.nombre || ''} ${curso?.identificador || ''}: ${promedio.toFixed(1).replace('.', ',')} ★ en ${totalResenas} reseña${totalResenas === 1 ? '' : 's'} | UTN REP`
+    : `${materia?.nombre || ''} ${curso?.identificador || ''} | UTN REP`}
   tab="materias"
   crumbs={[
     { label: 'Materias', href: '/' },

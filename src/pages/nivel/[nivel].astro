@@ -89,6 +89,7 @@ const fecha = (iso: string) => ((Date.now() - new Date(iso).getTime()) / 8640000
 
 <Layout
   title={`Materias de ${label} - UTN REP`}
+  ogImage={`/og/anio/${nivelNum}.png`}
   tab="materias"
   crumbs={[{ label: 'Materias', href: '/' }, { label }]}
 >
