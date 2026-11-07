@@ -6,10 +6,20 @@ import Icon from '../components/Icon.astro';
 <Layout title="Página no encontrada - UTN REP" crumbs={[{ label: 'Página no encontrada' }]}>
   <div class="layout single">
     <div class="main">
-      <div class="empty">
-        <h1 style="margin:0;font:bold 20px var(--f-title)">Esta página no existe</h1>
-        <span>Puede que el link esté mal escrito o que la página se haya movido. Probá con el buscador de arriba o volvé al inicio.</span>
-        <a class="btn primary" href="/"><Icon name="book" /> Ver todas las materias</a>
+      <div class="e404">
+        <div class="sheet">
+          <span class="nota" aria-hidden="true">2</span>
+          <div>
+            <h1>Esta página quedó libre</h1>
+            <p>No la encontramos. Puede que el link esté mal o que la hayan movido.</p>
+          </div>
+        </div>
+        <form class="search404" action="/buscar" method="get" role="search">
+          <label class="sr" for="q404">Buscar</label>
+          <input id="q404" name="q" type="search" placeholder="Buscá la materia o el curso" autocomplete="off" />
+          <button class="btn secondary" type="submit"><Icon name="search" /> Buscar</button>
+        </form>
+        <div class="links"><a href="/">Ver todas las materias</a> | <a href="/finales">Experiencias de finales</a> | <a href="/sobre">¿Cómo funciona?</a></div>
       </div>
     </div>
   </div>

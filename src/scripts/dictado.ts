@@ -3,51 +3,76 @@ function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Error desconocido';
 }
 
-// ========== PAGINATION ==========
-const showMoreBtn = document.getElementById('show-more-btn') as HTMLButtonElement | null;
-if (showMoreBtn) {
-  showMoreBtn.addEventListener('click', () => {
-    document.querySelectorAll('.review-extra').forEach(el => {
-      el.classList.remove('hidden', 'review-extra');
-    });
-    showMoreBtn.remove();
-  });
+// ========== ORDEN Y PÁGINAS ==========
+const POR_PAGINA = 10;
+const reviewsList = document.getElementById('reviews-list') as HTMLElement | null;
+const botonesOrden = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-orden]'));
+const pagers = Array.from(document.querySelectorAll<HTMLElement>('[data-pager]'));
+let pagina = 0;
+
+function tarjetas(): HTMLElement[] {
+  return Array.from(reviewsList?.querySelectorAll<HTMLElement>('.review-card') || []);
 }
 
-// ========== SORT ==========
-const sortSelect = document.getElementById('sort-select') as HTMLSelectElement | null;
-const reviewsList = document.getElementById('reviews-list') as HTMLElement | null;
-
-if (sortSelect && reviewsList) {
-  sortSelect.addEventListener('change', () => {
-    // Show all when sorting
-    document.querySelectorAll('.review-extra').forEach(el => {
-      el.classList.remove('hidden', 'review-extra');
-    });
-    showMoreBtn?.remove();
-
-    const cards = Array.from(reviewsList.querySelectorAll('.review-card'));
-
-    cards.sort((a, b) => {
-      const dateA = a.getAttribute('data-date') || '';
-      const dateB = b.getAttribute('data-date') || '';
-      const ratingA = parseFloat(a.getAttribute('data-rating') || '0');
-      const ratingB = parseFloat(b.getAttribute('data-rating') || '0');
-      const votosA = parseInt(a.getAttribute('data-votos') || '0');
-      const votosB = parseInt(b.getAttribute('data-votos') || '0');
-
-      switch (sortSelect.value) {
-        case 'newest': return dateB.localeCompare(dateA);
-        case 'oldest': return dateA.localeCompare(dateB);
-        case 'highest': return ratingB - ratingA;
-        case 'lowest': return ratingA - ratingB;
-        case 'useful': return votosB - votosA;
-        default: return 0;
-      }
-    });
-
-    cards.forEach(card => reviewsList.appendChild(card));
+function ordenar(criterio: string) {
+  if (!reviewsList) return;
+  const cards = tarjetas();
+  const num = (el: Element, k: string) => parseFloat(el.getAttribute(k) || '0');
+  const fecha = (el: Element) => el.getAttribute('data-date') || '';
+  cards.sort((a, b) => {
+    if (criterio === 'newest') return fecha(b).localeCompare(fecha(a));
+    if (criterio === 'lowest') return num(a, 'data-rating') - num(b, 'data-rating') || fecha(b).localeCompare(fecha(a));
+    return num(b, 'data-votos') - num(a, 'data-votos') || fecha(b).localeCompare(fecha(a));
   });
+  cards.forEach((c) => reviewsList.appendChild(c));
+}
+
+function paginar(p: number, subir = false) {
+  const cards = tarjetas();
+  const total = Math.max(1, Math.ceil(cards.length / POR_PAGINA));
+  pagina = Math.min(Math.max(p, 0), total - 1);
+  cards.forEach((c, i) => c.classList.toggle('hidden', Math.floor(i / POR_PAGINA) !== pagina));
+  pagers.forEach((pg) => {
+    pg.innerHTML = '';
+    if (total < 2) return;
+    const label = document.createElement('span');
+    label.className = 'sub';
+    label.textContent = 'Página';
+    pg.appendChild(label);
+    for (let i = 0; i < total; i++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pg';
+      b.textContent = String(i + 1);
+      if (i === pagina) b.setAttribute('aria-current', 'page');
+      b.addEventListener('click', () => paginar(i, true));
+      pg.appendChild(b);
+    }
+    if (pagina < total - 1) {
+      const sig = document.createElement('button');
+      sig.type = 'button';
+      sig.className = 'pg';
+      sig.textContent = 'Siguiente';
+      sig.addEventListener('click', () => paginar(pagina + 1, true));
+      pg.appendChild(sig);
+    }
+  });
+  if (subir) document.getElementById('resenas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+botonesOrden.forEach((b) => b.addEventListener('click', () => {
+  botonesOrden.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+  ordenar(b.dataset.orden || 'useful');
+  paginar(0);
+}));
+
+if (reviewsList) {
+  ordenar(botonesOrden.find((b) => b.getAttribute('aria-pressed') === 'true')?.dataset.orden || 'useful');
+  // Si el link apunta a una reseña, abrir la página donde está
+  const destino = location.hash.startsWith('#resena-') ? document.querySelector(location.hash) : null;
+  const idx = destino ? tarjetas().indexOf(destino as HTMLElement) : -1;
+  paginar(idx >= 0 ? Math.floor(idx / POR_PAGINA) : 0);
+  if (destino) destino.scrollIntoView({ block: 'start' });
 }
 
 // ========== EDIT ==========

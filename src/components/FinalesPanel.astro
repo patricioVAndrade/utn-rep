@@ -1,0 +1,42 @@
+---
+/** Panel "Finales de esta materia": cuántas experiencias hay y la última, citada. */
+import Icon from './Icon.astro';
+import { supabase } from '../lib/supabase';
+
+interface Props { materiaId: number | string; nombre?: string }
+const { materiaId } = Astro.props;
+
+const [{ count }, { data: ultimas }] = await Promise.all([
+  supabase.from('experiencias_finales').select('id', { count: 'exact', head: true }).eq('materia_id', materiaId),
+  supabase
+    .from('experiencias_finales')
+    .select('comentario, mesa, anio')
+    .eq('materia_id', materiaId)
+    .order('created_at', { ascending: false })
+    .limit(1),
+]);
+const n = count || 0;
+const ultima = ultimas?.[0];
+const recorte = (s: string, max = 110) => (s.length > max ? s.slice(0, max).replace(/\s+\S*$/, '') + '…' : s);
+const mesa = (m?: string | null) => {
+  const t = (m || '').toLowerCase();
+  return t.startsWith('feb') ? 'febrero / marzo' : t;
+};
+---
+<section class="panel finals">
+  <h3><Icon name="final" /> Finales de esta materia</h3>
+  <div class="in">
+    {n > 0 ? (
+      <>
+        <span><span class="big">{n}</span> experiencia{n !== 1 ? 's' : ''} de mesa contada{n !== 1 ? 's' : ''}</span>
+        {ultima && (
+          <div class="quote-mini">"{recorte(ultima.comentario || '')}" <span class="sub">Mesa de {mesa(ultima.mesa)} {ultima.anio}</span></div>
+        )}
+        <a class="btn secondary big" href={`/finales?materia=${materiaId}`}>Ver {n === 1 ? 'la experiencia' : `los ${n} finales`} de esta materia</a>
+      </>
+    ) : (
+      <span>Todavía nadie contó cómo toman el final. Si lo rendiste, sos la primera persona.</span>
+    )}
+    <a href={`/finales/nuevo?materia=${materiaId}`}>¿Rendiste? Contá cómo te fue</a>
+  </div>
+</section>

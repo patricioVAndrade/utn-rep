@@ -25,6 +25,8 @@ const materiaIds = materias?.map((m) => m.id) || [];
 type Agg = { promedio: number; count: number; cursos: number };
 const porMateria: Record<number, Agg> = {};
 const ultima: Record<number, { created_at: string; autor: string }> = {};
+const delMes = new Map<number, number>();
+let cursoDe = new Map<number, { curso: string; materia: number }>();
 
 if (materiaIds.length > 0) {
   const { data: stats } = await supabase
@@ -53,15 +55,36 @@ if (materiaIds.length > 0) {
       .in('dictado_id', dictadoIds)
       .order('created_at', { ascending: false })
       .limit(500);
+    const hace30 = Date.now() - 30 * 86400000;
     (recientes || []).forEach((r) => {
       const mid = materiaDeDictado.get(r.dictado_id);
       if (mid && !ultima[mid]) ultima[mid] = { created_at: r.created_at, autor: r.es_anonima ? 'Anónimo' : r.nombre_usuario || 'Estudiante' };
+      if (new Date(r.created_at).getTime() > hace30) delMes.set(r.dictado_id, (delMes.get(r.dictado_id) || 0) + 1);
     });
+    const masIds = [...delMes.keys()];
+    if (masIds.length > 0) {
+      const { data: ds } = await supabase.from('dictados').select('id, materia_id, cursos ( identificador )').in('id', masIds);
+      cursoDe = new Map((ds || []).map((d: any) => [d.id, { curso: (Array.isArray(d.cursos) ? d.cursos[0] : d.cursos)?.identificador || '', materia: d.materia_id }]));
+    }
   }
 }
 
 const total = Object.values(porMateria).reduce((acc, a) => acc + a.count, 0);
+const totalCursos = Object.values(porMateria).reduce((acc, a) => acc + a.cursos, 0);
 const label = anioLabel(nivelNum).replace(/^./, (c) => c.toUpperCase());
+const NOMBRES = ['', 'Primer año', 'Segundo año', 'Tercer año', 'Cuarto año', 'Quinto año'];
+const ORDINAL = ['', 'primero', 'segundo', 'tercero', 'cuarto', 'quinto'];
+const NUEVA_MS = 14 * 86400000;
+const nombreMateria = new Map((materias || []).map((m) => [m.id, m.nombre]));
+const faltan = (materias || [])
+  .map((m) => ({ m, n: porMateria[m.id]?.count || 0 }))
+  .filter((x) => x.n < 5)
+  .sort((a, b) => a.n - b.n)
+  .slice(0, 4);
+const comentados = [...delMes.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
+  .map(([id, n]) => ({ id, n, ...cursoDe.get(id) }))
+  .filter((x) => x.curso);
+const fecha = (iso: string) => ((Date.now() - new Date(iso).getTime()) / 86400000 < 7 ? tiempoRelativo(iso) : new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }));
 ---
 
 <Layout
@@ -73,49 +96,63 @@ const label = anioLabel(nivelNum).replace(/^./, (c) => c.toUpperCase());
     <symbol id="folder" viewBox="0 0 24 20"><path d="M1 3.5C1 2.7 1.7 2 2.5 2h6l2 2.5h11c.8 0 1.5.7 1.5 1.5v11.5c0 .8-.7 1.5-1.5 1.5h-19C1.7 19 1 18.3 1 17.5z" fill="currentColor" stroke="rgba(0,0,0,.35)"/><path d="M1.5 7h21" stroke="rgba(255,255,255,.5)"/></symbol>
   </svg>
 
-  <div class="layout single">
+  <div class="layout">
     <div class="main">
       <div class:list={['year-band', `y${nivelNum}`]}>
         <span class="ybig">{nivelNum}.º</span>
         <div>
-          <h1>{label}</h1>
-          <p>{materias?.length || 0} materias · {total.toLocaleString('es-AR')} reseña{total !== 1 ? 's' : ''}</p>
+          <h1>{NOMBRES[nivelNum]}</h1>
+          <p>{materias?.length || 0} materias, {totalCursos} cursos y {total.toLocaleString('es-AR')} reseña{total !== 1 ? 's' : ''}.</p>
         </div>
         <nav class="ynav" aria-label="Otros años">
-          {[1, 2, 3, 4, 5].filter((n) => n !== nivelNum).map((n) => <a href={`/nivel/${n}`}>{n}.º año</a>)}
+          {nivelNum > 1 && <a href={`/nivel/${nivelNum - 1}`}>‹ {NOMBRES[nivelNum - 1]}</a>}
+          {nivelNum < 5 && <a href={`/nivel/${nivelNum + 1}`}>{NOMBRES[nivelNum + 1]} ›</a>}
         </nav>
       </div>
 
+      {materias && materias.length > 1 && (
+        <div class="filters">
+          <span class="sub" id="orden-label">Ordenar:</span>
+          <div class="seg" role="group" aria-labelledby="orden-label">
+            <button type="button" data-orden="nombre" aria-pressed="true">Por nombre</button>
+            <button type="button" data-orden="resenas" aria-pressed="false">Más reseñas</button>
+            <button type="button" data-orden="nota" aria-pressed="false">Mejor nota</button>
+            <button type="button" data-orden="novedades" aria-pressed="false">Novedades</button>
+          </div>
+        </div>
+      )}
+
       {materias && materias.length > 0 ? (
-        <div class="tbl" role="table" aria-label={`Materias de ${label}`}>
+        <div class="tbl" role="table" aria-label={`Materias de ${label}`} id="tabla-anio">
           <div class="thead" role="row">
             <span></span><span>Materia</span><span class="c">Promedio</span><span class="c">Reseñas</span><span>Última reseña</span>
           </div>
           {materias.map((m) => {
             const st = porMateria[m.id];
             const ult = ultima[m.id];
+            const nueva = !!ult && Date.now() - new Date(ult.created_at).getTime() < NUEVA_MS;
             return (
-              <div class="row" role="row">
-                <svg class="folder old" aria-hidden="true"><use href="#folder" /></svg>
+              <div class="row" role="row" data-nombre={m.nombre} data-resenas={st?.count || 0} data-nota={st?.count ? st.promedio : -1} data-ultima={ult?.created_at || ''}>
+                <svg class:list={['folder', nueva ? 'new' : 'old']} aria-hidden="true"><use href="#folder" /></svg>
                 <div>
                   <a class="name" href={`/materia/${m.id}`}>{m.nombre}</a>
                   <div class="sub">
-                    {m.es_electiva && <><span class="tt" style="border-color:var(--y5);color:var(--y5)">Electiva, {m.puntos_electiva || 0} pts</span>{' '}</>}
-                    {st ? `${st.cursos} curso${st.cursos !== 1 ? 's' : ''}` : 'Sin cursos cargados'}
-                    {st && st.count > 0 && <span class="only-sm-inline">, {st.count} reseña{st.count !== 1 ? 's' : ''}</span>}
+                    {m.es_electiva && <><span class="tag-elec">Electiva, {m.puntos_electiva || 0} pts</span>{' '}</>}
+                    {st ? `${st.cursos} curso${st.cursos !== 1 ? 's' : ''}` : 'Sin cursos cargados'}{st && st.count > 0 && <span class="only-sm-inline">, {st.count} reseña{st.count !== 1 ? 's' : ''}</span>}<b class:list={['nuevas', { hidden: !nueva }]}>, hay nuevas</b>
+                    {!(st && st.count > 0) && <> · Todavía nadie la reseñó. <a href={`/nueva-resena?materia=${m.id}&from=/nivel/${nivelNum}`}>Escribí la primera</a></>}
                   </div>
                 </div>
                 {st && st.count > 0 ? (
                   <>
                     <div class="c"><Stars value={st.promedio} /><div class="score">{nota(st.promedio)} de 5</div></div>
                     <div class="c num hide-sm">{st.count}<div class="score">reseñas</div></div>
-                    <div class="last hide-sm">{ult ? <>{tiempoRelativo(ult.created_at)}<br />por <b>{ult.autor}</b></> : '—'}</div>
+                    <div class="last hide-sm">{ult ? <>{fecha(ult.created_at)}<br />por <b>{ult.autor}</b></> : '—'}</div>
                   </>
                 ) : (
                   <>
                     <div class="c sub hide-sm">Sin puntaje</div>
                     <div class="c num hide-sm">0</div>
-                    <div class="last hide-sm"><a href={`/nueva-resena?materia=${m.id}&from=/materia/${m.id}`}>Escribí la primera reseña</a></div>
+                    <div class="last hide-sm"><a href={`/nueva-resena?materia=${m.id}&from=/nivel/${nivelNum}`}>Escribí la primera reseña</a></div>
                   </>
                 )}
               </div>
@@ -130,5 +167,53 @@ const label = anioLabel(nivelNum).replace(/^./, (c) => c.toUpperCase());
         </div>
       )}
     </div>
+
+    <aside class="side">
+      {faltan.length > 0 && (
+        <section class="panel">
+          <h3>Le faltan reseñas</h3>
+          <div class="in feed">
+            {faltan.map(({ m, n }) => (
+              <div>
+                <a href={`/materia/${m.id}`}>{m.nombre}</a>
+                <span class="sub">{n === 0 ? 'Ninguna todavía' : `${n} reseña${n !== 1 ? 's' : ''}, la nota no es confiable`}</span>
+              </div>
+            ))}
+            <a class="btn primary big" href="/nueva-resena"><Icon name="pen" /> Reseñar una de {ORDINAL[nivelNum]}</a>
+          </div>
+        </section>
+      )}
+      {comentados.length > 0 && (
+        <section class="panel">
+          <h3>Lo más comentado de {ORDINAL[nivelNum]}</h3>
+          <div class="in feed">
+            {comentados.map((c) => (
+              <div>
+                <a href={`/dictado/${c.id}`}>{nombreMateria.get(c.materia as number)}, {c.curso}</a>
+                <span class="sub">{c.n} reseña{c.n !== 1 ? 's' : ''} en el último mes</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </aside>
   </div>
 </Layout>
+
+<script>
+  const tabla = document.getElementById('tabla-anio');
+  const botones = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-orden]'));
+  botones.forEach((b) => b.addEventListener('click', () => {
+    if (!tabla) return;
+    botones.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    const filas = Array.from(tabla.querySelectorAll<HTMLElement>('.row'));
+    const k = b.dataset.orden;
+    filas.sort((x, y) => {
+      if (k === 'resenas') return Number(y.dataset.resenas) - Number(x.dataset.resenas);
+      if (k === 'nota') return Number(y.dataset.nota) - Number(x.dataset.nota);
+      if (k === 'novedades') return (y.dataset.ultima || '').localeCompare(x.dataset.ultima || '');
+      return (x.dataset.nombre || '').localeCompare(y.dataset.nombre || '', 'es');
+    });
+    filas.forEach((f) => tabla.appendChild(f));
+  }));
+</script>

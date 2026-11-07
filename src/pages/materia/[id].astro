@@ -3,14 +3,14 @@ import Layout from '../../layouts/Layout.astro';
 import Icon from '../../components/Icon.astro';
 import Stars from '../../components/Stars.astro';
 import CursoChips from '../../components/CursoChips.astro';
-import ReviewCard from '../../components/ReviewCard.astro';
 import ShareButton from '../../components/ShareButton.astro';
+import FinalesPanel from '../../components/FinalesPanel.astro';
 import { supabase } from '../../lib/supabase';
-import { anioLabel, compararCursos, nota } from '../../lib/format';
+import { anioLabel, compararCursos, nota, tiempoRelativo } from '../../lib/format';
 
 const { id } = Astro.params;
+const MIN_RESENAS = 5;
 
-// Datos de la materia
 const { data: materia } = await supabase
   .from('materias')
   .select('*')
@@ -37,110 +37,109 @@ const { data: dictados } = await supabase
   .eq('materia_id', id);
 
 const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
+const lista = (dictados || []).map((d: any) => ({ ...d, cursos: one(d.cursos) }));
+const dictadoIds = lista.map((d: any) => d.id);
 
-const dictadosOrdenados = (dictados || [])
-  .map((d: any) => ({ ...d, cursos: one(d.cursos) }))
-  .sort((a: any, b: any) => compararCursos(a.cursos?.identificador, b.cursos?.identificador));
-
-// Estadísticas reales
-const dictadoIds = dictadosOrdenados.map((d: any) => d.id);
-let resenas: any[] = [];
-let promedioGeneral = 0;
-let totalResenas = 0;
-const distribucion = [0, 0, 0, 0, 0];
-const dictadoStats: Record<number, { promedio: number; count: number }> = {};
-
+// Reseñas de todos los cursos (solo los datos que hacen falta para los números)
+type Fila = { dictado_id: number; calificacion_general: number; condicion_final: string | null; created_at: string };
+let resenas: Fila[] = [];
 if (dictadoIds.length > 0) {
-  const [{ data: statsData }, { data: resenasData }, { data: notas }] = await Promise.all([
-    supabase.from('stats_dictados').select('dictado_id, cantidad, promedio').in('dictado_id', dictadoIds),
-    supabase
-      .from('resenas_publicas')
-      .select('*')
-      .in('dictado_id', dictadoIds)
-      .order('created_at', { ascending: false })
-      .limit(6),
-    supabase.from('resenas_publicas').select('calificacion_general').in('dictado_id', dictadoIds).limit(5000),
-  ]);
-
-  resenas = resenasData || [];
-  const stats = statsData || [];
-  totalResenas = stats.reduce((acc, st) => acc + st.cantidad, 0);
-  if (totalResenas > 0) {
-    promedioGeneral = stats.reduce((acc, st) => acc + st.promedio * st.cantidad, 0) / totalResenas;
-  }
-  stats.forEach((st) => {
-    if (st.cantidad > 0) dictadoStats[st.dictado_id] = { promedio: st.promedio, count: st.cantidad };
-  });
-  (notas || []).forEach((r) => {
-    const i = Math.min(Math.max(Math.round(r.calificacion_general) - 1, 0), 4);
-    distribucion[i]++;
-  });
+  const { data } = await supabase
+    .from('resenas_publicas')
+    .select('dictado_id, calificacion_general, condicion_final, created_at')
+    .in('dictado_id', dictadoIds)
+    .order('created_at', { ascending: false })
+    .limit(5000);
+  resenas = (data || []) as Fila[];
 }
-const totalDist = distribucion.reduce((a, b) => a + b, 0);
 
-const { count: cantFinales } = await supabase
-  .from('experiencias_finales')
-  .select('id', { count: 'exact', head: true })
-  .eq('materia_id', id);
+const porCurso = new Map<number, { suma: number; count: number; prom: number; conCond: number; ultima: string | null }>();
+const distribucion = [0, 0, 0, 0, 0];
+const cond = { prom: 0, reg: 0, libre: 0 };
+resenas.forEach((r) => {
+  const c = porCurso.get(r.dictado_id) ?? { suma: 0, count: 0, prom: 0, conCond: 0, ultima: null };
+  c.suma += r.calificacion_general;
+  c.count++;
+  if (!c.ultima) c.ultima = r.created_at;
+  if (r.condicion_final) {
+    c.conCond++;
+    if (r.condicion_final === 'PROMOCIONADO') c.prom++;
+  }
+  porCurso.set(r.dictado_id, c);
+  distribucion[Math.min(Math.max(Math.round(r.calificacion_general) - 1, 0), 4)]++;
+  if (r.condicion_final === 'PROMOCIONADO') cond.prom++;
+  else if (r.condicion_final === 'REGULAR') cond.reg++;
+  else if (r.condicion_final === 'LIBRE') cond.libre++;
+});
+const totalResenas = resenas.length;
+const promedioGeneral = totalResenas ? resenas.reduce((a, r) => a + r.calificacion_general, 0) / totalResenas : 0;
+const conCondicion = cond.prom + cond.reg + cond.libre;
+const pct = (n: number, t: number) => (t ? Math.round((n / t) * 100) : 0);
 
-// Datos rápidos
-const conResenas = dictadosOrdenados.filter((d: any) => dictadoStats[d.id]);
-const mejor = conResenas
-  .filter((d: any) => dictadoStats[d.id].count >= 2)
-  .sort((a: any, b: any) => dictadoStats[b.id].promedio - dictadoStats[a.id].promedio)[0];
-const masResenas = [...conResenas].sort((a: any, b: any) => dictadoStats[b.id].count - dictadoStats[a.id].count)[0];
+const filas = lista
+  .map((d: any) => {
+    const c = porCurso.get(d.id);
+    return {
+      ...d,
+      count: c?.count || 0,
+      promedio: c ? c.suma / c.count : null,
+      promo: c && c.conCond ? pct(c.prom, c.conCond) : null,
+      ultima: c?.ultima || null,
+      profes: (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)).filter(Boolean),
+    };
+  })
+  .sort((a: any, b: any) => (b.promedio ?? -1) - (a.promedio ?? -1) || compararCursos(a.cursos?.identificador, b.cursos?.identificador));
+const conResenas = filas.filter((f: any) => f.count > 0);
+const sinResenas = filas.filter((f: any) => f.count === 0);
 
 const nivel = materia.nivel || 1;
 const label = anioLabel(nivel).replace(/^./, (c) => c.toUpperCase());
-const cursoDe = (dictadoId: number) => dictadosOrdenados.find((d: any) => d.id === dictadoId)?.cursos?.identificador || 'Curso';
+const PERIODOS: Record<string, string> = { ANUAL: 'Anual', PRIMER_CUATRIMESTRE: '1.er cuatrimestre', SEGUNDO_CUATRIMESTRE: '2.º cuatrimestre' };
+const periodos = [...new Set(lista.map((d: any) => PERIODOS[d.periodo_dictado]).filter(Boolean))];
+const fecha = (iso: string | null) => {
+  if (!iso) return '—';
+  const dias = (Date.now() - new Date(iso).getTime()) / 86400000;
+  return dias < 7 ? tiempoRelativo(iso) : new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
 
 // SEO y datos estructurados
 const seoTitle = `Reseñas de ${materia.nombre} - UTN FRC`;
-const seoDescription = `Leé opiniones, calificaciones y recomendaciones para cursar ${materia.nombre} en Ingeniería en Sistemas de la UTN FRC. Enterate qué profesores son los mejores y cómo son los finales.`;
-
+const seoDescription = `Leé opiniones, calificaciones y recomendaciones para cursar ${materia.nombre} en Ingeniería en Sistemas de la UTN FRC. Enterate qué cursos son los mejores y cómo son los finales.`;
 const schemaObject: any = {
   '@context': 'https://schema.org/',
   '@type': 'Course',
   name: `${materia.nombre} - UTN FRC`,
   description: seoDescription,
-  provider: {
-    '@type': 'Organization',
-    name: 'UTN FRC',
-    sameAs: 'https://frc.utn.edu.ar/',
-  },
+  provider: { '@type': 'Organization', name: 'UTN FRC', sameAs: 'https://frc.utn.edu.ar/' },
 };
 if (totalResenas > 0) {
-  schemaObject.aggregateRating = {
-    '@type': 'AggregateRating',
-    ratingValue: promedioGeneral.toFixed(1),
-    reviewCount: totalResenas.toString(),
-  };
+  schemaObject.aggregateRating = { '@type': 'AggregateRating', ratingValue: promedioGeneral.toFixed(1), reviewCount: totalResenas.toString() };
 }
-const schemaMateria = JSON.stringify(schemaObject);
 const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
 ---
 
 <Layout
   title={seoTitle}
   description={seoDescription}
-  schema={schemaMateria}
+  schema={JSON.stringify(schemaObject)}
   tab="materias"
   crumbs={[{ label: 'Materias', href: '/' }, { label, href: `/nivel/${nivel}` }, { label: materia.nombre }]}
 >
-  <div class="layout single">
+  <div class="layout">
     <div class="main">
       <div class="topic">
         <div>
-          <div class="chips">
-            <a class:list={['yr', `y${nivel}`]} href={`/nivel/${nivel}`}>{label}</a>
-            {materia.es_electiva && <span class="chip elec">Electiva ({materia.puntos_electiva || 0} pts)</span>}
+          <div class="chips" style="margin:0 0 4px">
+            <a class:list={['chip yr', `y${nivel}`]} href={`/nivel/${nivel}`}>{nivel}.º año</a>
+            {periodos.map((p) => <span class="chip">{p}</span>)}
+            {materia.es_electiva && <span class="chip elec">Electiva, {materia.puntos_electiva || 0} pts</span>}
           </div>
-          <h1 style="margin-top:6px">{materia.nombre}</h1>
-          <p>{dictadosOrdenados.length} curso{dictadosOrdenados.length !== 1 ? 's' : ''} · {totalResenas} reseña{totalResenas !== 1 ? 's' : ''}</p>
+          <h1>{materia.nombre}</h1>
+          <p>{lista.length} curso{lista.length !== 1 ? 's' : ''}. Elegí uno para leer sus reseñas{lista.length > 1 ? ', o compará todos' : ''}.</p>
         </div>
         <div class="actions">
+          {lista.length > 1 && <a class="btn secondary" href={`/materia/${id}/comparar`}><Icon name="compare" /> Comparar los {lista.length} cursos</a>}
           <a class="btn primary" href={escribir}><Icon name="pen" /> Escribir una reseña</a>
-          {dictadosOrdenados.length > 1 && <a class="btn secondary" href={`/materia/${id}/comparar`}><Icon name="compare" /> Comparar cursos</a>}
           <ShareButton titulo={`Reseñas de ${materia.nombre} en UTN REP`} />
         </div>
       </div>
@@ -148,76 +147,81 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
       {totalResenas > 0 && (
         <div class="summary">
           <div>
-            <span class="sub">Promedio de la materia</span>
+            <span class="sub">Nota de la materia</span>
             <span class="big-score">{nota(promedioGeneral)} <small>de 5</small></span>
             <Stars value={promedioGeneral} />
-            <span class="sub">{totalResenas} reseña{totalResenas !== 1 ? 's' : ''}</span>
+            <span class="sub">en {totalResenas} reseña{totalResenas !== 1 ? 's' : ''} de todos sus cursos</span>
           </div>
           <div>
-            <span class="sub">Cómo la puntuaron</span>
+            <span class="sub">Cómo se reparten las estrellas</span>
             <div class="bars dist">
               {[5, 4, 3, 2, 1].map((n) => (
-                <div><span>{n} ★</span><i><b style={`width:${totalDist ? Math.round((distribucion[n - 1] / totalDist) * 100) : 0}%`}></b></i><span class="n">{distribucion[n - 1]}</span></div>
+                <div><span>{n} ★</span><i><b style={`width:${pct(distribucion[n - 1], totalResenas)}%`}></b></i><span class="n">{distribucion[n - 1]}</span></div>
               ))}
             </div>
           </div>
           <div>
-            <span class="sub">Datos rápidos</span>
-            <div class="facts">
-              {mejor && <div><span>Mejor puntuado</span><a href={`/dictado/${mejor.id}`}><b>{mejor.cursos?.identificador}</b> ({nota(dictadoStats[mejor.id].promedio)})</a></div>}
-              {masResenas && <div><span>Más reseñado</span><a href={`/dictado/${masResenas.id}`}><b>{masResenas.cursos?.identificador}</b> ({dictadoStats[masResenas.id].count})</a></div>}
-              <div><span>Cursos con reseñas</span><b>{conResenas.length} de {dictadosOrdenados.length}</b></div>
-            </div>
+            <span class="sub">Lo que cuentan los alumnos</span>
+            {conCondicion > 0 ? (
+              <div class="facts">
+                <div><span>Promocionó</span><b>{pct(cond.prom, conCondicion)} %</b></div>
+                <div><span>Quedó regular</span><b>{pct(cond.reg, conCondicion)} %</b></div>
+                <div><span>Quedó libre</span><b>{pct(cond.libre, conCondicion)} %</b></div>
+                <span class="sub">Según {conCondicion} reseña{conCondicion !== 1 ? 's' : ''} que lo contaron.</span>
+              </div>
+            ) : (
+              <span class="sub">Nadie contó todavía si promocionó o regularizó.</span>
+            )}
           </div>
         </div>
       )}
 
-      <div class="toolbar"><h2>Cursos</h2><span class="sub">Tocá un curso para leer sus reseñas.</span></div>
+      <h2 class="sec">Cursos de {materia.nombre}</h2>
 
-      {dictadosOrdenados.length > 0 ? (
+      {filas.length > 0 ? (
         <div class="grid-tbl stack">
           <table>
             <thead>
-              <tr><th>Curso</th><th>Equipo docente</th><th class="c">Promedio</th><th class="c">Reseñas</th><th></th></tr>
+              <tr><th>Curso</th><th>Turno</th><th>Equipo docente</th><th>Nota ▼</th><th class="c">Reseñas</th><th>Promocionó</th><th>Última reseña</th></tr>
             </thead>
             <tbody>
-              {dictadosOrdenados.map((d: any) => {
-                const st = dictadoStats[d.id];
-                const profes = (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)).filter(Boolean);
-                return (
-                  <tr>
-                    <td>
-                      <a class="curso" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a>
-                      <CursoChips mini turno={d.cursos?.turno} periodo={d.periodo_dictado} contra={d.es_contracuatrimestral} intensivo={d.es_intensivo} />
-                    </td>
-                    <td>
-                      {profes.length > 0
-                        ? <ul class="profes">{profes.map((p: any) => <li><a href={`/profesor/${p.id}`}>{p.nombre_completo}</a></li>)}</ul>
-                        : <span class="sub">Sin profesores cargados</span>}
-                    </td>
-                    <td class="c">{st ? <><Stars value={st.promedio} /><div class="score">{nota(st.promedio)}</div></> : <span class="sub">Sin puntaje</span>}</td>
-                    <td class="c num">{st?.count || 0}</td>
-                    <td><a href={`/dictado/${d.id}`}>{st ? 'Ver reseñas' : 'Escribí la primera'}</a></td>
-                  </tr>
-                );
-              })}
+              {conResenas.map((d: any) => (
+                <tr class:list={{ few: d.count < MIN_RESENAS }}>
+                  <td style="white-space:nowrap"><a class="curso" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a>{d.count < MIN_RESENAS && <span class="pocas">pocas reseñas</span>}</td>
+                  <td><CursoChips mini turno={d.cursos?.turno} /></td>
+                  <td>{d.profes.length ? d.profes.map((p: any, i: number) => <>{i > 0 && ', '}<a href={`/profesor/${p.id}`}>{p.nombre_completo}</a></>) : <span class="sub">Sin cargar</span>}</td>
+                  <td style="white-space:nowrap"><Stars value={d.promedio} /> {nota(d.promedio)}</td>
+                  <td class="c num">{d.count}</td>
+                  <td style="white-space:nowrap">{d.promo !== null ? <><span class="mini-bar"><b style={`width:${d.promo}%`}></b></span>{d.promo} %</> : <span class="sub">—</span>}</td>
+                  <td style="white-space:nowrap">{fecha(d.ultima)}</td>
+                </tr>
+              ))}
+              {sinResenas.length > 0 && (
+                <tr id="fila-sin-resenas"><td colspan="7" class="more">
+                  <button type="button" class="linklike" id="ver-sin-resenas">Ver {sinResenas.length === 1 ? 'el curso' : `los ${sinResenas.length} cursos`} sin reseñas ({sinResenas.map((d: any) => d.cursos?.identificador).join(', ')})</button>
+                </td></tr>
+              )}
+              {sinResenas.map((d: any) => (
+                <tr class="few sin-resena hidden">
+                  <td><a class="curso" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a></td>
+                  <td><CursoChips mini turno={d.cursos?.turno} /></td>
+                  <td>{d.profes.length ? d.profes.map((p: any, i: number) => <>{i > 0 && ', '}<a href={`/profesor/${p.id}`}>{p.nombre_completo}</a></>) : <span class="sub">Sin cargar</span>}</td>
+                  <td colspan="4"><a href={`/nueva-resena?dictado=${d.id}&from=/materia/${id}`}>Escribí la primera reseña</a></td>
+                </tr>
+              ))}
             </tbody>
           </table>
           <div class="cards-sm">
-            {dictadosOrdenados.map((d: any) => {
-              const st = dictadoStats[d.id];
-              const profes = (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)?.nombre_completo).filter(Boolean);
-              return (
-                <div class="ccard">
-                  <div class="top">
-                    <a class="curso stretch" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a>
-                    <CursoChips mini turno={d.cursos?.turno} periodo={d.periodo_dictado} contra={d.es_contracuatrimestral} intensivo={d.es_intensivo} />
-                  </div>
-                  <span class="sub">{profes.length ? profes.join(', ') : 'Sin profesores cargados'}</span>
-                  <span>{st ? <><Stars value={st.promedio} /> <b>{nota(st.promedio)}</b> <span class="sub">· {st.count} reseña{st.count !== 1 ? 's' : ''}</span></> : <span class="sub">Sin reseñas todavía</span>}</span>
+            {[...conResenas, ...sinResenas].map((d: any) => (
+              <div class="ccard">
+                <div class="top">
+                  <a class="curso stretch" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a>
+                  <CursoChips mini turno={d.cursos?.turno} />
                 </div>
-              );
-            })}
+                <span class="sub">{d.profes.length ? d.profes.map((p: any) => p.nombre_completo).join(', ') : 'Sin profesores cargados'}</span>
+                <span>{d.count ? <><Stars value={d.promedio} /> <b>{nota(d.promedio)}</b> <span class="sub">· {d.count} reseña{d.count !== 1 ? 's' : ''}{d.promo !== null ? ` · ${d.promo} % promocionó` : ''}</span></> : <span class="sub">Sin reseñas todavía</span>}</span>
+              </div>
+            ))}
           </div>
         </div>
       ) : (
@@ -226,28 +230,24 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
           <span>Todavía no se registraron cursos para esta materia.</span>
         </div>
       )}
-
-      <div class="notice">
-        <Icon name="final" />
-        <span>
-          {cantFinales
-            ? <>Hay {cantFinales} experiencia{cantFinales !== 1 ? 's' : ''} de finales de {materia.nombre}. <a href={`/finales?materia=${id}`}><b>Ver cómo toman el final</b></a></>
-            : <>Todavía nadie contó cómo es el final de {materia.nombre}. <a href="/finales/nuevo"><b>¿Lo rendiste? Contalo</b></a></>}
-        </span>
-      </div>
-
-      <div class="toolbar"><h2>Opiniones recientes</h2></div>
-      {resenas.length > 0 ? (
-        resenas.map((r: any) => (
-          <ReviewCard resena={r} compact curso={{ label: `${materia.nombre}, ${cursoDe(r.dictado_id)}`, href: `/dictado/${r.dictado_id}#resena-${r.id}` }} />
-        ))
-      ) : (
-        <div class="empty">
-          <h3>Todavía no hay opiniones</h3>
-          <span>Sé la primera persona en contar cómo es cursar esta materia.</span>
-          <a class="btn primary" href={escribir}><Icon name="pen" /> Escribir la primera reseña</a>
-        </div>
-      )}
     </div>
+
+    <aside class="side" aria-label="Más sobre la materia">
+      <FinalesPanel materiaId={materia.id} />
+      <section class="panel cta">
+        <h3>¿Cursaste {materia.nombre}?</h3>
+        <div class="in">
+          <span>Tu reseña ayuda a quien tiene que elegir curso el próximo cuatri.</span>
+          <a class="btn primary big" href={escribir}><Icon name="pen" /> Escribir una reseña</a>
+        </div>
+      </section>
+    </aside>
   </div>
 </Layout>
+
+<script>
+  document.getElementById('ver-sin-resenas')?.addEventListener('click', () => {
+    document.querySelectorAll('.sin-resena').forEach((tr) => tr.classList.remove('hidden'));
+    document.getElementById('fila-sin-resenas')?.remove();
+  });
+</script>

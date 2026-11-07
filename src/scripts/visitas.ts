@@ -28,6 +28,13 @@ export function visitaAnterior(): number | null {
   return registrar().anterior;
 }
 
+/** Toma "ahora" como la visita anterior: todo lo publicado hasta ahora deja de ser nuevo. */
+export function marcarLeido(): void {
+  const v = registrar();
+  v.anterior = Date.now();
+  try { localStorage.setItem(CLAVE, JSON.stringify(v)); } catch { /* sin almacenamiento */ }
+}
+
 /** "hoy, 18:20", "ayer, 9:05" o "3/11, 21:40" */
 export function textoVisita(ms: number): string {
   const d = new Date(ms);

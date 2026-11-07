@@ -1,5 +1,6 @@
 // Cliente de Supabase de mentira para mirar el rediseño sin base real.
-// Implementa lo justo de PostgREST: select con relaciones, eq, in, gt, order, limit, single y count.
+// Implementa lo justo de PostgREST: select con relaciones, filtros, order, range, single, count
+// y escrituras simples (insert, update, delete) que viven en memoria mientras corre el servidor.
 import * as F from './fixture.mjs';
 
 const T: Record<string, any[]> = { ...F } as any;
@@ -63,7 +64,7 @@ function project(table: string, row: any, fields: any[]): any {
 }
 
 class Q {
-  rows: any[]; fields: any[] = [{ name: '*' }]; opts: any = {}; filters: ((r: any) => boolean)[] = []; ord: [string, boolean][] = []; lim = 0; mode = '';
+  rows: any[]; fields: any[] = [{ name: '*' }]; opts: any = {}; filters: ((r: any) => boolean)[] = []; ord: [string, boolean][] = []; lim = 0; off = 0; mode = ''; op = ''; payload: any = null;
   constructor(public table: string) { this.rows = tabla(table); }
   select(s = '*', opts: any = {}) { this.fields = parse(s); this.opts = opts; return this; }
   eq(k: string, v: any) { this.filters.push((r) => String(r[k]) === String(v)); return this; }
@@ -73,17 +74,37 @@ class Q {
   lte(k: string, v: any) { this.filters.push((r) => r[k] <= v); return this; }
   neq(k: string, v: any) { this.filters.push((r) => r[k] !== v); return this; }
   is(k: string, v: any) { this.filters.push((r) => (r[k] ?? null) === v); return this; }
-  range(a: number, b: number) { return this.limit(b - a + 1); }
+  range(a: number, b: number) { this.off = a; return this.limit(b - a + 1); }
+  insert(v: any) { this.op = 'insert'; this.payload = v; this.fields = [{ name: '*' }]; return this; }
+  update(v: any) { this.op = 'update'; this.payload = v; return this; }
+  delete() { this.op = 'delete'; return this; }
   in(k: string, vs: any[]) { const s = new Set(vs.map(String)); this.filters.push((r) => s.has(String(r[k]))); return this; }
   order(k: string, o: any = {}) { this.ord.push([k, o.ascending !== false]); return this; }
   limit(n: number) { this.lim = n; return this; }
   single() { this.mode = 'single'; return this; }
   maybeSingle() { this.mode = 'maybe'; return this; }
+  write() {
+    const t = (T[this.table] = T[this.table] || []);
+    if (this.op === 'insert') {
+      const nuevos = (Array.isArray(this.payload) ? this.payload : [this.payload]).map((v: any) => ({ id: t.reduce((m: number, x: any) => (typeof x.id === 'number' && x.id > m ? x.id : m), 0) + 1, created_at: new Date().toISOString(), ...v }));
+      nuevos.forEach((n: any) => t.push(n));
+      return nuevos;
+    }
+    const afectados = t.filter((x: any) => this.filters.every((f) => f(x)));
+    if (this.op === 'update') afectados.forEach((x: any) => Object.assign(x, this.payload));
+    if (this.op === 'delete') T[this.table] = t.filter((x: any) => !afectados.includes(x));
+    return afectados;
+  }
   run() {
+    if (this.op) {
+      const data = this.write().map((x: any) => project(this.table, x, this.fields));
+      if (this.mode) return { data: data[0] ?? null, error: null };
+      return { data, error: null };
+    }
     let r = this.rows.filter((x) => this.filters.every((f) => f(x)));
     if (this.ord.length) r = [...r].sort((a, b) => { for (const [k, asc] of this.ord) { if (a[k] < b[k]) return asc ? -1 : 1; if (a[k] > b[k]) return asc ? 1 : -1; } return 0; });
     const count = r.length;
-    if (this.lim) r = r.slice(0, this.lim);
+    if (this.lim || this.off) r = r.slice(this.off, this.lim ? this.off + this.lim : undefined);
     if (this.opts.head) return { data: null, error: null, count };
     const data = r.map((x) => project(this.table, x, this.fields));
     if (this.mode) return { data: data[0] ?? null, error: data[0] || this.mode === 'maybe' ? null : { message: 'not found' }, count };

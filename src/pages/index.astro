@@ -96,6 +96,11 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
       <div class="jump">
         <span>Ir a:</span>
         {anios.map((a) => <a class:list={['yj', `y${a.n}`]} href={`#anio-${a.n}`}>{a.n}.º año</a>)}
+        {materias.some((m) => m.es_electiva) && <button type="button" class="yj" id="solo-electivas" aria-pressed="false">Electivas</button>}
+      </div>
+      <div class="yr-pick" id="mis-anios">
+        <span class="sub">¿Qué año cursás? Esos vienen abiertos:</span>
+        {anios.map((a) => <label><input type="checkbox" value={a.n} /> {a.n}.º</label>)}
       </div>
 
       <div class="tbl" role="table" aria-label="Materias por año">
@@ -103,7 +108,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
           <span></span><span>Materia</span><span class="c">Promedio</span><span class="c">Reseñas</span><span>Última reseña</span>
         </div>
         {anios.filter((a) => a.lista.length > 0).map((a) => (
-          <details class="year" id={`anio-${a.n}`} open>
+          <details class="year" id={`anio-${a.n}`}>
             <summary class:list={['cat yc', `y${a.n}`]}>
               <span class="cat-name"><span class="ydot">{a.n}.º</span>{anioLabel(a.n).replace(/^./, (c) => c.toUpperCase())}</span>
               <small>{a.lista.length} materias · <a href={`/nivel/${a.n}`}>Ver el año</a></small>
@@ -113,12 +118,12 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
               const ult = ultima[m.id];
               const nueva = esNueva(ult?.created_at);
               return st && st.count > 0 ? (
-                <div class="row" role="row" data-ultima={ult?.created_at}>
+                <div class="row" role="row" data-ultima={ult?.created_at} data-electiva={m.es_electiva ? '1' : undefined}>
                   <svg class:list={['folder', nueva ? 'new' : 'old']} role="img" aria-label={nueva ? 'Tiene reseñas nuevas' : 'Sin reseñas nuevas'}><use href="#folder" /></svg>
                   <div>
                     <a class="name" href={`/materia/${m.id}`}>{m.nombre}</a>
                     <div class="sub">
-                      {m.es_electiva && <span class="tt" style="border-color:var(--y5);color:var(--y5)">Electiva</span>}{' '}
+                      {m.es_electiva && <span class="tag-elec">Electiva</span>}{' '}
                       {st.cursos} curso{st.cursos !== 1 ? 's' : ''}<span class="only-sm-inline">, {st.count} reseña{st.count !== 1 ? 's' : ''}</span><b class:list={['nuevas', { hidden: !nueva }]}>, hay nuevas</b>
                     </div>
                   </div>
@@ -129,12 +134,12 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
                   </div>
                 </div>
               ) : (
-                <div class="row" role="row">
+                <div class="row" role="row" data-electiva={m.es_electiva ? '1' : undefined}>
                   <svg class="folder old" role="img" aria-label="Sin reseñas"><use href="#folder" /></svg>
                   <div>
                     <a class="name" href={`/materia/${m.id}`}>{m.nombre}</a>
                     <div class="sub">
-                      {m.es_electiva && <span class="tt" style="border-color:var(--y5);color:var(--y5)">Electiva</span>}{' '}
+                      {m.es_electiva && <span class="tag-elec">Electiva</span>}{' '}
                       Todavía nadie la reseñó.
                     </div>
                   </div>
@@ -151,6 +156,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
       <div class="legend">
         <span><svg class="folder new" aria-hidden="true"><use href="#folder" /></svg> <span id="leyenda-nuevas">Tiene reseñas de las últimas dos semanas</span></span>
         <span><svg class="folder old" aria-hidden="true"><use href="#folder" /></svg> Sin reseñas nuevas</span>
+        <button type="button" class="linklike" id="marcar-leido">Marcar todo como leído</button>
       </div>
     </div>
 
@@ -169,7 +175,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
           <div class="kpis">
             <div><b>{fmt(totalResenas)}</b><span>reseñas</span></div>
             <div><b>+{fmt(nuevasSemana)}</b><span>esta semana</span></div>
-            <div><b>{fmt(totalFinales)}</b><span>finales contados</span></div>
+            <div><b>{fmt(totalFinales)}</b><span>experiencias de finales</span></div>
             <div><b>{fmt(cursosConResenas)}</b><span>cursos reseñados</span></div>
           </div>
           <div class="sub">Reseñas por año de la carrera</div>
@@ -197,6 +203,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
                 </div>
               );
             })}
+            <a href="/recientes">Ver todas las reseñas recientes</a>
           </div>
         </section>
       )}
@@ -233,7 +240,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
 </Layout>
 
 <script>
-  import { visitaAnterior } from '../scripts/visitas';
+  import { visitaAnterior, marcarLeido } from '../scripts/visitas';
 
   // Carpetas: "nuevas" = reseñas desde tu última visita (la primera vez, las de las últimas dos semanas)
   const anterior = visitaAnterior();
@@ -250,26 +257,51 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
     if (leyenda) leyenda.textContent = 'Tiene reseñas nuevas desde tu última visita';
   }
 
-  // Recordar qué años dejaste cerrados
-  const CLAVE = 'aniosCerrados';
+  // Años: cerrados por defecto; los que elegís como "tus años" vienen abiertos
+  const CLAVE = 'misAnios';
   const leer = (): string[] => {
     try { return JSON.parse(localStorage.getItem(CLAVE) || '[]'); } catch { return []; }
   };
   const anios = Array.from(document.querySelectorAll<HTMLDetailsElement>('details.year'));
-  const cerrados = new Set(leer());
-  anios.forEach((d) => {
-    if (cerrados.has(d.id) && location.hash !== `#${d.id}`) d.open = false;
-    d.addEventListener('toggle', () => {
+  const mios = new Set(leer());
+  anios.forEach((d) => { if (mios.has(d.id.replace('anio-', '')) || location.hash === `#${d.id}`) d.open = true; });
+  document.querySelectorAll<HTMLInputElement>('#mis-anios input').forEach((cb) => {
+    cb.checked = mios.has(cb.value);
+    cb.addEventListener('change', () => {
       const set = new Set(leer());
-      if (d.open) set.delete(d.id); else set.add(d.id);
+      if (cb.checked) set.add(cb.value); else set.delete(cb.value);
       try { localStorage.setItem(CLAVE, JSON.stringify([...set])); } catch {}
+      const d = document.getElementById(`anio-${cb.value}`) as HTMLDetailsElement | null;
+      if (d) d.open = cb.checked;
     });
   });
-  // "Ir a" abre el año si estaba cerrado
+  // "Ir a" abre el año
   document.querySelectorAll<HTMLAnchorElement>('.jump a').forEach((a) => {
     a.addEventListener('click', () => {
       const d = document.getElementById(a.hash.slice(1)) as HTMLDetailsElement | null;
       if (d) d.open = true;
     });
+  });
+  // Solo electivas
+  const btnElec = document.getElementById('solo-electivas');
+  btnElec?.addEventListener('click', () => {
+    const on = btnElec.getAttribute('aria-pressed') !== 'true';
+    btnElec.setAttribute('aria-pressed', String(on));
+    anios.forEach((d) => {
+      let hay = false;
+      d.querySelectorAll<HTMLElement>('.row').forEach((r) => {
+        const ok = !on || r.dataset.electiva === '1';
+        r.classList.toggle('hidden', !ok);
+        if (ok && r.dataset.electiva === '1') hay = true;
+      });
+      d.classList.toggle('hidden', on && !hay);
+      if (on && hay) d.open = true;
+    });
+  });
+  // Marcar todo como leído
+  document.getElementById('marcar-leido')?.addEventListener('click', () => {
+    marcarLeido();
+    document.querySelectorAll('.row .folder').forEach((f) => { f.classList.remove('new'); f.classList.add('old'); });
+    document.querySelectorAll('.row .nuevas').forEach((b) => b.classList.add('hidden'));
   });
 </script>

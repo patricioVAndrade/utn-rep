@@ -118,7 +118,7 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
           <span><b>UTN <span>REP</span></b><small>Reseñas de Ingeniería en Sistemas, UTN Facultad Regional Córdoba</small></span>
         </a>
         <div class="search" id="search-container">
-          <form role="search" action="/" id="search-form">
+          <form role="search" action="/buscar" method="get" id="search-form">
             <label class="sr" for="search-input">Buscar materia, curso o profesor</label>
             <input id="search-input" type="search" name="q" placeholder="Buscar materia, curso o profe" autocomplete="off"
               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" />
@@ -313,13 +313,15 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
       else if (e.key === 'ArrowUp' && ops.length) { e.preventDefault(); marcar(sel <= 0 ? ops.length - 1 : sel - 1); }
       else if (e.key === 'Escape') { cerrar(); }
     });
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!datos) { await cargar(); pintarResultados(); }
+    // Enter con una sugerencia marcada va directo; si no, a la página de resultados
+    form?.addEventListener('submit', (e) => {
       const ops = opciones();
-      const destino = ops[sel >= 0 ? sel : 0];
-      if (destino) window.location.href = destino.href;
-      else pintarResultados();
+      if (sel >= 0 && ops[sel]) {
+        e.preventDefault();
+        window.location.href = ops[sel].href;
+      } else if (!input.value.trim()) {
+        e.preventDefault();
+      }
     });
     document.addEventListener('click', (e) => {
       if (container && !container.contains(e.target as Node)) cerrar();

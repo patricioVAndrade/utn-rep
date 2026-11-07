@@ -1,0 +1,231 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Stars from '../components/Stars.astro';
+import CursoChips from '../components/CursoChips.astro';
+import { supabase } from '../lib/supabase';
+import { anioLabel, compararCursos, nota } from '../lib/format';
+
+const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 80);
+const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const nq = norm(q);
+const palabras = nq.split(/\s+/).filter(Boolean);
+const coincide = (texto: string) => palabras.length > 0 && palabras.every((p) => norm(texto).includes(p));
+const esCurso = /^\d[a-z]\d{1,2}$/i.test(q);
+
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
+
+let materias: any[] = [];
+let cursos: any[] = [];
+let profes: any[] = [];
+let finales: any[] = [];
+
+if (palabras.length > 0) {
+  const [{ data: mats }, { data: dics }, { data: stats }, { data: prs }, { data: fins }] = await Promise.all([
+    supabase.from('materias').select('id, nombre, nivel').order('nivel').order('nombre'),
+    supabase.from('dictados').select('id, materia_id, cursos ( identificador, turno ), dictado_profesores ( profesores ( id, nombre_completo ) )'),
+    supabase.from('stats_dictados').select('dictado_id, cantidad, promedio'),
+    supabase.from('profesores').select('id, nombre_completo, dictado_profesores ( dictados ( id, materias ( nombre ), cursos ( identificador ) ) )'),
+    supabase
+      .from('experiencias_finales')
+      .select('id, anio, mesa, comentario, created_at, materias ( id, nombre, nivel )')
+      .order('created_at', { ascending: false })
+      .limit(2000),
+  ]);
+
+  const st = new Map((stats || []).map((s: any) => [s.dictado_id, s]));
+  const nombreMateria = new Map((mats || []).map((m: any) => [m.id, m]));
+
+  // Materias
+  materias = (mats || []).filter((m: any) => coincide(m.nombre)).map((m: any) => {
+    const ds = (dics || []).filter((d: any) => d.materia_id === m.id);
+    let count = 0;
+    let suma = 0;
+    ds.forEach((d: any) => {
+      const s = st.get(d.id);
+      if (s?.cantidad) { count += s.cantidad; suma += s.promedio * s.cantidad; }
+    });
+    return { ...m, cursos: ds.length, count, promedio: count ? suma / count : null };
+  });
+  const idsMaterias = new Set(materias.map((m) => m.id));
+
+  // Cursos: por código (2K3) o de las materias encontradas
+  cursos = (dics || [])
+    .map((d: any) => ({ ...d, curso: one(d.cursos), materia: nombreMateria.get(d.materia_id) }))
+    .filter((d: any) => d.curso && (esCurso ? norm(d.curso.identificador) === nq : idsMaterias.has(d.materia_id)))
+    .map((d: any) => ({
+      id: d.id,
+      ident: d.curso.identificador,
+      turno: d.curso.turno,
+      materia: d.materia,
+      profes: (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)?.nombre_completo).filter(Boolean),
+      promedio: st.get(d.id)?.cantidad ? st.get(d.id).promedio : null,
+      count: st.get(d.id)?.cantidad || 0,
+    }))
+    .sort((a: any, b: any) => (b.promedio ?? -1) - (a.promedio ?? -1) || compararCursos(a.ident, b.ident));
+
+  // Profesores
+  profes = (prs || []).filter((p: any) => coincide(p.nombre_completo)).map((p: any) => {
+    const porMateria = new Map<string, string[]>();
+    (p.dictado_profesores || []).forEach((dp: any) => {
+      const d = one(dp.dictados);
+      const m = one(d?.materias)?.nombre;
+      const c = one(d?.cursos)?.identificador;
+      if (!m) return;
+      if (!porMateria.has(m)) porMateria.set(m, []);
+      if (c) porMateria.get(m)!.push(c);
+    });
+    return { id: p.id, nombre: p.nombre_completo, materias: [...porMateria.entries()] };
+  });
+
+  // Experiencias de finales: por materia o por texto
+  finales = (fins || [])
+    .map((f: any) => ({ ...f, materia: one(f.materias) }))
+    .filter((f: any) => f.materia && (idsMaterias.has(f.materia.id) || coincide(f.comentario || '')));
+}
+
+const total = materias.length + cursos.length + profes.length + finales.length;
+const MAX = 3;
+const grupos = [
+  { id: 'materias', label: 'Materias', n: materias.length },
+  { id: 'cursos', label: 'Cursos', n: cursos.length },
+  { id: 'profes', label: 'Profesores', n: profes.length },
+  { id: 'finales', label: 'Finales', n: finales.length },
+].filter((g) => g.n > 0);
+const resaltar = (texto: string) => {
+  if (!palabras.length) return texto;
+  const n = norm(texto);
+  const marcas: [number, number][] = [];
+  palabras.forEach((p) => { const i = n.indexOf(p); if (i >= 0) marcas.push([i, i + p.length]); });
+  marcas.sort((a, b) => a[0] - b[0]);
+  let out = '';
+  let pos = 0;
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  marcas.forEach(([a, b]) => { if (a < pos) return; out += esc(texto.slice(pos, a)) + '<mark>' + esc(texto.slice(a, b)) + '</mark>'; pos = b; });
+  return out + esc(texto.slice(pos));
+};
+const mesaTexto = (f: any) => `Mesa de ${(f.mesa || '').toLowerCase().startsWith('feb') ? 'febrero / marzo' : (f.mesa || '').toLowerCase()} ${f.anio}`.replace('Mesa de  ', 'Mesa ');
+const recorte = (s: string, n = 90) => (s.length > n ? s.slice(0, n).replace(/\s+\S*$/, '') + '…' : s);
+
+// Si no hay resultados, sugerimos materias con más reseñas
+let sugeridas: any[] = [];
+if (q && total === 0) {
+  const [{ data: mats }, { data: stats }] = await Promise.all([
+    supabase.from('materias').select('id, nombre, nivel'),
+    supabase.from('stats_dictados').select('materia_id, cantidad'),
+  ]);
+  const cuenta = new Map<number, number>();
+  (stats || []).forEach((s: any) => cuenta.set(s.materia_id, (cuenta.get(s.materia_id) || 0) + (s.cantidad || 0)));
+  sugeridas = (mats || []).sort((a: any, b: any) => (cuenta.get(b.id) || 0) - (cuenta.get(a.id) || 0)).slice(0, 6);
+}
+---
+
+<Layout
+  title={q ? `Buscar "${q}" - UTN REP` : 'Buscar - UTN REP'}
+  tab="materias"
+  crumbs={[{ label: q ? `Buscar: "${q}"` : 'Buscar' }]}
+>
+  <div class="layout single">
+    <div class="main">
+      <div class="topic">
+        <div>
+          <h1>{q ? `Resultados para "${q}"` : 'Buscar'}</h1>
+          <p>{!q ? 'Escribí el nombre de una materia, un curso como 2K3 o el apellido de un profe.' : total ? `${total} resultado${total !== 1 ? 's' : ''}. Tocá un grupo para ver solo eso.` : 'No encontramos nada con eso.'}</p>
+        </div>
+      </div>
+
+      {grupos.length > 1 && (
+        <div class="filters">
+          <div class="seg" role="group" aria-label="Filtrar resultados">
+            <button type="button" data-grupo="" aria-pressed="true">Todo ({total})</button>
+            {grupos.map((g) => <button type="button" data-grupo={g.id} aria-pressed="false">{g.label} ({g.n})</button>)}
+          </div>
+        </div>
+      )}
+
+      {total > 0 && (
+        <div class="results">
+          {materias.length > 0 && (
+            <section data-sec="materias">
+              <h3>Materias</h3>
+              {materias.map((m, i) => (
+                <a class:list={['res', { 'extra hidden': i >= MAX }]} href={`/materia/${m.id}`}>
+                  <span><span class:list={['yr', `y${m.nivel}`]}>{m.nivel}.º</span> <b set:html={resaltar(m.nombre)} /></span>
+                  <span class="sub">{m.cursos} curso{m.cursos !== 1 ? 's' : ''}{m.count > 0 ? <>, <Stars value={m.promedio} /> {nota(m.promedio)} en {m.count} reseña{m.count !== 1 ? 's' : ''}</> : ', sin reseñas'}</span>
+                </a>
+              ))}
+              {materias.length > MAX && <button type="button" class="more linklike" data-mas>Ver las {materias.length} materias</button>}
+            </section>
+          )}
+          {cursos.length > 0 && (
+            <section data-sec="cursos">
+              <h3>Cursos</h3>
+              {cursos.map((c, i) => (
+                <a class:list={['res', { 'extra hidden': i >= MAX }]} href={`/dictado/${c.id}`}>
+                  <span><b>{c.ident}</b> <CursoChips mini turno={c.turno} /> {esCurso && c.materia ? <>{c.materia.nombre} · </> : ''}<span class="sub">{c.profes.join(', ') || 'Sin profesores cargados'}</span></span>
+                  <span class="sub">{c.promedio !== null ? <><Stars value={c.promedio} /> {nota(c.promedio)} en {c.count} reseña{c.count !== 1 ? 's' : ''}</> : 'Sin reseñas'}</span>
+                </a>
+              ))}
+              {cursos.length > MAX && <button type="button" class="more linklike" data-mas>Ver los {cursos.length} cursos</button>}
+            </section>
+          )}
+          {profes.length > 0 && (
+            <section data-sec="profes">
+              <h3>Profesores</h3>
+              {profes.map((p, i) => (
+                <a class:list={['res', { 'extra hidden': i >= MAX }]} href={`/profesor/${p.id}`}>
+                  <span><b set:html={resaltar(p.nombre)} /></span>
+                  <span class="sub">{p.materias.length ? <>Da clases en {p.materias.map(([m, cs]: [string, string[]], j: number) => <>{j > 0 && ', '}{m}{cs.length ? ` (${cs.join(' y ')})` : ''}</>)}</> : 'Sin cursos cargados'}</span>
+                </a>
+              ))}
+              {profes.length > MAX && <button type="button" class="more linklike" data-mas>Ver los {profes.length} profesores</button>}
+            </section>
+          )}
+          {finales.length > 0 && (
+            <section data-sec="finales">
+              <h3>Experiencias de finales</h3>
+              {finales.map((f, i) => (
+                <a class:list={['res', { 'extra hidden': i >= MAX }]} href={`/finales?materia=${f.materia.id}`}>
+                  <span><b set:html={resaltar(f.materia.nombre)} /> <span class="mesa-mini">{mesaTexto(f)}</span></span>
+                  <span class="sub">"{recorte(f.comentario || '')}"</span>
+                </a>
+              ))}
+              {finales.length > MAX && <button type="button" class="more linklike" data-mas>Ver las {finales.length} experiencias</button>}
+            </section>
+          )}
+        </div>
+      )}
+
+      {q && total === 0 && (
+        <div class="empty">
+          <b>No encontramos "{q}".</b>
+          <span>Probá con el nombre de la materia, un código como 2K3 o el apellido de un profe.</span>
+          {sugeridas.length > 0 && (
+            <span>Las más buscadas: {sugeridas.map((m, i) => <>{i > 0 && ', '}<a href={`/materia/${m.id}`}>{m.nombre}</a></>)}.</span>
+          )}
+          <a class="btn secondary" href="/">Ver todas las materias</a>
+        </div>
+      )}
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const botones = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-grupo]'));
+  const secciones = Array.from(document.querySelectorAll<HTMLElement>('[data-sec]'));
+  botones.forEach((b) => b.addEventListener('click', () => {
+    const g = b.dataset.grupo;
+    botones.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    secciones.forEach((s) => {
+      s.classList.toggle('hidden', !!g && s.dataset.sec !== g);
+      // Con un grupo elegido se ve completo
+      if (g && s.dataset.sec === g) {
+        s.querySelectorAll('.extra').forEach((x) => x.classList.remove('hidden'));
+        s.querySelector('[data-mas]')?.classList.add('hidden');
+      }
+    });
+  }));
+  document.querySelectorAll<HTMLButtonElement>('[data-mas]').forEach((b) => b.addEventListener('click', () => {
+    b.closest('section')?.querySelectorAll('.extra').forEach((x) => x.classList.remove('hidden'));
+    b.classList.add('hidden');
+  }));
+</script>

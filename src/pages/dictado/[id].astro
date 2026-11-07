@@ -5,10 +5,11 @@ import Stars from '../../components/Stars.astro';
 import CursoChips from '../../components/CursoChips.astro';
 import ReviewCard from '../../components/ReviewCard.astro';
 import ShareButton from '../../components/ShareButton.astro';
+import FinalesPanel from '../../components/FinalesPanel.astro';
 import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 import { supabaseAdmin } from '../../lib/supabase-admin';
 import { isAdmin } from '../../lib/admin';
-import { anioLabel, nota, tiempoRelativo } from '../../lib/format';
+import { anioLabel, compararCursos, nota, tiempoRelativo } from '../../lib/format';
 
 const user = Astro.locals.user;
 const userIsAdmin = isAdmin(user?.id);
@@ -113,33 +114,42 @@ const label = anioLabel(nivel).replace(/^./, (c) => c.toUpperCase());
 const escribir = `/nueva-resena?dictado=${id}&from=/dictado/${id}`;
 const pct = (n: number) => (conCondicion ? Math.round((n / conCondicion) * 100) : 0);
 
-const [{ count: cantFinales }, { count: cantCursos }] = await Promise.all([
-  supabase.from('experiencias_finales').select('id', { count: 'exact', head: true }).eq('materia_id', dictado.materia_id),
-  supabase.from('dictados').select('id', { count: 'exact', head: true }).eq('materia_id', dictado.materia_id),
-]);
-const recienPublicada = Astro.url.searchParams.get('publicada') === '1';
+// Otros cursos de la misma materia, con su nota
+const { data: otrosRaw } = await supabase
+  .from('dictados')
+  .select('id, cursos ( identificador, turno )')
+  .eq('materia_id', dictado.materia_id);
+const otrosIds = (otrosRaw || []).map((d: any) => d.id).filter((x: number) => x !== dictado.id);
+const statsOtros = new Map<number, { promedio: number; cantidad: number }>();
+if (otrosIds.length > 0) {
+  const { data } = await supabase.from('stats_dictados').select('dictado_id, cantidad, promedio').in('dictado_id', otrosIds);
+  (data || []).forEach((s: any) => statsOtros.set(s.dictado_id, s));
+}
+const otros = (otrosRaw || [])
+  .filter((d: any) => d.id !== dictado.id)
+  .map((d: any) => ({ id: d.id, curso: one(d.cursos), st: statsOtros.get(d.id) }))
+  .sort((a: any, b: any) => (b.st?.cantidad ? b.st.promedio : -1) - (a.st?.cantidad ? a.st.promedio : -1) || compararCursos(a.curso?.identificador, b.curso?.identificador));
+const totalCursos = (otrosRaw || []).length;
 ---
 
 <Layout
   title={`${curso?.identificador || ''} - ${materia?.nombre || ''} - UTN REP`}
+  description={`Reseñas del curso ${curso?.identificador || ''} de ${materia?.nombre || ''} en la UTN FRC: nota, cuántos promocionan y qué dicen los alumnos.`}
   tab="materias"
   crumbs={[
     { label: 'Materias', href: '/' },
     { label, href: `/nivel/${nivel}` },
     { label: materia?.nombre || 'Materia', href: `/materia/${materia?.id}` },
-    { label: curso?.identificador || 'Curso' },
+    { label: `Curso ${curso?.identificador || ''}` },
   ]}
 >
   <div class="layout">
     <div class="main">
       <div class="topic">
         <div>
-          <div class="chips">
-            <a class:list={['yr', `y${nivel}`]} href={`/nivel/${nivel}`}>{label}</a>
-            <a href={`/materia/${materia?.id}`}>{materia?.nombre}</a>
-          </div>
-          <h1 style="margin-top:4px">{materia?.nombre}, {curso?.identificador}</h1>
-          <div style="margin-top:6px">
+          <h1>{materia?.nombre}</h1>
+          <div class="chips" style="margin-top:6px">
+            <span class="chip"><b>Curso {curso?.identificador}</b></span>
             <CursoChips
               turno={curso?.turno}
               periodo={dictado.periodo_dictado}
@@ -147,34 +157,25 @@ const recienPublicada = Astro.url.searchParams.get('publicada') === '1';
               intensivo={dictado.es_intensivo}
               electiva={materia?.es_electiva ? { puntos: materia?.puntos_electiva } : null}
             />
+            <a class:list={['chip yr', `y${nivel}`]} href={`/nivel/${nivel}`}>{nivel}.º año</a>
           </div>
         </div>
         <div class="actions">
-          <a class="btn primary" href={escribir}><Icon name="pen" /> Escribir una reseña</a>
+          <a class="btn primary" href={escribir}><Icon name="pen" /> Escribir una reseña de este curso</a>
           <ShareButton titulo={`Reseñas de ${materia?.nombre}, curso ${curso?.identificador}, en UTN REP`} />
         </div>
       </div>
 
-      {recienPublicada && (
-        <div class="notice ok" id="aviso-publicada">
-          <Icon name="check" />
-          <span>
-            <b>¡Listo, tu reseña ya está publicada!</b> Si tus compañeros también cursaron acá, pasales el link así suman la suya.
-          </span>
-          <ShareButton titulo={`Ya dejé mi reseña de ${materia?.nombre}, ${curso?.identificador}. Sumá la tuya en UTN REP`} label="Pasalo al grupo" />
-        </div>
-      )}
-
       {totalResenas > 0 && (
         <div class="summary">
           <div>
-            <span class="sub">Promedio del curso</span>
+            <span class="sub">Nota del curso</span>
             <span class="big-score">{nota(promedio)} <small>de 5</small></span>
             <Stars value={promedio} />
-            <span class="sub">{totalResenas} reseña{totalResenas !== 1 ? 's' : ''}</span>
+            <span class="sub">en {totalResenas} reseña{totalResenas !== 1 ? 's' : ''}</span>
           </div>
           <div>
-            <span class="sub">Cómo lo puntuaron</span>
+            <span class="sub">Cómo se reparten las estrellas</span>
             <div class="bars dist">
               {[5, 4, 3, 2, 1].map((n) => (
                 <div><span>{n} ★</span><i><b style={`width:${Math.round((distribucion[n - 1] / totalResenas) * 100)}%`}></b></i><span class="n">{distribucion[n - 1]}</span></div>
@@ -182,12 +183,12 @@ const recienPublicada = Astro.url.searchParams.get('publicada') === '1';
             </div>
           </div>
           <div>
-            <span class="sub">Cómo les fue</span>
+            <span class="sub">Lo que cuentan los alumnos</span>
             {conCondicion > 0 ? (
               <div class="facts">
-                <div><span class="cond prom">Promocionaron</span><b>{pct(condiciones.prom)} %</b></div>
-                <div><span class="cond reg">Regularizaron</span><b>{pct(condiciones.reg)} %</b></div>
-                <div><span class="cond libre">Quedaron libres</span><b>{pct(condiciones.libre)} %</b></div>
+                <div><span>Promocionó</span><b>{pct(condiciones.prom)} %</b></div>
+                <div><span>Quedó regular</span><b>{pct(condiciones.reg)} %</b></div>
+                <div><span>Quedó libre</span><b>{pct(condiciones.libre)} %</b></div>
                 <span class="sub">Según {conCondicion} reseña{conCondicion !== 1 ? 's' : ''} que lo contaron.</span>
               </div>
             ) : (
@@ -197,28 +198,22 @@ const recienPublicada = Astro.url.searchParams.get('publicada') === '1';
         </div>
       )}
 
-      <div class="toolbar">
-        <h2>Reseñas {totalResenas > 0 && <span class="sub">({totalResenas})</span>}</h2>
-        {totalResenas > 1 && (
-          <label class="sub">Ordenar:{' '}
-            <select id="sort-select" class="mini" aria-label="Ordenar reseñas">
-              <option value="newest">Más recientes</option>
-              <option value="oldest">Más antiguas</option>
-              <option value="highest">Mayor puntaje</option>
-              <option value="lowest">Menor puntaje</option>
-              <option value="useful">Más útiles</option>
-            </select>
-          </label>
-        )}
-      </div>
-
       {resenasData.length > 0 ? (
         <>
+          <div class="toolbar" id="resenas">
+            <div class="pager" data-pager></div>
+            {totalResenas > 1 && (
+              <div class="seg" role="group" aria-label="Ordenar reseñas">
+                <button type="button" data-orden="useful" aria-pressed="true">Más útiles</button>
+                <button type="button" data-orden="newest" aria-pressed="false">Más recientes</button>
+                <button type="button" data-orden="lowest" aria-pressed="false">Peor puntaje</button>
+              </div>
+            )}
+          </div>
           <div id="reviews-list" style="display:grid;gap:12px">
-            {resenasData.map((resena, idx) => (
+            {resenasData.map((resena) => (
               <ReviewCard
                 resena={resena}
-                hidden={idx >= 10}
                 esPropia={misResenas.has(resena.id)}
                 votada={misVotos.has(resena.id)}
                 logueado={!!user}
@@ -227,13 +222,10 @@ const recienPublicada = Astro.url.searchParams.get('publicada') === '1';
               />
             ))}
           </div>
-          {resenasData.length > 10 && (
-            <div>
-              <button id="show-more-btn" type="button" class="btn secondary">
-                Ver más reseñas ({resenasData.length - 10} restantes)
-              </button>
-            </div>
-          )}
+          <div class="toolbar">
+            <div class="pager" data-pager></div>
+            <a href="#contenido" class="sub">Volver arriba</a>
+          </div>
         </>
       ) : (
         <div class="empty">
@@ -245,49 +237,34 @@ const recienPublicada = Astro.url.searchParams.get('publicada') === '1';
     </div>
 
     <aside class="side" aria-label="Datos del curso">
+      {materia && <FinalesPanel materiaId={materia.id} />}
+
       <section class="panel">
-        <h3>Equipo docente</h3>
-        <div class="in">
-          {profesores.length > 0 ? (
-            <ul class="team">
-              {profesores.map((p: any) => <li><a href={`/profesor/${p.id}`}>{p.nombre_completo}</a></li>)}
-            </ul>
-          ) : (
-            <span class="sub">Sin profesores cargados.</span>
-          )}
+        <h3>Profesores de este curso</h3>
+        <div class="in feed">
+          {profesores.length > 0
+            ? profesores.map((p: any) => <div><a href={`/profesor/${p.id}`}>{p.nombre_completo}</a></div>)
+            : <span class="sub">Sin profesores cargados.</span>}
           {fechaActualizacion && (
             <span class="sub"><Icon name="clock" class="ico" /> Información actualizada {tiempoRelativo(fechaActualizacion).toLowerCase()}.</span>
           )}
         </div>
       </section>
 
-      <section class="panel cta">
-        <h3>¿Cursaste en este curso?</h3>
-        <div class="in">
-          <span>Tu reseña ayuda a quien tiene que elegir curso el próximo cuatri.</span>
-          <a class="btn primary big" href={escribir}><Icon name="pen" /> Escribir una reseña</a>
-        </div>
-      </section>
-
-      {(cantCursos || 0) > 1 && (
+      {otros.length > 0 && (
         <section class="panel">
-          <h3>¿Y los otros cursos?</h3>
-          <div class="in">
-            <span>{materia?.nombre} tiene {cantCursos} cursos. Comparalos por puntaje y por cuántos promocionan.</span>
-            <a class="btn secondary" href={`/materia/${materia?.id}/comparar?desde=${id}`}><Icon name="compare" /> Comparar cursos</a>
-            <a href={`/materia/${materia?.id}`}>Ver todos los cursos de {materia?.nombre}</a>
+          <h3>Otros cursos de esta materia</h3>
+          <div class="in feed">
+            {otros.slice(0, 4).map((o: any) => (
+              <div>
+                <span><a href={`/dictado/${o.id}`}>{o.curso?.identificador || 'Curso'}</a> <CursoChips mini turno={o.curso?.turno} /></span>
+                <span class="sub">{o.st?.cantidad ? <><Stars value={o.st.promedio} /> {nota(o.st.promedio)} en {o.st.cantidad} reseña{o.st.cantidad !== 1 ? 's' : ''}</> : 'Sin reseñas todavía'}</span>
+              </div>
+            ))}
+            <a class="btn secondary big" href={`/materia/${materia?.id}/comparar?desde=${id}`}><Icon name="compare" /> Comparar los {totalCursos} cursos</a>
           </div>
         </section>
       )}
-
-      <section class="panel">
-        <h3>Finales de esta materia</h3>
-        <div class="in">
-          {cantFinales
-            ? <><span>{cantFinales} experiencia{cantFinales !== 1 ? 's' : ''} de cómo toman el final.</span><a class="btn quiet" href={`/finales?materia=${materia?.id}`}><Icon name="final" /> Ver los finales</a></>
-            : <><span>Todavía nadie contó cómo es el final.</span><a href="/finales/nuevo">¿Lo rendiste? Contalo</a></>}
-        </div>
-      </section>
     </aside>
   </div>
 

@@ -1,0 +1,298 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Icon from '../../components/Icon.astro';
+import { isAdmin } from '../../lib/admin';
+import { ADMIN_CSRF_COOKIE, ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+
+const user = Astro.locals.user;
+if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+
+const existingCsrf = Astro.cookies.get(ADMIN_CSRF_COOKIE)?.value;
+const csrfToken = existingCsrf || crypto.randomUUID();
+if (!existingCsrf) {
+  Astro.cookies.set(ADMIN_CSRF_COOKIE, csrfToken, { path: '/', sameSite: 'strict', secure: import.meta.env.PROD, httpOnly: false, maxAge: 60 * 60 * 8 });
+}
+---
+
+<Layout title="Importar cuatrimestre - Panel de admin" crumbs={[{ label: 'Panel de admin', href: '/admin' }, { label: 'Importar cuatrimestre' }]}>
+  <div class="admin-wrap">
+    <nav class="anav" aria-label="Secciones del panel">
+      <a href="/admin">Panel</a>
+      <a href="/admin/importar" aria-current="page">Importar cuatrimestre</a>
+      <span class="later" style="padding:7px 12px;font-size:12px">Cambios de profesores <span class="soon">2027</span></span>
+    </nav>
+    <div class="admin-main">
+      <div class="topic">
+        <div>
+          <h1>Importar cuatrimestre</h1>
+          <p>Pegá los links de las planillas de horarios del centro de estudiantes. Antes de guardar te mostramos qué cambia.</p>
+        </div>
+      </div>
+
+      <div class="notice">
+        <Icon name="info" />
+        <div>
+          <b>Qué se lee</b>
+          Solo los cursos de Sistemas (los que tienen K, como 4K1). En la planilla de cada año se lee la tabla "Materia / Docentes" de cada pestaña. En la de básicas, cada pestaña es una materia y se leen solo las filas de cursos K. Si una materia aparece en las dos, vale la de Sistemas. Las planillas tienen que estar compartidas como "Cualquier persona con el vínculo".
+        </div>
+      </div>
+
+      <section class="panel">
+        <h3>1. Las planillas</h3>
+        <div class="in">
+          <label for="links" class="sub">Links de Google Sheets, uno por línea</label>
+          <textarea id="links" rows="4" class="imp-links" placeholder="https://docs.google.com/spreadsheets/d/…"></textarea>
+          <div class="imp-acts">
+            <button type="button" class="btn primary" id="leer"><Icon name="search" /> Leer y comparar</button>
+            <span class="sub">o</span>
+            <label class="btn secondary" for="archivo">Subir .xlsx o .csv</label>
+            <input type="file" id="archivo" accept=".xlsx,.csv" multiple class="sr" />
+          </div>
+          <span class="sub">El CSV lleva las columnas curso, materia, docentes y turno (opcional). Los docentes van separados por "|".</span>
+        </div>
+      </section>
+
+      <div id="estado" role="status" aria-live="polite"></div>
+      <div id="previa" class="imp-previa"></div>
+    </div>
+  </div>
+</Layout>
+
+<script define:vars={{ csrfToken, csrfHeader: ADMIN_CSRF_HEADER }}>
+  window.__importarCsrf = { token: csrfToken, header: csrfHeader };
+</script>
+
+<script>
+  const { token, header } = (window as any).__importarCsrf as { token: string; header: string };
+  const $ = (id: string) => document.getElementById(id)!;
+  const links = $('links') as HTMLTextAreaElement;
+  const estado = $('estado');
+  const previa = $('previa');
+  const TURNOS = ['MAÑANA', 'TARDE', 'NOCHE'];
+  const TURNO_TXT: Record<string, string> = { MAÑANA: 'Mañana', TARDE: 'Tarde', NOCHE: 'Noche' };
+
+  try { links.value = localStorage.getItem('importarLinks') || ''; } catch {}
+
+  type Hijo = Node | string | null | undefined | false;
+  function el(tag: string, attrs: Record<string, any> = {}, ...hijos: Hijo[]) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === undefined || v === null || v === false) continue;
+      if (k === 'class') e.className = v;
+      else if (k in e && typeof v !== 'string') (e as any)[k] = v;
+      else e.setAttribute(k, v === true ? '' : String(v));
+    }
+    for (const h of hijos) if (h) e.append(h);
+    return e;
+  }
+  const check = (checked = true) => el('input', { type: 'checkbox', checked }) as HTMLInputElement;
+  const aviso = (tipo: string, texto: string) => { estado.replaceChildren(el('div', { class: `notice ${tipo}` }, el('span'), el('div', {}, texto))); };
+
+  async function enviar(body: BodyInit, json: boolean) {
+    const headers: Record<string, string> = { [header]: token };
+    if (json) headers['Content-Type'] = 'application/json';
+    const res = await fetch('/api/admin/importar', { method: 'POST', headers, body, credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({ error: 'Respuesta inválida del servidor.' }));
+    if (!res.ok) throw new Error(data.error || 'Algo salió mal.');
+    return data;
+  }
+
+  let ultimo: { tipo: 'links' | 'archivos'; body: () => BodyInit } | null = null;
+
+  async function leer(fuente: typeof ultimo) {
+    if (!fuente) return;
+    ultimo = fuente;
+    aviso('', 'Leyendo las planillas y comparando con la base…');
+    previa.replaceChildren();
+    try {
+      const data = await enviar(fuente.body(), fuente.tipo === 'links');
+      estado.replaceChildren();
+      mostrar(data);
+    } catch (e: any) {
+      aviso('bad', e.message);
+    }
+  }
+
+  $('leer').addEventListener('click', () => {
+    const lista = links.value.split(/\s+/).filter(Boolean);
+    if (!lista.length) return aviso('bad', 'Pegá al menos un link.');
+    try { localStorage.setItem('importarLinks', links.value); } catch {}
+    leer({ tipo: 'links', body: () => JSON.stringify({ links: lista }) });
+  });
+  ($('archivo') as HTMLInputElement).addEventListener('change', (ev) => {
+    const files = Array.from((ev.target as HTMLInputElement).files || []);
+    if (!files.length) return;
+    (ev.target as HTMLInputElement).value = '';
+    leer({ tipo: 'archivos', body: () => { const f = new FormData(); files.forEach((x) => f.append('archivo', x)); return f; } });
+  });
+
+  function mostrar(data: any) {
+    const p = data.previa;
+    const materias: { id: number; nombre: string; nivel: number }[] = data.materias || [];
+    const total = p.cursosNuevos.length + p.turnoDistinto.length + p.dictadosNuevos.length + p.cambiosDeEquipo.length;
+
+    // Resumen como en la V6
+    const resumen = el('div', { class: 'diff' });
+    const fila = (cls: string, titulo: string, detalle: string) => resumen.append(el('div', { class: cls }, el('b', {}, titulo), el('span', {}, detalle)));
+    const lista = (xs: string[], n = 4) => xs.slice(0, n).join(', ') + (xs.length > n ? ` y ${xs.length - n} más` : '');
+    if (p.cursosNuevos.length) fila('add', `+ ${p.cursosNuevos.length} curso${p.cursosNuevos.length !== 1 ? 's' : ''} nuevo${p.cursosNuevos.length !== 1 ? 's' : ''}`, lista(p.cursosNuevos.map((c: any) => c.identificador)));
+    if (p.profesoresNuevos.length) fila('add', `+ ${p.profesoresNuevos.length} profesor${p.profesoresNuevos.length !== 1 ? 'es' : ''} nuevo${p.profesoresNuevos.length !== 1 ? 's' : ''}`, lista(p.profesoresNuevos));
+    if (p.dictadosNuevos.length) fila('add', `+ ${p.dictadosNuevos.length} materia${p.dictadosNuevos.length !== 1 ? 's' : ''} en cursos nuevos`, lista(p.dictadosNuevos.map((c: any) => `${c.materia} ${c.curso}`)));
+    if (p.cambiosDeEquipo.length) {
+      const c0 = p.cambiosDeEquipo[0];
+      const partes = [c0.salen.length ? `sale ${c0.salen.map((s: any) => s.nombre).join(' y ')}` : '', c0.entran.length ? `entra ${c0.entran.map((e: any) => e.nombre).join(' y ')}` : ''].filter(Boolean).join(', ');
+      fila('chg', `~ ${p.cambiosDeEquipo.length} curso${p.cambiosDeEquipo.length !== 1 ? 's' : ''} cambia${p.cambiosDeEquipo.length !== 1 ? 'n' : ''} de equipo`, `${c0.materia} ${c0.curso}: ${partes}.`);
+    }
+    if (p.turnoDistinto.length) fila('chg', `~ ${p.turnoDistinto.length} turno${p.turnoDistinto.length !== 1 ? 's' : ''} distinto${p.turnoDistinto.length !== 1 ? 's' : ''}`, lista(p.turnoDistinto.map((t: any) => `${t.identificador}: ${TURNO_TXT[t.antes] || t.antes || 'sin turno'} → ${TURNO_TXT[t.ahora]}`)));
+    if (p.materiasSinCoincidencia.length) fila('del', `! ${p.materiasSinCoincidencia.length} materia${p.materiasSinCoincidencia.length !== 1 ? 's' : ''} que no encontré`, lista(p.materiasSinCoincidencia.map((m: any) => m.nombre)));
+    fila('', `= ${p.sinCambios} sin cambios`, `Leí ${p.leidos.cursos} cursos y ${p.leidos.materias} materias en total.`);
+    if (data.omitidas?.length) fila('', `${data.omitidas.length} pestaña${data.omitidas.length !== 1 ? 's' : ''} sin leer`, lista(data.omitidas.map((o: any) => `${o.hoja} (${o.motivo.toLowerCase()})`), 3));
+
+    const cont: Node[] = [el('section', { class: 'panel' }, el('h3', {}, '2. Qué cambia'), el('div', { class: 'in' }, resumen))];
+
+    if (total === 0) {
+      cont.push(el('div', { class: 'notice ok' }, el('span'), el('div', {}, el('b', {}, 'No hay nada para actualizar.'), 'La base ya coincide con las planillas.')));
+      previa.replaceChildren(...cont);
+      return;
+    }
+
+    const det = el('div', { class: 'in imp-det' });
+    const opcionesMateria = (sugerencias: { id: number }[], elegida: number | null) => {
+      const s = el('select', { class: 'imp-sel' }) as HTMLSelectElement;
+      s.append(el('option', { value: '' }, 'No importar'));
+      const sug = new Set(sugerencias.map((x) => x.id));
+      if (sugerencias.length) s.append(el('optgroup', { label: 'Parecidas' }, ...sugerencias.map((x: any) => el('option', { value: x.id }, x.nombre))));
+      s.append(el('optgroup', { label: 'Todas' }, ...materias.filter((m) => !sug.has(m.id)).map((m) => el('option', { value: m.id }, `${m.nivel}.º ${m.nombre}`))));
+      if (elegida) s.value = String(elegida);
+      return s;
+    };
+
+    // Materias sin coincidencia: se elige una vez y vale para todos sus cursos
+    const mapaMaterias = new Map<string, HTMLSelectElement>();
+    if (p.materiasSinCoincidencia.length) {
+      det.append(el('h4', { class: 'sec' }, 'Materias que no encontré'), el('p', { class: 'sub' }, 'Elegí a cuál corresponde. Las que queden en "No importar" no se guardan. Si es nueva (por ejemplo una electiva), creala primero en el panel y volvé a leer.'));
+      for (const m of p.materiasSinCoincidencia) {
+        const s = opcionesMateria(m.sugerencias, null);
+        mapaMaterias.set(m.nombre, s);
+        det.append(el('div', { class: 'imp-row' }, el('span', {}, el('b', {}, m.nombre), el('span', { class: 'sub' }, ` en ${m.cursos.join(', ')}`)), s));
+      }
+    }
+
+    // Cursos nuevos y turnos
+    const cursosSel: { cb: HTMLInputElement; ident: string; turno: HTMLSelectElement }[] = [];
+    if (p.cursosNuevos.length) {
+      det.append(el('h4', { class: 'sec' }, 'Cursos nuevos'));
+      for (const c of p.cursosNuevos) {
+        const cb = check();
+        const t = el('select', { class: 'imp-sel', 'aria-label': `Turno de ${c.identificador}` }, el('option', { value: '' }, 'Elegí el turno'), ...TURNOS.map((x) => el('option', { value: x }, TURNO_TXT[x]))) as HTMLSelectElement;
+        if (c.turno) t.value = c.turno;
+        cursosSel.push({ cb, ident: c.identificador, turno: t });
+        det.append(el('label', { class: 'imp-row' }, el('span', {}, cb, ' ', el('b', {}, c.identificador), el('span', { class: 'sub' }, ` ${c.anio}.º año`)), t));
+      }
+    }
+    const turnosSel: { cb: HTMLInputElement; curso_id: number; turno: string }[] = [];
+    if (p.turnoDistinto.length) {
+      det.append(el('h4', { class: 'sec' }, 'Turnos distintos'));
+      for (const t of p.turnoDistinto) {
+        const cb = check(false);
+        turnosSel.push({ cb, curso_id: t.curso_id, turno: t.ahora });
+        det.append(el('label', { class: 'imp-row' }, el('span', {}, cb, ' ', el('b', {}, t.identificador), `: en la base dice ${TURNO_TXT[t.antes] || t.antes || 'sin turno'}, la planilla dice ${TURNO_TXT[t.ahora]}. Cambiarlo.`)));
+      }
+    }
+
+    // Un curso con su equipo: quién entra (con su nombre editable si es nuevo) y quién sale
+    type Sel = { cambio: any; cb?: HTMLInputElement; materia?: HTMLSelectElement; entran: { cb: HTMLInputElement; e: any; nombre?: HTMLInputElement; opcion?: HTMLSelectElement }[]; salen: { cb: HTMLInputElement; id: number }[] };
+    const sels: Sel[] = [];
+    function bloque(c: any, nuevo: boolean) {
+      const s: Sel = { cambio: c, entran: [], salen: [] };
+      const titulo = el('div', { class: 'imp-tit' });
+      if (nuevo) {
+        s.cb = check();
+        titulo.append(el('label', {}, s.cb, ' ', el('b', {}, `${c.materia}, ${c.curso}`)));
+      } else titulo.append(el('a', { href: `/dictado/${c.dictado_id}`, target: '_blank' }, el('b', {}, `${c.materia}, ${c.curso}`)));
+      titulo.append(el('span', { class: 'sub' }, c.materia_planilla !== c.materia && c.materia_id ? ` · en la planilla "${c.materia_planilla}", pestaña ${c.hoja}` : ` · pestaña ${c.hoja}`));
+      const box = el('div', { class: 'imp-box' }, titulo);
+      for (const e of c.entran) {
+        const cb = check();
+        const it: Sel['entran'][number] = { cb, e };
+        const linea = el('label', { class: 'imp-line add' }, cb, el('span', { class: 'imp-k' }, 'Entra'));
+        if (e.profesor_id) linea.append(el('span', {}, e.nombre, e.parecido ? el('span', { class: 'sub' }, ' (coincide con uno ya cargado)') : ''));
+        else if (e.opciones?.length) {
+          it.opcion = el('select', { class: 'imp-sel' }, ...e.opciones.map((o: any) => el('option', { value: o.id }, o.nombre)), el('option', { value: 'nuevo' }, `Crear "${e.sugerido}"`)) as HTMLSelectElement;
+          linea.append(el('span', {}, `${e.nombre}: `, it.opcion));
+        } else {
+          it.nombre = el('input', { type: 'text', value: e.sugerido, class: 'imp-nom', 'aria-label': 'Nombre con el que se crea', maxlength: 120 }) as HTMLInputElement;
+          linea.append(el('span', {}, it.nombre, el('span', { class: 'sub' }, ' nuevo')));
+        }
+        s.entran.push(it);
+        box.append(linea);
+      }
+      for (const x of c.salen) {
+        const cb = check();
+        s.salen.push({ cb, id: x.profesor_id });
+        box.append(el('label', { class: 'imp-line del' }, cb, el('span', { class: 'imp-k' }, 'Sale'), el('span', {}, x.nombre)));
+      }
+      if (c.quedan.length) box.append(el('div', { class: 'imp-line' }, el('span', { class: 'imp-k' }, 'Sigue'), el('span', { class: 'sub' }, c.quedan.join(', '))));
+      if (!c.entran.length && !c.salen.length && !c.quedan.length) box.append(el('div', { class: 'sub' }, 'La planilla no dice quién la da.'));
+      sels.push(s);
+      return box;
+    }
+    function plegable(titulo: string, nota: string | null, items: any[], nuevo: boolean) {
+      const todos = el('button', { type: 'button', class: 'linklike' }, 'Marcar todo') as HTMLButtonElement;
+      const nada = el('button', { type: 'button', class: 'linklike' }, 'Desmarcar todo') as HTMLButtonElement;
+      const cuerpo = el('div', { class: 'imp-det' }, nota ? el('p', { class: 'sub' }, nota) : null, el('div', { class: 'imp-acts' }, todos, nada), ...items.map((c) => bloque(c, nuevo)));
+      const marcar = (v: boolean) => cuerpo.querySelectorAll<HTMLInputElement>('input[type=checkbox]').forEach((x) => { x.checked = v; });
+      todos.addEventListener('click', () => marcar(true));
+      nada.addEventListener('click', () => marcar(false));
+      det.append(el('details', { class: 'imp-sec', open: items.length <= 8 }, el('summary', {}, el('b', {}, `${titulo} (${items.length})`)), cuerpo));
+    }
+    if (p.cambiosDeEquipo.length) plegable('Cursos que cambian de equipo', 'Las reseñas que ya tiene cada curso se quedan. Guardar desde qué año está cada profesor, para marcar con qué equipo se escribieron, llega con la etapa 3.', p.cambiosDeEquipo, false);
+    if (p.dictadosNuevos.length) plegable('Materias en cursos nuevos', null, p.dictadosNuevos, true);
+
+    const guardar = el('button', { type: 'button', class: 'btn approve' }, 'Guardar cambios') as HTMLButtonElement;
+    const cancelar = el('button', { type: 'button', class: 'btn quiet' }, 'Cancelar') as HTMLButtonElement;
+    cancelar.addEventListener('click', () => { previa.replaceChildren(); estado.replaceChildren(); });
+    guardar.addEventListener('click', async () => {
+      const materiaDe = (c: any) => c.materia_id || Number(mapaMaterias.get(c.materia_planilla)?.value) || null;
+      const dictados = sels
+        .filter((s) => !s.cb || s.cb.checked)
+        .map((s) => ({
+          nuevo: !s.cambio.dictado_id,
+          curso_id: s.cambio.curso_id,
+          curso: s.cambio.curso,
+          materia_id: materiaDe(s.cambio),
+          entran: s.entran.filter((x) => x.cb.checked).map((x) => {
+            if (x.e.profesor_id) return { profesor_id: x.e.profesor_id };
+            if (x.opcion) return x.opcion.value === 'nuevo' ? { nombre: x.e.sugerido } : { profesor_id: Number(x.opcion.value) };
+            return { nombre: x.nombre?.value || x.e.sugerido };
+          }),
+          salen: s.salen.filter((x) => x.cb.checked).map((x) => x.id),
+        }))
+        .filter((d) => d.materia_id && (d.nuevo || d.entran.length || d.salen.length));
+      const body = {
+        accion: 'aplicar',
+        cursosNuevos: cursosSel.filter((c) => c.cb.checked).map((c) => ({ identificador: c.ident, turno: c.turno.value })),
+        turnos: turnosSel.filter((t) => t.cb.checked).map((t) => ({ curso_id: t.curso_id, turno: t.turno })),
+        dictados,
+      };
+      if (!body.cursosNuevos.length && !body.turnos.length && !dictados.length) return aviso('bad', 'No dejaste nada marcado para guardar.');
+      const sinTurno = body.cursosNuevos.filter((c) => !c.turno).map((c) => c.identificador);
+      if (sinTurno.length) return aviso('bad', `Elegí el turno de ${sinTurno.join(', ')} (la planilla de básicas no lo dice), o desmarcalo.`);
+      guardar.disabled = true;
+      aviso('', 'Guardando…');
+      try {
+        const r = await enviar(JSON.stringify(body), true);
+        const hecho = [r.cursos && `${r.cursos} cursos`, r.profesores && `${r.profesores} profesores nuevos`, r.dictados && `${r.dictados} materias en cursos`, r.asignados && `${r.asignados} profesores sumados`, r.quitados && `${r.quitados} sacados`, r.turnos && `${r.turnos} turnos`].filter(Boolean).join(', ');
+        aviso(r.errores?.length ? 'bad' : 'ok', `Listo: ${hecho || 'nada para guardar'}.${r.errores?.length ? ` Hubo ${r.errores.length} problema(s): ${r.errores.slice(0, 3).join(' ')}` : ''} Volvé a leer para confirmar que no queda nada.`);
+        previa.replaceChildren();
+      } catch (e: any) {
+        aviso('bad', e.message);
+        guardar.disabled = false;
+      }
+    });
+
+    det.append(el('div', { class: 'rp-acts' }, cancelar, guardar));
+    cont.push(el('section', { class: 'panel' }, el('h3', {}, '3. Revisá y guardá'), det));
+    previa.replaceChildren(...cont);
+  }
+</script>
