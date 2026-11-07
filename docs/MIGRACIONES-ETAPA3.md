@@ -58,9 +58,12 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108040000_perfiles.sql`. Vuelta atrás: `supabase/rollback/20261108040000_perfiles.sql` (borra los perfiles; los nombres ya copiados a las reseñas quedan).
 - **Verificación esperada:** `tabla = 1`, `triggers = 2`, `anon_lee_perfiles = false`, `usuario_puede_anonimizar = false` y cuántas reseñas tienen dueño.
 
-### 6. Seguir materias (F11)
+### 6. Seguir materias (F11) — **lista para correr en prueba**
 
-- Tabla `seguimientos` (persona y materia). Botón Seguir en la materia y el curso, y la lista en Mi cuenta.
+- Tabla `seguimientos` (persona, materia y si quiere mail de lo nuevo). Botón Seguir en la materia y en el curso (desde el curso se sigue su materia), y la lista en Mi cuenta con el interruptor de mail, como la V6. El mail en sí llega con la 7.
+- Cada persona ve y cambia solo lo suyo; nadie puede saber qué sigue otro. No toca ninguna tabla existente.
+- **Archivo:** `supabase/migrations/20261108050000_seguimientos.sql`. Vuelta atrás: `supabase/rollback/20261108050000_seguimientos.sql`.
+- **Verificación esperada:** `tabla = 1`, `politicas = 4`, `anon_lee = false`.
 
 ### 7. Notificaciones dentro del sitio (3.8, F33 y F32)
 
