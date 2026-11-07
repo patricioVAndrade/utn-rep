@@ -1,0 +1,187 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminNav from '../../components/AdminNav.astro';
+import Icon from '../../components/Icon.astro';
+import Stars from '../../components/Stars.astro';
+import { isAdmin } from '../../lib/admin';
+import { supabaseAdmin } from '../../lib/supabase-admin';
+import { ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+import { tokenCsrf } from '../../lib/admin-csrf';
+import { tiempoRelativo } from '../../lib/format';
+
+const user = Astro.locals.user;
+if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+const csrfToken = tokenCsrf(Astro.cookies);
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
+
+// Filtros por la dirección: ?q=texto&materia=ID&estrellas=N&pag=N
+const POR_PAGINA = 50;
+const params = Astro.url.searchParams;
+const q = (params.get('q') || '').replace(/[,()%*\\]/g, ' ').trim().slice(0, 80);
+const materiaId = Number(params.get('materia')) || null;
+const estrellas = Number(params.get('estrellas')) || null;
+const pag = Math.max(1, Number(params.get('pag')) || 1);
+
+const { data: materiasRaw } = await supabaseAdmin.from('materias').select('id, nombre, nivel').order('nivel').order('nombre');
+const materias = materiasRaw || [];
+
+let dictadoIds: number[] | null = null;
+if (materiaId) {
+  const { data } = await supabaseAdmin.from('dictados').select('id').eq('materia_id', materiaId);
+  dictadoIds = (data || []).map((d: any) => d.id);
+}
+
+let consulta = supabaseAdmin
+  .from('resenas')
+  .select('id, comentario, calificacion_general, nombre_usuario, es_anonima, condicion_final, votos_utilidad, created_at, user_id, dictados ( id, cursos ( identificador ), materias ( id, nombre, nivel ) )', { count: 'exact' })
+  .order('created_at', { ascending: false });
+if (q) consulta = consulta.or(`comentario.ilike.%${q}%,nombre_usuario.ilike.%${q}%`);
+if (dictadoIds) consulta = consulta.in('dictado_id', dictadoIds.length ? dictadoIds : [-1]);
+if (estrellas) consulta = consulta.eq('calificacion_general', estrellas);
+const { data, count } = await consulta.range((pag - 1) * POR_PAGINA, pag * POR_PAGINA - 1);
+
+const resenas = (data || []).map((r: any) => {
+  const d = one(r.dictados);
+  return { ...r, dictado: d, curso: one(d?.cursos), materia: one(d?.materias) };
+});
+const total = count || 0;
+const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+
+// Reportes de las reseñas de esta página
+const reportadas = new Map<number, number>();
+if (resenas.length) {
+  const { data: reps } = await supabaseAdmin.from('reportes_resenas').select('resena_id').in('resena_id', resenas.map((r) => r.id));
+  (reps || []).forEach((r: any) => reportadas.set(r.resena_id, (reportadas.get(r.resena_id) || 0) + 1));
+}
+
+const COND: Record<string, string> = { PROMOCIONADO: 'Promocionó', REGULAR: 'Quedó regular', LIBRE: 'Quedó libre' };
+const link = (cambios: Record<string, string | number | null>) => {
+  const u = new URL(Astro.url);
+  Object.entries(cambios).forEach(([k, v]) => (v === null || v === '' ? u.searchParams.delete(k) : u.searchParams.set(k, String(v))));
+  return u.pathname + u.search;
+};
+---
+
+<Layout title="Reseñas - Panel de admin" crumbs={[{ label: 'Panel de admin', href: '/admin' }, { label: 'Reseñas' }]}>
+  <div id="admin-csrf" hidden data-h={ADMIN_CSRF_HEADER} data-t={csrfToken}></div>
+  <div class="admin-wrap">
+    <AdminNav actual="resenas" />
+    <div class="admin-main">
+      <div class="topic">
+        <div>
+          <h1>Reseñas</h1>
+          <p>{total} reseña{total !== 1 ? 's' : ''}{q || materiaId || estrellas ? ' con estos filtros' : ' en total'}. Podés corregir el texto o borrarla.</p>
+        </div>
+      </div>
+
+      <form class="filters afil" method="get">
+        <label class="sr" for="f-q">Buscar en el texto o el autor</label>
+        <input id="f-q" class="ainput" type="search" name="q" value={q} placeholder="Buscar en el texto o el autor" />
+        <label class="sr" for="f-materia">Materia</label>
+        <select id="f-materia" class="mini" name="materia">
+          <option value="">Todas las materias</option>
+          {materias.map((m: any) => <option value={m.id} selected={m.id === materiaId}>{m.nivel}.º · {m.nombre}</option>)}
+        </select>
+        <label class="sr" for="f-est">Estrellas</label>
+        <select id="f-est" class="mini" name="estrellas">
+          <option value="">Todas las notas</option>
+          {[5, 4, 3, 2, 1].map((n) => <option value={n} selected={n === estrellas}>{n} estrella{n !== 1 ? 's' : ''}</option>)}
+        </select>
+        <button class="btn secondary" type="submit"><Icon name="search" /> Filtrar</button>
+        {(q || materiaId || estrellas) && <a href="/admin/resenas">Sacar filtros</a>}
+      </form>
+
+      {resenas.length === 0 && <p class="sub">No hay reseñas con estos filtros.</p>}
+
+      <div class="mine">
+        {resenas.map((r) => (
+          <article class="mine-row" data-id={r.id}>
+            <div class="top">
+              {r.materia?.nivel && <span class:list={['yr', `y${r.materia.nivel}`]}>{r.materia.nivel}.º</span>}
+              <a href={`/dictado/${r.dictado?.id}#resena-${r.id}`}><b>{r.materia?.nombre || 'Materia'}</b> {r.curso?.identificador}</a>
+              <Stars value={r.calificacion_general} />
+              {r.condicion_final && <span class="sub">{COND[r.condicion_final] || r.condicion_final}</span>}
+              {reportadas.has(r.id) && <a class="rep-mini" href="/admin/reportes"><Icon name="flag" /> {reportadas.get(r.id)} reporte{reportadas.get(r.id) !== 1 ? 's' : ''}</a>}
+            </div>
+            <p class="full" data-texto>{r.comentario}</p>
+            <div class="bottom">
+              <span class="sub">
+                {r.es_anonima ? <>Anónimo <span title="Solo lo ves vos">({r.nombre_usuario || 'sin nombre'})</span></> : <b>{r.nombre_usuario || 'Sin nombre'}</b>}
+                {' · '}{tiempoRelativo(r.created_at)}{' · '}{r.votos_utilidad || 0} "Me sirvió"
+              </span>
+              <span class="acts">
+                <button type="button" class="btn quiet" data-editar><Icon name="pen" /> Corregir texto</button>
+                <button type="button" class="btn danger" data-borrar><Icon name="trash" /> Borrar</button>
+              </span>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {paginas > 1 && (
+        <nav class="pager" aria-label="Páginas">
+          {pag > 1 && <a href={link({ pag: pag - 1 })}>‹ Anterior</a>}
+          <span class="sub">Página {pag} de {paginas}</span>
+          {pag < paginas && <a href={link({ pag: pag + 1 })}>Siguiente ›</a>}
+        </nav>
+      )}
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { adminFetch, aviso } from '../../scripts/admin-api';
+
+  document.querySelectorAll<HTMLElement>('.mine-row[data-id]').forEach((row) => {
+    const id = Number(row.dataset.id);
+    const texto = row.querySelector<HTMLElement>('[data-texto]')!;
+    row.querySelector('[data-borrar]')?.addEventListener('click', async (e) => {
+      if (!confirm('¿Borrar esta reseña? No se puede deshacer.')) return;
+      const b = e.currentTarget as HTMLButtonElement;
+      b.disabled = true;
+      try {
+        await adminFetch('/api/admin/resenas', { action: 'delete', resena_id: id });
+        row.remove();
+        aviso('Reseña borrada.');
+      } catch (err) {
+        aviso((err as Error).message, true);
+        b.disabled = false;
+      }
+    });
+    row.querySelector('[data-editar]')?.addEventListener('click', () => {
+      if (row.querySelector('textarea')) return;
+      const ta = document.createElement('textarea');
+      ta.className = 'edit-textarea';
+      ta.value = texto.textContent || '';
+      ta.setAttribute('aria-label', 'Texto de la reseña');
+      const barra = document.createElement('div');
+      barra.className = 'acts';
+      const guardar = document.createElement('button');
+      guardar.type = 'button';
+      guardar.className = 'btn primary';
+      guardar.textContent = 'Guardar';
+      const cancelar = document.createElement('button');
+      cancelar.type = 'button';
+      cancelar.className = 'btn quiet';
+      cancelar.textContent = 'Cancelar';
+      barra.append(guardar, cancelar);
+      texto.classList.add('hidden');
+      texto.after(ta, barra);
+      ta.focus();
+      const cerrar = () => { ta.remove(); barra.remove(); texto.classList.remove('hidden'); };
+      cancelar.addEventListener('click', cerrar);
+      guardar.addEventListener('click', async () => {
+        guardar.disabled = true;
+        try {
+          await adminFetch('/api/admin/resenas', { action: 'edit', resena_id: id, comentario: ta.value });
+          texto.textContent = ta.value.trim();
+          cerrar();
+          aviso('Texto corregido.');
+        } catch (err) {
+          aviso((err as Error).message, true);
+          guardar.disabled = false;
+        }
+      });
+    });
+  });
+</script>

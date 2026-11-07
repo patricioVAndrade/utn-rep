@@ -1,0 +1,291 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminNav from '../../components/AdminNav.astro';
+import Icon from '../../components/Icon.astro';
+import { isAdmin } from '../../lib/admin';
+import { supabaseAdmin } from '../../lib/supabase-admin';
+import { ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+import { tokenCsrf } from '../../lib/admin-csrf';
+import { compararCursos, turnoLabel } from '../../lib/format';
+
+const user = Astro.locals.user;
+if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+const csrfToken = tokenCsrf(Astro.cookies);
+
+const [{ data: materiasRaw }, { data: cursosRaw }, { data: dictadosRaw }, { data: dpRaw }, { data: profesRaw }] = await Promise.all([
+  supabaseAdmin.from('materias').select('id, nombre, nivel, es_electiva, puntos_electiva').order('nivel').order('nombre'),
+  supabaseAdmin.from('cursos').select('id, identificador, anio_carrera, turno').order('anio_carrera').order('identificador'),
+  supabaseAdmin.from('dictados').select('id, curso_id, materia_id, periodo_dictado, es_contracuatrimestral, es_intensivo').range(0, 19999),
+  supabaseAdmin.from('dictado_profesores').select('dictado_id, profesor_id').range(0, 49999),
+  supabaseAdmin.from('profesores').select('id, nombre_completo').order('nombre_completo').range(0, 19999),
+]);
+const { data: statsRaw } = await supabaseAdmin.from('stats_dictados').select('dictado_id, cantidad').range(0, 19999);
+const resenasDe = new Map((statsRaw || []).map((s: any) => [s.dictado_id, s.cantidad || 0]));
+const cursos = cursosRaw || [];
+const profes = profesRaw || [];
+const cursoPorId = new Map(cursos.map((c: any) => [c.id, c]));
+const profePorId = new Map(profes.map((p: any) => [p.id, p]));
+const profesDe = new Map<number, any[]>();
+(dpRaw || []).forEach((dp: any) => {
+  const p = profePorId.get(dp.profesor_id);
+  if (!p) return;
+  profesDe.set(dp.dictado_id, [...(profesDe.get(dp.dictado_id) || []), p]);
+});
+const materias = (materiasRaw || []).map((m: any) => {
+  const dictados = (dictadosRaw || [])
+    .filter((d: any) => d.materia_id === m.id)
+    .map((d: any) => ({ ...d, resenas: resenasDe.get(d.id) || 0, curso: cursoPorId.get(d.curso_id), profes: (profesDe.get(d.id) || []).sort((a: any, b: any) => a.nombre_completo.localeCompare(b.nombre_completo)) }))
+    .sort((a: any, b: any) => compararCursos(a.curso?.identificador, b.curso?.identificador));
+  return { ...m, dictados, sinProfes: dictados.filter((d: any) => !d.profes.length).length };
+});
+const PERIODOS: [string, string][] = [['', 'Sin dato'], ['PRIMER_CUATRIMESTRE', '1.er cuatrimestre'], ['SEGUNDO_CUATRIMESTRE', '2.º cuatrimestre'], ['ANUAL', 'Anual']];
+const totalDictados = (dictadosRaw || []).length;
+---
+
+<Layout title="Materias y cursos - Panel de admin" crumbs={[{ label: 'Panel de admin', href: '/admin' }, { label: 'Materias y cursos' }]}>
+  <div id="admin-csrf" hidden data-h={ADMIN_CSRF_HEADER} data-t={csrfToken}></div>
+  <datalist id="dl-profes">{profes.map((p: any) => <option value={p.nombre_completo} data-id={p.id} />)}</datalist>
+  <script id="profes-json" type="application/json" set:html={JSON.stringify(profes.map((p: any) => [p.nombre_completo, p.id]))}></script>
+  <div class="admin-wrap">
+    <AdminNav actual="materias" />
+    <div class="admin-main">
+      <div class="topic">
+        <div>
+          <h1>Materias y cursos</h1>
+          <p>{materias.length} materias, {cursos.length} cursos y {totalDictados} materias por curso. Tocá una materia para ver sus cursos y su equipo.</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn quiet" data-abrir="form-materia"><Icon name="plus" /> Nueva materia</button>
+          <button type="button" class="btn quiet" data-abrir="form-curso"><Icon name="plus" /> Nuevo curso</button>
+          <a class="btn secondary" href="/admin/importar">Importar cuatrimestre</a>
+        </div>
+      </div>
+
+      <form class="panel aform hidden" id="form-materia">
+        <h2>Nueva materia</h2>
+        <div class="in">
+          <label class="field"><span>Nombre</span><input type="text" name="nombre" required minlength="3" /></label>
+          <div class="arow">
+            <label class="field"><span>Año</span><select name="nivel">{[1, 2, 3, 4, 5].map((n) => <option value={n}>{n}.º</option>)}</select></label>
+            <label class="check"><input type="checkbox" name="es_electiva" /> Electiva</label>
+            <label class="field"><span>Puntos</span><input type="text" inputmode="numeric" name="puntos_electiva" value="0" size="3" /></label>
+          </div>
+          <div class="acts"><button class="btn primary" type="submit">Crear materia</button><button class="btn quiet" type="button" data-cerrar>Cancelar</button></div>
+        </div>
+      </form>
+
+      <form class="panel aform hidden" id="form-curso">
+        <h2>Nuevo curso</h2>
+        <div class="in">
+          <div class="arow">
+            <label class="field"><span>Curso</span><input type="text" name="identificador" placeholder="1K12" required minlength="2" size="8" /></label>
+            <label class="field"><span>Turno</span><select name="turno"><option value="MAÑANA">Mañana</option><option value="TARDE">Tarde</option><option value="NOCHE">Noche</option></select></label>
+            <label class="field"><span>Año</span><select name="anio_carrera">{[1, 2, 3, 4, 5].map((n) => <option value={n}>{n}.º</option>)}</select></label>
+          </div>
+          <div class="acts"><button class="btn primary" type="submit">Crear curso</button><button class="btn quiet" type="button" data-cerrar>Cancelar</button></div>
+        </div>
+      </form>
+
+      <div class="filters">
+        <label class="sr" for="f-texto">Buscar materia, curso o profe</label>
+        <input id="f-texto" class="ainput" type="search" placeholder="Buscar materia, curso (1K3) o profe" />
+        <span class="seg" role="group" aria-label="Año">
+          <button type="button" aria-pressed="true" data-anio="">Todos</button>
+          {[1, 2, 3, 4, 5].map((n) => <button type="button" aria-pressed="false" data-anio={n}>{n}.º</button>)}
+        </span>
+        <label class="check"><input type="checkbox" id="f-sinprofes" /> Solo con cursos sin profesores</label>
+      </div>
+
+      <div class="alist">
+        {materias.map((m: any) => (
+          <details class="amat" data-id={m.id} data-anio={m.nivel} data-sinprofes={m.sinProfes ? '1' : undefined}
+            data-busca={[m.nombre, ...m.dictados.map((d: any) => d.curso?.identificador), ...m.dictados.flatMap((d: any) => d.profes.map((p: any) => p.nombre_completo))].join(' | ')}>
+            <summary>
+              <span class:list={['yr', `y${m.nivel}`]}>{m.nivel}.º</span>
+              <b class="mnom">{m.nombre}</b>
+              {m.es_electiva && <span class="sub">Electiva, {m.puntos_electiva || 0} pts</span>}
+              <span class="sub mcnt">{m.dictados.length} curso{m.dictados.length !== 1 ? 's' : ''}{m.sinProfes > 0 && <b class="warn">, {m.sinProfes} sin profesores</b>}</span>
+            </summary>
+            <div class="amat-in">
+              <form class="arow medit" data-materia={m.id}>
+                <label class="field"><span>Nombre</span><input type="text" name="nombre" value={m.nombre} required /></label>
+                <label class="field"><span>Año</span><select name="nivel">{[1, 2, 3, 4, 5].map((n) => <option value={n} selected={n === m.nivel}>{n}.º</option>)}</select></label>
+                <label class="check"><input type="checkbox" name="es_electiva" checked={!!m.es_electiva} /> Electiva</label>
+                <label class="field"><span>Puntos</span><input type="text" inputmode="numeric" name="puntos_electiva" value={m.puntos_electiva || 0} size="3" /></label>
+                <button class="btn quiet" type="submit">Guardar materia</button>
+                <a href={`/materia/${m.id}`} target="_blank">Ver en el sitio</a>
+              </form>
+              <div class="grid-tbl">
+                <table>
+                  <thead><tr><th>Curso</th><th>Período</th><th>Opciones</th><th>Profesores</th><th></th></tr></thead>
+                  <tbody>
+                    {m.dictados.map((d: any) => (
+                      <tr data-dictado={d.id}>
+                        <td><a href={`/dictado/${d.id}`} target="_blank"><b>{d.curso?.identificador}</b></a><div class="sub">{turnoLabel(d.curso?.turno)}</div></td>
+                        <td>
+                          <select class="mini" data-campo="periodo_dictado" aria-label={`Período de ${d.curso?.identificador}`}>
+                            {PERIODOS.map(([v, t]) => <option value={v} selected={(d.periodo_dictado || '') === v}>{t}</option>)}
+                          </select>
+                        </td>
+                        <td>
+                          <label class="check"><input type="checkbox" data-campo="es_contracuatrimestral" checked={!!d.es_contracuatrimestral} /> Contracuatrimestral</label>
+                          <label class="check"><input type="checkbox" data-campo="es_intensivo" checked={!!d.es_intensivo} /> Intensivo</label>
+                        </td>
+                        <td>
+                          <ul class="pchips">
+                            {d.profes.map((p: any) => <li data-profe={p.id}><a href={`/profesor/${p.id}`} target="_blank">{p.nombre_completo}</a> <button type="button" class="x" data-quitar={p.id} aria-label={`Sacar a ${p.nombre_completo}`}>×</button></li>)}
+                          </ul>
+                          <div class="padd">
+                            <input type="text" class="ainput sm" list="dl-profes" placeholder="Agregar profe" aria-label={`Agregar profesor a ${d.curso?.identificador}`} />
+                            <button type="button" class="btn quiet" data-agregar>Agregar</button>
+                          </div>
+                        </td>
+                        <td>{d.resenas > 0
+                          ? <span class="sub" title="Tiene reseñas: no se puede sacar desde acá">{d.resenas} reseña{d.resenas !== 1 ? 's' : ''}</span>
+                          : <button type="button" class="btn danger" data-borrar-dictado aria-label={`Sacar ${d.curso?.identificador} de esta materia`}><Icon name="trash" /></button>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div class="arow">
+                <label class="sr" for={`nuevo-${m.id}`}>Agregar curso a esta materia</label>
+                <select class="mini" id={`nuevo-${m.id}`} data-nuevo-dictado={m.id}>
+                  <option value="">Agregar un curso a esta materia…</option>
+                  {cursos.filter((c: any) => !m.dictados.some((d: any) => d.curso_id === c.id)).sort((a: any, b: any) => (a.anio_carrera === m.nivel ? 0 : 1) - (b.anio_carrera === m.nivel ? 0 : 1) || compararCursos(a.identificador, b.identificador)).map((c: any) => <option value={c.id}>{c.identificador} ({turnoLabel(c.turno)})</option>)}
+                </select>
+                <button type="button" class="btn quiet" data-crear-dictado={m.id}>Agregar</button>
+              </div>
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { adminFetch, aviso, sinAcentos } from '../../scripts/admin-api';
+
+  const profes = new Map<string, number>(JSON.parse(document.getElementById('profes-json')?.textContent || '[]'));
+  const error = (e: unknown) => aviso((e as Error).message, true);
+
+  // Formularios de alta
+  document.querySelectorAll<HTMLButtonElement>('[data-abrir]').forEach((b) => b.addEventListener('click', () => {
+    const f = document.getElementById(b.dataset.abrir!);
+    f?.classList.remove('hidden');
+    f?.querySelector<HTMLInputElement>('input')?.focus();
+  }));
+  document.querySelectorAll<HTMLButtonElement>('[data-cerrar]').forEach((b) => b.addEventListener('click', () => b.closest('form')?.classList.add('hidden')));
+  const datos = (f: HTMLFormElement) => {
+    const fd = new FormData(f);
+    return { ...Object.fromEntries(fd.entries()), es_electiva: fd.get('es_electiva') === 'on' };
+  };
+  document.getElementById('form-materia')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await adminFetch('/api/admin/materias', { action: 'create', ...datos(e.target as HTMLFormElement) }); location.reload(); } catch (err) { error(err); }
+  });
+  document.getElementById('form-curso')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await adminFetch('/api/admin/cursos', { action: 'create', ...Object.fromEntries(new FormData(e.target as HTMLFormElement).entries()) }); aviso('Curso creado. Ya lo podés agregar a sus materias.'); setTimeout(() => location.reload(), 900); } catch (err) { error(err); }
+  });
+
+  // Editar materia
+  document.querySelectorAll<HTMLFormElement>('form.medit').forEach((f) => f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await adminFetch('/api/admin/materias', { id: Number(f.dataset.materia), ...datos(f) }, 'PUT');
+      const d = f.closest('details')!;
+      d.querySelector('.mnom')!.textContent = String(new FormData(f).get('nombre'));
+      aviso('Materia guardada.');
+    } catch (err) { error(err); }
+  }));
+
+  // Datos de cada curso de la materia
+  document.querySelectorAll<HTMLTableRowElement>('tr[data-dictado]').forEach((tr) => {
+    const id = Number(tr.dataset.dictado);
+    tr.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-campo]').forEach((el) => el.addEventListener('change', async () => {
+      const valor = el instanceof HTMLInputElement && el.type === 'checkbox' ? el.checked : el.value || null;
+      try { await adminFetch('/api/admin/dictados', { action: 'update', dictado_id: id, [el.dataset.campo!]: valor }); aviso('Guardado.'); } catch (err) { error(err); }
+    }));
+    const lista = tr.querySelector('.pchips')!;
+    const quitar = async (b: HTMLButtonElement) => {
+      try {
+        await adminFetch('/api/admin/dictados', { action: 'remove_profesor', dictado_id: id, profesor_id: Number(b.dataset.quitar) });
+        b.closest('li')?.remove();
+        aviso('Profesor sacado del curso.');
+      } catch (err) { error(err); }
+    };
+    lista.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-quitar]');
+      if (b) quitar(b);
+    });
+    const input = tr.querySelector<HTMLInputElement>('.padd input')!;
+    const agregar = async () => {
+      const nombre = input.value.trim();
+      const pid = profes.get(nombre);
+      if (!pid) return aviso('Elegí un profe de la lista. Si no está, crealo en Profesores.', true);
+      try {
+        await adminFetch('/api/admin/dictados', { action: 'assign_profesor', dictado_id: id, profesor_id: pid });
+        const li = document.createElement('li');
+        li.dataset.profe = String(pid);
+        const a = document.createElement('a');
+        a.href = `/profesor/${pid}`;
+        a.target = '_blank';
+        a.textContent = nombre;
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'x';
+        x.dataset.quitar = String(pid);
+        x.setAttribute('aria-label', `Sacar a ${nombre}`);
+        x.textContent = '×';
+        li.append(a, ' ', x);
+        lista.append(li);
+        input.value = '';
+        aviso('Profesor agregado.');
+      } catch (err) { error(err); }
+    };
+    tr.querySelector('[data-agregar]')?.addEventListener('click', agregar);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); agregar(); } });
+    tr.querySelector('[data-borrar-dictado]')?.addEventListener('click', async () => {
+      if (!confirm('¿Sacar este curso de la materia? No tiene reseñas. No se puede deshacer.')) return;
+      try { await adminFetch('/api/admin/dictados', { action: 'delete', id }); tr.remove(); aviso('Curso sacado de la materia.'); } catch (err) { error(err); }
+    });
+  });
+
+  // Agregar un curso a la materia
+  document.querySelectorAll<HTMLButtonElement>('[data-crear-dictado]').forEach((b) => b.addEventListener('click', async () => {
+    const sel = document.querySelector<HTMLSelectElement>(`[data-nuevo-dictado="${b.dataset.crearDictado}"]`)!;
+    if (!sel.value) return aviso('Elegí un curso.', true);
+    try {
+      await adminFetch('/api/admin/dictados', { action: 'create', materia_id: Number(b.dataset.crearDictado), curso_id: Number(sel.value) });
+      sessionStorage.setItem('adminAbierta', String(b.dataset.crearDictado));
+      location.reload();
+    } catch (err) { error(err); }
+  }));
+  const abierta = sessionStorage.getItem('adminAbierta');
+  if (abierta) {
+    sessionStorage.removeItem('adminAbierta');
+    const d = document.querySelector<HTMLDetailsElement>(`details.amat[data-id="${abierta}"]`);
+    if (d) { d.open = true; d.scrollIntoView({ block: 'start' }); }
+  }
+
+  // Filtros
+  const texto = document.getElementById('f-texto') as HTMLInputElement;
+  const sinProfes = document.getElementById('f-sinprofes') as HTMLInputElement;
+  let anio = '';
+  const filtrar = () => {
+    const q = sinAcentos(texto.value.trim());
+    document.querySelectorAll<HTMLDetailsElement>('details.amat').forEach((d) => {
+      const ok = (!anio || d.dataset.anio === anio) && (!sinProfes.checked || d.dataset.sinprofes === '1') && (!q || sinAcentos(d.dataset.busca || '').includes(q));
+      d.classList.toggle('hidden', !ok);
+    });
+  };
+  texto.addEventListener('input', filtrar);
+  sinProfes.addEventListener('change', filtrar);
+  document.querySelectorAll<HTMLButtonElement>('[data-anio]').forEach((b) => b.addEventListener('click', () => {
+    anio = b.dataset.anio || '';
+    document.querySelectorAll('[data-anio]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    filtrar();
+  }));
+</script>

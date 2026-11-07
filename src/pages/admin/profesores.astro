@@ -1,0 +1,168 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminNav from '../../components/AdminNav.astro';
+import Icon from '../../components/Icon.astro';
+import { isAdmin } from '../../lib/admin';
+import { supabaseAdmin } from '../../lib/supabase-admin';
+import { ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+import { tokenCsrf } from '../../lib/admin-csrf';
+import { compararCursos } from '../../lib/format';
+
+const user = Astro.locals.user;
+if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+const csrfToken = tokenCsrf(Astro.cookies);
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
+
+const [{ data: profesRaw }, { data: dpRaw }, { data: dictadosRaw }] = await Promise.all([
+  supabaseAdmin.from('profesores').select('id, nombre_completo').order('nombre_completo').range(0, 19999),
+  supabaseAdmin.from('dictado_profesores').select('dictado_id, profesor_id').range(0, 49999),
+  supabaseAdmin.from('dictados').select('id, cursos ( identificador ), materias ( nombre, nivel )').range(0, 19999),
+]);
+const dictados = (dictadosRaw || []).map((d: any) => {
+  const c = one(d.cursos);
+  const m = one(d.materias);
+  return { id: d.id, curso: c?.identificador || '', materia: m?.nombre || '', nivel: m?.nivel || 0 };
+}).sort((a, b) => a.nivel - b.nivel || a.materia.localeCompare(b.materia) || compararCursos(a.curso, b.curso));
+const dictadoPorId = new Map(dictados.map((d) => [d.id, d]));
+const deProfe = new Map<number, typeof dictados>();
+(dpRaw || []).forEach((dp: any) => {
+  const d = dictadoPorId.get(dp.dictado_id);
+  if (d) deProfe.set(dp.profesor_id, [...(deProfe.get(dp.profesor_id) || []), d]);
+});
+const profes = (profesRaw || []).map((p: any) => ({
+  ...p,
+  cursos: (deProfe.get(p.id) || []).sort((a, b) => a.nivel - b.nivel || a.materia.localeCompare(b.materia) || compararCursos(a.curso, b.curso)),
+}));
+const sinCursos = profes.filter((p) => !p.cursos.length).length;
+const etiqueta = (d: { materia: string; curso: string }) => `${d.materia} · ${d.curso}`;
+---
+
+<Layout title="Profesores - Panel de admin" crumbs={[{ label: 'Panel de admin', href: '/admin' }, { label: 'Profesores' }]}>
+  <div id="admin-csrf" hidden data-h={ADMIN_CSRF_HEADER} data-t={csrfToken}></div>
+  <datalist id="dl-dictados">{dictados.map((d) => <option value={etiqueta(d)} />)}</datalist>
+  <script id="dictados-json" type="application/json" set:html={JSON.stringify(dictados.map((d) => [etiqueta(d), d.id]))}></script>
+  <div class="admin-wrap">
+    <AdminNav actual="profesores" />
+    <div class="admin-main">
+      <div class="topic">
+        <div>
+          <h1>Profesores</h1>
+          <p>{profes.length} profesores{sinCursos > 0 ? `, ${sinCursos} sin cursos asignados` : ''}. Tocá uno para ver y cambiar sus cursos.</p>
+        </div>
+        <div class="actions"><button type="button" class="btn quiet" data-abrir="form-profe"><Icon name="plus" /> Nuevo profesor</button></div>
+      </div>
+
+      <form class="panel aform hidden" id="form-profe">
+        <h2>Nuevo profesor</h2>
+        <div class="in">
+          <label class="field"><span>Nombre completo</span><input type="text" name="nombre_completo" placeholder="Apellido, Nombres" required minlength="2" /></label>
+          <div class="acts"><button class="btn primary" type="submit">Crear profesor</button><button class="btn quiet" type="button" data-cerrar>Cancelar</button></div>
+        </div>
+      </form>
+
+      <div class="filters">
+        <label class="sr" for="f-texto">Buscar profesor, materia o curso</label>
+        <input id="f-texto" class="ainput" type="search" placeholder="Buscar profe, materia o curso" />
+        <label class="check"><input type="checkbox" id="f-sincursos" /> Solo sin cursos</label>
+      </div>
+
+      <div class="alist">
+        {profes.map((p) => (
+          <details class="amat" data-id={p.id} data-sincursos={p.cursos.length ? undefined : '1'} data-busca={[p.nombre_completo, ...p.cursos.map(etiqueta)].join(' | ')}>
+            <summary>
+              <b class="mnom">{p.nombre_completo}</b>
+              <span class="sub mcnt">{p.cursos.length ? `${p.cursos.length} curso${p.cursos.length !== 1 ? 's' : ''}` : <b class="warn">Sin cursos</b>}</span>
+            </summary>
+            <div class="amat-in" data-profe={p.id}>
+              <form class="arow pedit">
+                <label class="field"><span>Nombre</span><input type="text" name="nombre_completo" value={p.nombre_completo} required minlength="2" /></label>
+                <button class="btn quiet" type="submit">Guardar nombre</button>
+                <a href={`/profesor/${p.id}`} target="_blank">Ver en el sitio</a>
+                <button type="button" class="btn danger" data-borrar-profe><Icon name="trash" /> Borrar profesor</button>
+              </form>
+              <ul class="pchips col">
+                {p.cursos.map((d: any) => <li><span><span class:list={['yr', `y${d.nivel}`]}>{d.nivel}.º</span> {d.materia} · <b>{d.curso}</b></span> <button type="button" class="x" data-quitar={d.id} aria-label={`Sacar de ${etiqueta(d)}`}>×</button></li>)}
+              </ul>
+              <div class="arow padd">
+                <input type="text" class="ainput" list="dl-dictados" placeholder="Materia · curso (por ejemplo, Física I · 1K3)" aria-label={`Asignar un curso a ${p.nombre_completo}`} />
+                <button type="button" class="btn quiet" data-asignar>Asignar</button>
+              </div>
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { adminFetch, aviso, sinAcentos } from '../../scripts/admin-api';
+
+  const dictados = new Map<string, number>(JSON.parse(document.getElementById('dictados-json')?.textContent || '[]'));
+  const error = (e: unknown) => aviso((e as Error).message, true);
+
+  document.querySelectorAll<HTMLButtonElement>('[data-abrir]').forEach((b) => b.addEventListener('click', () => {
+    const f = document.getElementById(b.dataset.abrir!);
+    f?.classList.remove('hidden');
+    f?.querySelector<HTMLInputElement>('input')?.focus();
+  }));
+  document.querySelectorAll<HTMLButtonElement>('[data-cerrar]').forEach((b) => b.addEventListener('click', () => b.closest('form')?.classList.add('hidden')));
+  document.getElementById('form-profe')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await adminFetch('/api/admin/profesores', { action: 'create', ...Object.fromEntries(new FormData(e.target as HTMLFormElement).entries()) }); location.reload(); } catch (err) { error(err); }
+  });
+
+  document.querySelectorAll<HTMLElement>('.amat-in[data-profe]').forEach((box) => {
+    const id = Number(box.dataset.profe);
+    const det = box.closest('details')!;
+    box.querySelector<HTMLFormElement>('form.pedit')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nombre = String(new FormData(e.target as HTMLFormElement).get('nombre_completo') || '');
+      try { await adminFetch('/api/admin/profesores', { action: 'update', id, nombre_completo: nombre }); det.querySelector('.mnom')!.textContent = nombre.trim(); aviso('Nombre guardado.'); } catch (err) { error(err); }
+    });
+    box.querySelector('[data-borrar-profe]')?.addEventListener('click', async () => {
+      if (!confirm('¿Borrar este profesor? Se lo saca de todos sus cursos. No se puede deshacer.')) return;
+      try { await adminFetch('/api/admin/profesores', { action: 'delete', id }); det.remove(); aviso('Profesor borrado.'); } catch (err) { error(err); }
+    });
+    const lista = box.querySelector('.pchips')!;
+    lista.addEventListener('click', async (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-quitar]');
+      if (!b) return;
+      try { await adminFetch('/api/admin/dictados', { action: 'remove_profesor', dictado_id: Number(b.dataset.quitar), profesor_id: id }); b.closest('li')?.remove(); aviso('Sacado del curso.'); } catch (err) { error(err); }
+    });
+    const input = box.querySelector<HTMLInputElement>('.padd input')!;
+    const asignar = async () => {
+      const dictadoId = dictados.get(input.value.trim());
+      if (!dictadoId) return aviso('Elegí un curso de la lista.', true);
+      try {
+        await adminFetch('/api/admin/dictados', { action: 'assign_profesor', dictado_id: dictadoId, profesor_id: id });
+        const li = document.createElement('li');
+        const t = document.createElement('span');
+        t.textContent = input.value.trim();
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'x';
+        x.dataset.quitar = String(dictadoId);
+        x.setAttribute('aria-label', `Sacar de ${input.value.trim()}`);
+        x.textContent = '×';
+        li.append(t, ' ', x);
+        lista.append(li);
+        input.value = '';
+        aviso('Curso asignado.');
+      } catch (err) { error(err); }
+    };
+    box.querySelector('[data-asignar]')?.addEventListener('click', asignar);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); asignar(); } });
+  });
+
+  const texto = document.getElementById('f-texto') as HTMLInputElement;
+  const sinCursos = document.getElementById('f-sincursos') as HTMLInputElement;
+  const filtrar = () => {
+    const q = sinAcentos(texto.value.trim());
+    document.querySelectorAll<HTMLDetailsElement>('details.amat').forEach((d) => {
+      d.classList.toggle('hidden', !((!sinCursos.checked || d.dataset.sincursos === '1') && (!q || sinAcentos(d.dataset.busca || '').includes(q))));
+    });
+  };
+  texto.addEventListener('input', filtrar);
+  sinCursos.addEventListener('change', filtrar);
+</script>

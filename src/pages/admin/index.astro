@@ -100,7 +100,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 'n
           <div><i class="r"></i><span><b><a href="/admin/reportes">{resenasReportadas} reseña{resenasReportadas !== 1 ? 's' : ''} reportada{resenasReportadas !== 1 ? 's' : ''} sin revisar</a></b><span class="sub">El reporte más viejo es de {tiempoRelativo(masViejo!).toLowerCase()}.</span></span></div>
         )}
         {sinProfes.length > 0 && (
-          <div><i class="a"></i><span><b><a href="/admin/gestion#dictados">{sinProfes.length} curso{sinProfes.length !== 1 ? 's' : ''} sin profesores cargados</a></b><span class="sub">{sinProfes.slice(0, 3).join('; ')}{sinProfes.length > 3 ? ` y ${sinProfes.length - 3} más` : ''}. Se puede completar con Importar cuatrimestre.</span></span></div>
+          <div><i class="a"></i><span><b><a href="/admin/materias">{sinProfes.length} curso{sinProfes.length !== 1 ? 's' : ''} sin profesores cargados</a></b><span class="sub">{sinProfes.slice(0, 3).join('; ')}{sinProfes.length > 3 ? ` y ${sinProfes.length - 3} más` : ''}. Se puede completar con Importar cuatrimestre.</span></span></div>
         )}
         {resenasReportadas === 0 && sinProfes.length === 0 && (
           <div><i></i><span><b>Nada pendiente.</b><span class="sub">No hay reportes ni cursos sin profesores.</span></span></div>
@@ -147,7 +147,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 'n
                 </div>
               );
             })}
-            <a href="/admin/gestion#resenas">Ver todas</a>
+            <a href="/admin/resenas">Ver todas</a>
           </div>
         </section>
       </div>

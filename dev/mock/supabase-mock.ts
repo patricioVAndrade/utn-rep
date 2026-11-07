@@ -73,6 +73,16 @@ class Q {
   lt(k: string, v: any) { this.filters.push((r) => r[k] < v); return this; }
   lte(k: string, v: any) { this.filters.push((r) => r[k] <= v); return this; }
   neq(k: string, v: any) { this.filters.push((r) => r[k] !== v); return this; }
+  ilike(k: string, pat: string) { const re = new RegExp('^' + String(pat).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*') + '$', 'i'); this.filters.push((r) => re.test(String(r[k] ?? ''))); return this; }
+  or(expr: string) {
+    const partes = expr.split(',').map((p) => { const [k, op, ...v] = p.split('.'); return { k, op, v: v.join('.') }; });
+    const tests = partes.map(({ k, op, v }) => {
+      if (op === 'ilike') { const re = new RegExp('^' + v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*') + '$', 'i'); return (r: any) => re.test(String(r[k] ?? '')); }
+      return (r: any) => String(r[k]) === v;
+    });
+    this.filters.push((r) => tests.some((t) => t(r)));
+    return this;
+  }
   is(k: string, v: any) { this.filters.push((r) => (r[k] ?? null) === v); return this; }
   range(a: number, b: number) { this.off = a; return this.limit(b - a + 1); }
   insert(v: any) { this.op = 'insert'; this.payload = v; this.fields = [{ name: '*' }]; return this; }
