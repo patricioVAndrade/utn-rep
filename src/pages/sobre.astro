@@ -1,55 +1,92 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+
+// Preguntas plegables por tema, como en la V6. Las más consultadas vienen abiertas.
+// La parte de rangos y logros se suma cuando estén (etapa 3).
+const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boolean }[] }[] = [
+  {
+    titulo: 'Lo básico',
+    preguntas: [
+      { p: '¿Qué diferencia hay entre materia y curso?', abierta: true, r: 'La <b>materia</b> es la cátedra, por ejemplo Algoritmos y Estructuras de Datos. Adentro hay <b>cursos</b> como 1K3 o 1K11, cada uno con su turno y su equipo docente. Las reseñas son de un curso, porque cursar AED a la mañana con un equipo no es lo mismo que a la noche con otro.' },
+      { p: '¿Es un sitio oficial de la UTN?', r: 'No. Lo hace un estudiante y lo usan estudiantes de Ingeniería en Sistemas de la UTN Facultad Regional Córdoba. La facultad no participa ni revisa las reseñas, y los puntajes no son una evaluación oficial.' },
+      { p: '¿Quién puede escribir?', r: 'Cualquiera que ingrese con Google, GitHub o su mail. Se puede escribir una reseña por curso, y la podés editar o borrar cuando quieras desde Mis reseñas.' },
+      { p: '¿De dónde sale la nota de un profesor?', r: 'Es el promedio de las reseñas de los cursos en los que da clases. Cada reseña califica la cursada entera, con todo el equipo, así que conviene mirar también la nota de cada curso.' },
+    ],
+  },
+  {
+    titulo: 'Reseñas',
+    preguntas: [
+      { p: '¿Puedo ser anónimo?', abierta: true, r: 'Sí. Marcás "Publicar como anónimo" y tu nombre no aparece en ningún lado. Solo la moderación puede verlo si la reseña es reportada.' },
+      { p: '¿Qué pasa si reportan mi reseña?', r: 'Sigue visible mientras la revisamos y en Mis reseñas vas a ver que está en revisión. Si rompe una regla, te avisamos por mail; en el peor caso, se oculta.' },
+      { p: '¿Qué no se puede escribir?', r: 'Insultos, datos personales de profesores o compañeros, y cosas que no pasaron. Las críticas duras están bien si son sobre la cursada.' },
+      { p: '¿Qué significa "Me sirvió"?', r: 'Es un voto para las reseñas que te ayudaron a elegir. Las más votadas aparecen primero en cada curso.' },
+    ],
+  },
+  {
+    titulo: 'Experiencias de finales',
+    preguntas: [
+      { p: '¿Para qué sirven?', r: 'Para saber cómo toman en cada mesa: si es escrito, oral o en máquina, cuánto dura, qué temas entran y cómo corrigen. Las cuenta quien ya rindió.' },
+      { p: '¿Se ve quién la contó?', r: 'No. Por ahora todas las experiencias de finales se publican como anónimas.' },
+    ],
+  },
+  {
+    titulo: 'Tus datos',
+    preguntas: [
+      { p: '¿Qué guardan de mí?', r: 'Tu nombre, tu mail y tu foto si entrás con Google o GitHub. El detalle completo está en <a href="/terminos">Términos y condiciones</a>.' },
+      { p: '¿Qué se guarda solo en mi navegador?', r: 'El modo noche, tu última visita (para marcar lo nuevo), los años que elegiste en el inicio y los borradores que dejaste a medio escribir. No sale de tu navegador.' },
+    ],
+  },
+];
 ---
 
 <Layout
-  title="Sobre UTN REP"
-  description="Conocé qué es UTN REP, cómo funciona y quién lo creó."
+  title="¿Cómo funciona? - UTN REP"
+  description="Qué es UTN REP, cómo funcionan las reseñas de cursos y qué datos se guardan."
   tab="ayuda"
   crumbs={[{ label: '¿Cómo funciona?' }]}
 >
-  <div class="layout narrow">
+  <div class="layout">
     <div class="main">
-      <section class="panel">
-        <h1 style="font-size:13px">¿Qué es UTN REP?</h1>
-        <div class="prose">
-          <p>
-            <b>UTN REP</b> es una plataforma donde los estudiantes de <b>Ingeniería en Sistemas de Información</b> de la
-            <b>UTN, Facultad Regional Córdoba</b>, comparten sus experiencias sobre materias, cursos y profesores.
-          </p>
-          <p>La idea es simple: que puedas elegir mejor tu cursada con opiniones reales de quienes ya pasaron por ahí.</p>
+      <div class="topic">
+        <div>
+          <h1>¿Cómo funciona UTN REP?</h1>
+          <p>Reseñas de cursos de Ingeniería en Sistemas de la UTN Córdoba, escritas por estudiantes.</p>
         </div>
-      </section>
+      </div>
 
-      <section class="panel">
-        <h2>¿Cómo funciona?</h2>
-        <div class="prose">
-          <ol>
-            <li><b>Explorá las materias.</b> Navegá por año de la carrera o usá el buscador para encontrar una materia, un curso o un profesor.</li>
-            <li><b>Leé las reseñas.</b> Cada curso tiene reseñas con puntaje de 1 a 5 estrellas y comentarios de estudiantes que ya lo cursaron.</li>
-            <li><b>Contá tu experiencia.</b> Entrá con tu mail, Google o GitHub y escribí tu reseña. Podés publicarla con tu nombre o como anónima.</li>
-          </ol>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Para tener en cuenta</h2>
-        <div class="prose">
-          <ul>
-            <li>Las opiniones son <b>responsabilidad exclusiva de quienes las publican</b>.</li>
-            <li>Los puntajes no son una evaluación oficial de la universidad ni de los docentes.</li>
-            <li>Se espera <b>respeto y buena fe</b> en todas las reseñas. No se toleran agresiones ni difamación.</li>
-            <li>Nos reservamos el derecho de <b>moderar o eliminar</b> contenido que no cumpla estas normas.</li>
-          </ul>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Quién lo hizo</h2>
-        <div class="prose">
-          <p><b>Patricio Valentín Andrade</b>, estudiante de Ingeniería en Sistemas en la UTN FRC. <a href="https://github.com/patricioVAndrade" target="_blank" rel="noopener noreferrer">GitHub</a></p>
-        </div>
-      </section>
+      {grupos.map((g) => (
+        <section class="faq-group">
+          <h2>{g.titulo}</h2>
+          {g.preguntas.map((q) => (
+            <details class="faq" open={q.abierta}>
+              <summary>{q.p}</summary>
+              <div set:html={q.r} />
+            </details>
+          ))}
+        </section>
+      ))}
     </div>
+
+    <aside class="side">
+      <section class="panel">
+        <h3>Empezá por acá</h3>
+        <div class="in">
+          <ol class="steps">
+            <li>Buscá tu materia.</li>
+            <li>Elegí el curso.</li>
+            <li>Leé y votá lo que te sirvió.</li>
+          </ol>
+          <a class="btn primary" href="/nueva-resena"><Icon name="pen" /> Escribir una reseña</a>
+        </div>
+      </section>
+      <section class="panel">
+        <h3>¿No encontraste tu respuesta?</h3>
+        <div class="in">
+          <a href="mailto:patriciovandrade@gmail.com?subject=Consulta%20sobre%20UTN%20REP">Escribinos</a>
+          <span class="sub">Lo hizo Patricio Valentín Andrade, estudiante de Sistemas en la UTN FRC. <a href="https://github.com/patricioVAndrade" target="_blank" rel="noopener noreferrer">GitHub</a></span>
+        </div>
+      </section>
+    </aside>
   </div>
 </Layout>

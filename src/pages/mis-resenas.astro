@@ -2,31 +2,52 @@
 import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
 import Stars from '../components/Stars.astro';
-import { createSupabaseServerClient } from '../lib/supabase';
-import { anioLabel, tiempoRelativo } from '../lib/format';
+import ShareButton from '../components/ShareButton.astro';
+import { supabase, createSupabaseServerClient } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabase-admin';
+import { mesaTexto } from '../lib/format';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/');
 
 const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 
 // RLS: cada usuario solo ve sus propias filas de la tabla base
-const { data } = await client
-  .from('resenas')
-  .select(`
-    id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, created_at,
-    dictados ( cursos ( identificador ), materias ( nombre, nivel ) )
-  `)
-  .eq('user_id', user.id)
-  .order('created_at', { ascending: false });
+const [{ data }, { data: finalesRaw }, { data: materiasRaw }] = await Promise.all([
+  client
+    .from('resenas')
+    .select('id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, created_at, dictados ( materia_id, cursos ( identificador ), materias ( id, nombre, nivel ) )')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false }),
+  supabase
+    .from('experiencias_finales')
+    .select('id, anio, mesa, comentario, created_at, materias ( id, nombre, nivel )')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false }),
+  supabase.from('materias').select('id, nombre, nivel').order('nivel').order('nombre'),
+]);
 
 const misResenas = (data || []).map((r: any) => {
-  const dictado = Array.isArray(r.dictados) ? r.dictados[0] : r.dictados;
-  const materia = Array.isArray(dictado?.materias) ? dictado.materias[0] : dictado?.materias;
-  const curso = Array.isArray(dictado?.cursos) ? dictado.cursos[0] : dictado?.cursos;
-  return { ...r, materia, curso };
+  const dictado = one(r.dictados);
+  return { ...r, materia: one(dictado?.materias), curso: one(dictado?.cursos) };
 });
+const misFinales = (finalesRaw || []).map((f: any) => ({ ...f, materia: one(f.materias) }));
 const votosTotales = misResenas.reduce((acc, r) => acc + (r.votos_utilidad || 0), 0);
+
+// ¿Alguna está reportada? (se lo mostramos solo a quien la escribió)
+const reportadas = new Set<number>();
+if (misResenas.length) {
+  const { data: reps } = await supabaseAdmin.from('reportes_resenas').select('resena_id').in('resena_id', misResenas.map((r) => r.id));
+  (reps || []).forEach((r: any) => reportadas.add(r.resena_id));
+}
+
+// Para "Te faltan reseñar": materias de los años que elegiste en el inicio
+const resenadas = new Set(misResenas.map((r) => r.materia?.id).filter(Boolean));
+const materiasJSON = JSON.stringify((materiasRaw || []).map((m: any) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel, hecha: resenadas.has(m.id) })));
+
+const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t);
 ---
 
 <Layout title="Mis reseñas - UTN REP" description="Las reseñas que publicaste en UTN REP." tab="mis" crumbs={[{ label: 'Mis reseñas' }]}>
@@ -38,49 +59,212 @@ const votosTotales = misResenas.reduce((acc, r) => acc + (r.votos_utilidad || 0)
           <p>
             {misResenas.length === 0
               ? 'Todavía no publicaste ninguna reseña.'
-              : `Publicaste ${misResenas.length} reseña${misResenas.length !== 1 ? 's' : ''}. Para editarlas o borrarlas, entrá a cada curso.`}
+              : votosTotales > 0
+                ? <>Tus reseñas le sirvieron a <b>{votosTotales} persona{votosTotales !== 1 ? 's' : ''}</b>. Podés editarlas o borrarlas cuando quieras.</>
+                : 'Todavía nadie votó tus reseñas. Podés editarlas o borrarlas cuando quieras.'}
           </p>
         </div>
         <div class="actions"><a class="btn primary" href="/nueva-resena"><Icon name="pen" /> Escribir otra</a></div>
       </div>
 
-      {misResenas.length > 0 ? (
-        <div class="mine">
-          {misResenas.map((r) => (
-            <div class="mine-row">
-              <div class="mr-top">
-                {r.materia?.nivel && <span class:list={['yr', `y${r.materia.nivel}`]}>{anioLabel(r.materia.nivel)}</span>}
-                <a href={`/dictado/${r.dictado_id}#resena-${r.id}`}><b>{r.materia?.nombre || 'Materia'}, {r.curso?.identificador || 'Curso'}</b></a>
-                <Stars value={r.calificacion_general} />
-              </div>
-              <p>{r.comentario}</p>
-              <span class="sub">
-                {tiempoRelativo(r.created_at)}
-                {' · '}{r.es_anonima ? 'Publicada como anónima' : 'Publicada con tu nombre'}
-                {' · '}{r.votos_utilidad || 0} persona{(r.votos_utilidad || 0) !== 1 ? 's' : ''} dijeron que les sirvió
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div class="empty">
-          <h2>Todavía no escribiste ninguna</h2>
-          <span>Contá cómo te fue en una materia que ya cursaste. Lleva dos minutos.</span>
-          <a class="btn primary" href="/nueva-resena"><Icon name="pen" /> Escribir mi primera reseña</a>
-        </div>
-      )}
+      <div class="ptabs" role="tablist" aria-label="Lo que escribiste">
+        <button type="button" role="tab" aria-selected="true" aria-controls="tab-resenas" data-tab="resenas">Reseñas ({misResenas.length})</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="tab-finales" data-tab="finales">Finales contados ({misFinales.length})</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="tab-borradores" data-tab="borradores">Borradores (<span id="n-borradores">0</span>)</button>
+      </div>
+
+      <div id="tab-resenas" role="tabpanel">
+        {misResenas.length > 0 ? (
+          <div class="mine">
+            {misResenas.map((r) => (
+              <article class="mine-row" data-id={r.id}>
+                <div class="top">
+                  {r.materia?.nivel && <span class:list={['yr', `y${r.materia.nivel}`]}>{r.materia.nivel}.º</span>}
+                  <a href={`/dictado/${r.dictado_id}#resena-${r.id}`}><b>{r.materia?.nombre || 'Materia'}</b>, {r.curso?.identificador || 'Curso'}</a>
+                  {reportadas.has(r.id)
+                    ? <span class="cond reg">Reportada, en revisión</span>
+                    : <span class="cond pub">Publicada</span>}
+                  {r.es_anonima && <span class="tag">Anónima</span>}
+                </div>
+                <div><Stars value={r.calificacion_general} /> <span class="snip">{recorte(r.comentario || '')}</span></div>
+                <div class="bottom">
+                  <span class="sub">{fecha(r.created_at)}. {r.votos_utilidad ? `${r.votos_utilidad} dijeron que les sirvió` : 'Todavía sin votos'}</span>
+                  <span class="acts">
+                    <a class="btn quiet" href={`/dictado/${r.dictado_id}#resena-${r.id}`}><Icon name="edit" /> Editar</a>
+                    <ShareButton mini titulo="Mirá mi reseña en UTN REP" ruta={`/dictado/${r.dictado_id}#resena-${r.id}`} />
+                    <button type="button" class="btn quiet" data-borrar={r.id}><Icon name="trash" /> Borrar</button>
+                  </span>
+                </div>
+                {reportadas.has(r.id) && <div class="sub">Alguien la reportó. Sigue visible mientras la revisamos; si hace falta un cambio te avisamos por mail.</div>}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div class="empty">
+            <h2>Todavía no escribiste ninguna</h2>
+            <span>Contá cómo te fue en una materia que ya cursaste. Lleva dos minutos.</span>
+            <a class="btn primary" href="/nueva-resena"><Icon name="pen" /> Escribir mi primera reseña</a>
+          </div>
+        )}
+      </div>
+
+      <div id="tab-finales" role="tabpanel" class="hidden">
+        {misFinales.length > 0 ? (
+          <div class="mine">
+            {misFinales.map((f) => (
+              <article class="mine-row">
+                <div class="top">
+                  {f.materia?.nivel && <span class:list={['yr', `y${f.materia.nivel}`]}>{f.materia.nivel}.º</span>}
+                  <a href={`/finales?materia=${f.materia?.id}#final-${f.id}`}><b>{f.materia?.nombre || 'Materia'}</b></a>
+                  <span class="mesa-mini">{mesaTexto(f.mesa, f.anio)}</span>
+                </div>
+                <span class="snip">{recorte(f.comentario || '')}</span>
+                <div class="bottom">
+                  <span class="sub">Contada el {fecha(f.created_at)}</span>
+                  <span class="acts"><a class="btn quiet" href={`/finales?materia=${f.materia?.id}#final-${f.id}`}><Icon name="edit" /> Ver, editar o borrar</a></span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div class="empty">
+            <span>Todavía no contaste ningún final.</span>
+            <a class="btn primary" href="/finales/nuevo"><Icon name="pen" /> Contar mi experiencia de final</a>
+          </div>
+        )}
+      </div>
+
+      <div id="tab-borradores" role="tabpanel" class="hidden">
+        <div class="mine" id="lista-borradores"></div>
+        <div class="empty hidden" id="sin-borradores"><span>No tenés borradores. Lo que dejás a medio escribir se guarda acá, solo en este navegador.</span></div>
+      </div>
     </div>
 
     <aside class="side">
+      <section class="panel">
+        <h3>Te faltan reseñar</h3>
+        <div class="in" id="faltan">
+          <span class="sub">Elegí qué años cursás en <a href="/">el inicio</a> y te mostramos acá las materias de esos años que todavía no reseñaste.</span>
+        </div>
+      </section>
       <section class="panel">
         <h3>Tu actividad</h3>
         <div class="in">
           <div class="kpis">
             <div><b>{misResenas.length}</b><span>reseñas</span></div>
             <div><b>{votosTotales}</b><span>"me sirvió"</span></div>
+            <div><b>{misFinales.length}</b><span>finales contados</span></div>
           </div>
         </div>
       </section>
     </aside>
   </div>
 </Layout>
+
+<script is:inline type="application/json" id="materias-data" set:html={materiasJSON}></script>
+
+<script>
+  // Pestañas
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.ptabs [data-tab]'));
+  const abrir = (nombre: string) => tabs.forEach((t) => {
+    const on = t.dataset.tab === nombre;
+    t.setAttribute('aria-selected', String(on));
+    document.getElementById(`tab-${t.dataset.tab}`)?.classList.toggle('hidden', !on);
+  });
+  tabs.forEach((t) => t.addEventListener('click', () => abrir(t.dataset.tab || 'resenas')));
+  if (location.hash === '#borradores' || location.hash === '#finales') abrir(location.hash.slice(1));
+
+  // Borrar una reseña
+  document.querySelectorAll<HTMLButtonElement>('[data-borrar]').forEach((b) => b.addEventListener('click', async () => {
+    if (!confirm('¿Seguro que querés borrar esta reseña? No se puede deshacer.')) return;
+    b.disabled = true;
+    try {
+      const res = await fetch(`/api/resenas/${b.dataset.borrar}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _method: 'DELETE' }) });
+      if (!res.ok) throw new Error();
+      b.closest('.mine-row')?.remove();
+    } catch {
+      alert('No se pudo borrar. Probá de nuevo.');
+      b.disabled = false;
+    }
+  }));
+
+  // Borradores guardados en este navegador
+  type Materia = { id: number; nombre: string; nivel: number; hecha: boolean };
+  const materias: Materia[] = JSON.parse(document.getElementById('materias-data')?.textContent || '[]');
+  const nombreDe = (id: unknown) => materias.find((m) => String(m.id) === String(id))?.nombre;
+  const leer = (k: string) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
+  const hace = (ms: number) => {
+    const dias = Math.floor((Date.now() - ms) / 86400000);
+    return dias <= 0 ? 'hoy' : dias === 1 ? 'ayer' : `hace ${dias} días`;
+  };
+  const lista = document.getElementById('lista-borradores')!;
+  const borradores: { titulo: string; cuando: string; href: string; clave: string }[] = [];
+  const br = leer('borradorResena');
+  if (br && (br.comentario?.trim() || br.calificacion)) {
+    borradores.push({ titulo: `Reseña de ${nombreDe(br.materia) || 'una materia'}`, cuando: br.fecha ? hace(br.fecha) : '', href: br.dictado ? `/nueva-resena?dictado=${br.dictado}` : br.materia ? `/nueva-resena?materia=${br.materia}` : '/nueva-resena', clave: 'borradorResena' });
+  }
+  const bf = leer('borradorFinal');
+  if (bf && bf.comentario?.trim()) {
+    borradores.push({ titulo: `Experiencia de final${bf.materia ? `: ${String(bf.materia).replace(/\s*\(\d\.º año\)$/, '')}` : ''}`, cuando: bf.t ? hace(bf.t) : '', href: '/finales/nuevo', clave: 'borradorFinal' });
+  }
+  document.getElementById('n-borradores')!.textContent = String(borradores.length);
+  document.getElementById('sin-borradores')!.classList.toggle('hidden', borradores.length > 0);
+  borradores.forEach((b) => {
+    const fila = document.createElement('div');
+    fila.className = 'draft-row';
+    const t = document.createElement('b');
+    t.textContent = b.titulo;
+    const sub = document.createElement('span');
+    sub.textContent = b.cuando ? `. Lo empezaste ${b.cuando}. ` : '. ';
+    const seguir = document.createElement('a');
+    seguir.href = b.href;
+    seguir.textContent = 'Seguir escribiendo';
+    const descartar = document.createElement('button');
+    descartar.type = 'button';
+    descartar.className = 'linklike';
+    descartar.textContent = 'Descartar';
+    descartar.style.marginLeft = '10px';
+    descartar.addEventListener('click', () => {
+      try { localStorage.removeItem(b.clave); } catch {}
+      fila.remove();
+      const n = lista.children.length;
+      document.getElementById('n-borradores')!.textContent = String(n);
+      document.getElementById('sin-borradores')!.classList.toggle('hidden', n > 0);
+    });
+    fila.append(t, sub, seguir, descartar);
+    lista.append(fila);
+  });
+
+  // Te faltan reseñar: materias de tus años sin reseña
+  let anios: number[] = [];
+  try { anios = (JSON.parse(localStorage.getItem('misAnios') || '[]') as unknown[]).map(Number).filter(Boolean); } catch {}
+  if (anios.length) {
+    const faltan = materias.filter((m) => anios.includes(m.nivel) && !m.hecha);
+    const box = document.getElementById('faltan')!;
+    box.replaceChildren();
+    const intro = document.createElement('span');
+    intro.className = 'sub';
+    intro.textContent = faltan.length ? `De ${[...anios].sort().map((a) => `${a}.º`).join(' y ')} año:` : '¡Reseñaste todas las materias de tus años!';
+    box.append(intro);
+    const feed = document.createElement('div');
+    feed.className = 'feed';
+    faltan.slice(0, 6).forEach((m) => {
+      const d = document.createElement('div');
+      const a = document.createElement('a');
+      a.href = `/nueva-resena?materia=${m.id}&from=/mis-resenas`;
+      a.textContent = m.nombre;
+      const s = document.createElement('span');
+      s.className = 'sub';
+      s.textContent = br && String(br.materia) === String(m.id) ? 'Tenés un borrador' : 'Sin reseña';
+      d.append(a, s);
+      feed.append(d);
+    });
+    if (faltan.length > 6) {
+      const mas = document.createElement('span');
+      mas.className = 'sub';
+      mas.textContent = `y ${faltan.length - 6} más`;
+      feed.append(mas);
+    }
+    box.append(feed);
+  }
+</script>
