@@ -6,6 +6,7 @@ import Escudo from '../components/Escudo.astro';
 import LogroIcono from '../components/LogroIcono.astro';
 import { LOGROS, progresoRango, rango } from '../lib/logros';
 import { createSupabaseServerClient } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabase-admin';
 import { DIBUJOS, leerPerfil } from '../lib/perfil';
 import { PREFERENCIAS_EDITABLES } from '../lib/avisos';
 
@@ -21,6 +22,10 @@ const [perfil, { data: auth }, { data: seguidasRaw }, { data: prefsRaw }, { coun
   client.from('resenas').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
   client.from('logros_usuario').select('logro, ganado_at').eq('user_id', user.id),
 ]);
+// Quien eligió la foto de Google antes de la migración 8 todavía no la tiene guardada para las reseñas
+if (perfil.foto === 'google' && typeof user.avatar === 'string' && user.avatar.startsWith('https://') && user.avatar.length <= 500) {
+  try { await supabaseAdmin.from('perfiles').update({ foto_url: user.avatar }).eq('user_id', user.id).is('foto_url', null); } catch { /* no es grave */ }
+}
 // Rango y logros (migración 8)
 const nResenas = cantResenas || 0;
 const miRango = rango(nResenas);
