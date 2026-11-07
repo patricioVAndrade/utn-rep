@@ -65,10 +65,19 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108050000_seguimientos.sql`. Vuelta atrás: `supabase/rollback/20261108050000_seguimientos.sql`.
 - **Verificación esperada:** `tabla = 1`, `politicas = 4`, `anon_lee = false`.
 
-### 7. Notificaciones dentro del sitio (3.8, F33 y F32)
+### 7. Avisos dentro del sitio (3.8, F33 y la base de F32) — **lista para correr en prueba**
 
-- Tabla `notificaciones` (un aviso por persona, con tipo, link y si lo leyó) y tabla `preferencias_aviso` (por canal: sitio, mail, Telegram, push). Así, sumar mail o Telegram después no cambia nada de lo anterior.
-- Avisa: reseñas y finales nuevos en lo que seguís, "Tu reseña le sirvió a 5 personas" (una vez por semana como máximo), logros nuevos, respuestas del moderador y "Pedirle que la edite". El recordatorio de fin de cuatrimestre (F32) usa la misma tabla.
+- **Tabla `notificaciones`:** un aviso por persona, con tipo, título, link, si lo leyó y si ya se mandó por mail. Cada uno ve, marca como leídos y borra solo los suyos. Nadie puede crear avisos desde el sitio: los crea la base.
+- **Tabla `preferencias_aviso`:** qué avisos quiere cada uno y por qué canal (sitio, mail, Telegram, push). Si no eligió nada, el aviso está prendido. Sumar mail o Telegram después no cambia nada de esto.
+- **Los avisos se crean solos**, con triggers:
+  - reseña nueva o final nuevo en una materia que seguís (sin decir quién la escribió);
+  - "Tu reseña le sirvió a 5 personas" (también 10, 25, 50 y 100), como máximo uno por semana;
+  - la moderación respondió tu reseña o tu final;
+  - la moderación te pide que edites tu reseña.
+- Los logros (8) y el recordatorio de fin de cuatrimestre (F32) usan la misma tabla. El envío de mails necesita un servicio de mail con su clave (la cargás vos en Vercel); lo vemos aparte.
+- No cambia ninguna reseña ni tabla existente: solo les suma triggers.
+- **Archivo:** `supabase/migrations/20261108060000_notificaciones.sql`. Vuelta atrás: `supabase/rollback/20261108060000_notificaciones.sql` (borra los avisos y las preferencias).
+- **Verificación esperada:** `tablas = 2`, `triggers = 4`, `anon_lee = false`, `puede_crear_avisos = false`.
 
 ### 8. Rangos, escudos, logros y ficha (F5, F15 a F18)
 
