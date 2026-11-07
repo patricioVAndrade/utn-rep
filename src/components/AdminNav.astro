@@ -6,7 +6,11 @@ interface Props {
   actual: 'resumen' | 'reportes' | 'resenas' | 'finales' | 'materias' | 'profesores' | 'importar';
 }
 const { actual } = Astro.props;
-const { count: reportes } = await supabaseAdmin.from('reportes_resenas').select('id', { count: 'exact', head: true });
+const [{ count: repResenas }, { count: repFinales }] = await Promise.all([
+  supabaseAdmin.from('reportes_resenas').select('id', { count: 'exact', head: true }),
+  supabaseAdmin.from('reportes_finales').select('id', { count: 'exact', head: true }),
+]);
+const reportes = (repResenas || 0) + (repFinales || 0);
 const cur = (s: string) => (s === actual ? 'page' : undefined);
 ---
 <nav class="anav" aria-label="Secciones del panel">

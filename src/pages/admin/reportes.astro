@@ -32,6 +32,24 @@ for (const r of reportes || []) {
 }
 const lista = [...grupos.values()].sort((a, b) => b.total - a.total || a.primero.localeCompare(b.primero));
 
+// Experiencias de finales reportadas, agrupadas igual
+const { data: repFinales } = await supabaseAdmin
+  .from('reportes_finales')
+  .select('id, motivo, created_at, final_id, experiencias_finales ( id, anio, mesa, comentario, es_anonima, nombre_usuario, created_at, materias ( id, nombre ) )')
+  .order('created_at', { ascending: true });
+type GrupoF = { final: any; motivos: Map<string, number>; total: number; primero: string };
+const gruposF = new Map<number, GrupoF>();
+for (const r of repFinales || []) {
+  const f = one((r as any).experiencias_finales);
+  if (!f) continue;
+  const g = gruposF.get(r.final_id) || { final: f, motivos: new Map(), total: 0, primero: r.created_at };
+  const m = (r.motivo || 'Sin motivo').trim();
+  g.motivos.set(m, (g.motivos.get(m) || 0) + 1);
+  g.total++;
+  gruposF.set(r.final_id, g);
+}
+const listaF = [...gruposF.values()].sort((a, b) => b.total - a.total || a.primero.localeCompare(b.primero));
+
 // Historial del autor (solo lo ve el admin)
 const autores = [...new Set(lista.map((g) => g.resena.user_id).filter(Boolean))];
 const resenasPorAutor = new Map<string, number>();
@@ -53,7 +71,9 @@ const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 
       <div class="topic">
         <div>
           <h1>Reportes</h1>
-          <p>{lista.length ? `${lista.length} reseña${lista.length !== 1 ? 's' : ''} sin revisar. Siguen visibles hasta que decidas.` : 'No hay reportes sin revisar.'}</p>
+          <p>{lista.length + listaF.length
+            ? `${[lista.length ? `${lista.length} reseña${lista.length !== 1 ? 's' : ''}` : '', listaF.length ? `${listaF.length} experiencia${listaF.length !== 1 ? 's' : ''} de final` : ''].filter(Boolean).join(' y ')} sin revisar. Siguen visibles hasta que decidas.`
+            : 'No hay reportes sin revisar.'}</p>
         </div>
       </div>
 
@@ -99,7 +119,37 @@ const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 
         );
       })}
 
-      {lista.length === 0 && (
+      {listaF.map((g) => {
+        const f = g.final;
+        return (
+          <article class="rep" data-final={f.id}>
+            <div class="rep-head">
+              <span><span class="tag">Experiencia de final</span> <a href={`/finales?materia=${one(f.materias)?.id}#final-${f.id}`}><b>{one(f.materias)?.nombre}</b></a> · {f.mesa} {f.anio} · {fecha(f.created_at)}</span>
+              <span class:list={['tag', { bad: g.total > 1 }]}>{g.total} reporte{g.total !== 1 ? 's' : ''}</span>
+            </div>
+            <div class="rep-body">
+              <div>
+                <div class="sub" style="margin-bottom:4px">Autor: <b>{f.es_anonima === false ? f.nombre_usuario : 'Anónimo'}</b>{f.es_anonima !== false && f.nombre_usuario && <span> (lo ves solo vos: {f.nombre_usuario})</span>}</div>
+                <p style="margin:4px 0 0" set:html={marcado(f.comentario || '')} />
+              </div>
+              <div>
+                <b>Motivo{g.motivos.size !== 1 ? 's' : ''}</b>
+                <div style="display:grid;gap:4px;margin-top:4px">
+                  {[...g.motivos.entries()].map(([m, n]) => <span class="tag">{m}{n > 1 ? ` (${n})` : ''}</span>)}
+                </div>
+              </div>
+            </div>
+            <div class="rep-acts">
+              <span class="sub">Qué hacer:</span>
+              <button type="button" class="btn approve" data-accion="dismiss_final">Dejarla como está</button>
+              <button type="button" class="btn danger" data-accion="delete_final"><Icon name="trash" /> Borrarla</button>
+              <span class="sub" data-estado></span>
+            </div>
+          </article>
+        );
+      })}
+
+      {lista.length + listaF.length === 0 && (
         <div class="notice ok"><Icon name="check" /><div><b>Todo al día.</b> Cuando alguien reporte una reseña, aparece acá completa.</div></div>
       )}
     </div>
@@ -115,7 +165,8 @@ const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 
   document.querySelectorAll<HTMLButtonElement>('.rep [data-accion]').forEach((b) => b.addEventListener('click', async () => {
     const art = b.closest<HTMLElement>('.rep')!;
     const accion = b.dataset.accion!;
-    if (accion === 'delete_resena' && !confirm('¿Borrar esta reseña? No se puede deshacer.')) return;
+    const esFinal = accion.endsWith('_final');
+    if ((accion === 'delete_resena' || accion === 'delete_final') && !confirm(`¿Borrar ${esFinal ? 'esta experiencia' : 'esta reseña'}? No se puede deshacer.`)) return;
     const estado = art.querySelector('[data-estado]')!;
     art.querySelectorAll('button').forEach((x) => { x.disabled = true; });
     try {
@@ -123,10 +174,10 @@ const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', [header]: token },
         credentials: 'same-origin',
-        body: JSON.stringify({ action: accion, resena_id: Number(art.dataset.resena) }),
+        body: JSON.stringify(esFinal ? { action: accion, final_id: Number(art.dataset.final) } : { action: accion, resena_id: Number(art.dataset.resena) }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo.');
-      estado.textContent = accion === 'dismiss' ? 'Listo: la reseña queda como está.' : 'Listo: reseña borrada.';
+      estado.textContent = accion.startsWith('dismiss') ? `Listo: ${esFinal ? 'la experiencia' : 'la reseña'} queda como está.` : `Listo: ${esFinal ? 'experiencia' : 'reseña'} borrada.`;
       art.style.opacity = '.55';
     } catch (e: any) {
       estado.textContent = e.message;

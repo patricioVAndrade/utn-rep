@@ -37,6 +37,16 @@ export const reporteSchema = z.object({
     .transform((v) => (v ? v : null)),
 });
 
+export const votoFinalSchema = z.object({
+  final_id: id('Falta el ID de la experiencia.'),
+  accion: z.enum(['votar', 'desvotar']).optional().default('votar'),
+});
+
+export const reporteFinalSchema = z.object({
+  final_id: id('Falta el ID de la experiencia.'),
+  motivo: z.string().trim().min(3, 'Contá brevemente el motivo.').max(500, 'El motivo es demasiado largo.'),
+});
+
 export const votoSchema = z.object({
   resena_id: id('Falta el ID de la reseña.'),
   accion: z.enum(['votar', 'desvotar']).optional().default('votar'),

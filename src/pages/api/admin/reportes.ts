@@ -78,6 +78,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const { action, resena_id, reporte_ids } = body;
 
+  // Experiencias de finales reportadas (tabla reportes_finales, migración 2)
+  if (action === 'dismiss_final' || action === 'delete_final') {
+    const finalId = Number(body.final_id);
+    if (!Number.isInteger(finalId) || finalId <= 0) return json({ error: 'Se requiere final_id.' }, 400);
+    const { error } = action === 'dismiss_final'
+      ? await supabaseAdmin.from('reportes_finales').delete().eq('final_id', finalId)
+      : await supabaseAdmin.from('experiencias_finales').delete().eq('id', finalId);
+    if (error) {
+      console.error('Error en reporte de final:', error);
+      return json({ error: 'No se pudo completar.' }, 500);
+    }
+    return json({ success: true });
+  }
+
   if (action === 'dismiss') {
     // Dismiss specific reports (or all for a review)
     if (reporte_ids && Array.isArray(reporte_ids)) {

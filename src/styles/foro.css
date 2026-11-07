@@ -458,6 +458,10 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
 .seg button { display: inline-flex; align-items: center; gap: 4px; padding: 5px 11px; border: 0; border-left: 1px solid var(--line); background: var(--box); color: var(--ink); font: 12px var(--f-body); cursor: pointer; }
 .seg button:first-child { border-left: 0; }
+.foro .seg a { display: inline-flex; align-items: center; padding: 5px 11px; border-left: 1px solid var(--line); background: var(--box); color: var(--ink); font-size: 12px; }
+.foro .seg a:first-child { border-left: 0; }
+.foro .seg a:hover { background: var(--row-hover); text-decoration: none; }
+.foro .seg a[aria-current="true"] { background: var(--navy); color: #fff; font-weight: bold; }
 .seg button svg { width: 13px; height: 13px; }
 .seg button:hover { background: var(--row-hover); }
 .seg button[aria-pressed="true"] { background: var(--navy); color: #fff; font-weight: bold; }

@@ -30,6 +30,8 @@ function rel(parentTable: string, row: any, name: string): any {
     case 'materias': return first('materias', row.materia_id);
     case 'dictados': return parentTable === 'dictado_profesores' ? first('dictados', row.dictado_id) : first('dictados', row.dictado_id);
     case 'profesores': return first('profesores', row.profesor_id);
+    case 'experiencias_finales': return first('experiencias_finales', row.final_id);
+    case 'resenas': return first('resenas', row.resena_id);
     case 'dictado_profesores':
       return parentTable === 'profesores' ? by('dictado_profesores', 'profesor_id', row.id) : by('dictado_profesores', 'dictado_id', row.id);
   }
@@ -128,7 +130,20 @@ class Q {
 
 const DEMO = process.env.MOCK_USER === '1';
 const auth = { getUser: async () => ({ data: { user: DEMO ? { id: 'u-demo', email: 'sofia@frc.utn.edu.ar', user_metadata: { full_name: 'Sofía Rivas' } } : null }, error: null }) };
-const client = { from: (t: string) => new Q(t), auth, rpc: async () => ({ data: null, error: null }) };
+async function rpc(nombre: string, args: any) {
+  if (nombre === 'votar_final') {
+    const f = (T.experiencias_finales || []).find((x: any) => x.id === Number(args.p_final_id));
+    if (!f) return { data: null, error: { code: '23503', message: 'no existe' } };
+    const votos = (T.votos_finales = T.votos_finales || []);
+    const i = votos.findIndex((v: any) => v.user_id === 'u-demo' && v.final_id === f.id);
+    if (args.p_votar && i < 0) { votos.push({ user_id: 'u-demo', final_id: f.id }); f.votos_utilidad = (f.votos_utilidad || 0) + 1; }
+    if (!args.p_votar && i >= 0) { votos.splice(i, 1); f.votos_utilidad = Math.max(0, (f.votos_utilidad || 0) - 1); }
+    return { data: f.votos_utilidad || 0, error: null };
+  }
+  if (nombre === 'check_rate_limit') return { data: true, error: null };
+  return { data: null, error: null };
+}
+const client = { from: (t: string) => new Q(t), auth, rpc };
 
 export const supabase = client as any;
 export const supabaseAdmin = client as any;

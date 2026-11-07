@@ -16,6 +16,7 @@ export default defineConfig({
         { find: /^(\.\.?\/)+lib\/supabase$/, replacement: mock },
         { find: /^(\.\.?\/)+lib\/supabase-admin$/, replacement: mock },
         { find: /^\.\/supabase$/, replacement: mock },
+        { find: /^\.\/supabase-admin$/, replacement: mock },
       ],
     },
   },

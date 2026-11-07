@@ -10,6 +10,8 @@ import { buscarProfesor, indexar } from '../../lib/importar';
 const user = Astro.locals.user;
 const userIsAdmin = isAdmin(user?.id);
 
+const utiles = Astro.url.searchParams.get('orden') === 'utiles';
+
 // Experiencias de finales: la vista pública no tiene user_id ni el nombre de los anónimos.
 // Cuáles son tuyas se pregunta aparte, con tu sesión (cada uno lee solo las suyas).
 const { data: experiencias } = await supabase
@@ -23,8 +25,10 @@ const { data: experiencias } = await supabase
     profesor_nombre,
     comentario,
     created_at,
+    votos_utilidad,
     materias ( id, nombre, nivel )
   `)
+  .order(utiles ? 'votos_utilidad' : 'created_at', { ascending: false })
   .order('created_at', { ascending: false });
 
 // "Tomado por": si el nombre coincide con un profesor cargado, va con link a su página
@@ -38,10 +42,15 @@ const profesorId = (nombre?: string | null) => {
 };
 
 let mias = new Set<string>();
+let votadas = new Set<string>();
 if (user) {
   const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
-  const { data } = await client.from('experiencias_finales').select('id').eq('user_id', user.id);
+  const [{ data }, { data: votos }] = await Promise.all([
+    client.from('experiencias_finales').select('id').eq('user_id', user.id),
+    client.from('votos_finales').select('final_id').eq('user_id', user.id),
+  ]);
   mias = new Set((data || []).map((x: any) => String(x.id)));
+  votadas = new Set((votos || []).map((x: any) => String(x.final_id)));
 }
 
 const listaExperiencias = (experiencias || []).map((exp: any) => ({
@@ -49,7 +58,11 @@ const listaExperiencias = (experiencias || []).map((exp: any) => ({
   materia: Array.isArray(exp.materias) ? exp.materias[0] : exp.materias,
   profesor_id: profesorId(exp.profesor_nombre),
 }));
-const reportar = (exp: any) => `mailto:patriciovandrade@gmail.com?subject=${encodeURIComponent(`Reporte de experiencia de final #${exp.id}`)}&body=${encodeURIComponent(`Experiencia de ${exp.materia?.nombre || 'una materia'} (${mesaTexto(exp.mesa, exp.anio)}).\nMotivo: `)}`;
+const linkOrden = (u: boolean) => {
+  const url = new URL(Astro.url);
+  u ? url.searchParams.set('orden', 'utiles') : url.searchParams.delete('orden');
+  return url.pathname + url.search;
+};
 
 // Mesas para filtrar (lo guardado es "Diciembre", "Febrero", "Julio" o "Especial")
 const MESAS = [
@@ -107,6 +120,10 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
             <button type="button" data-mesa="" aria-pressed={mesaInicial === '' ? 'true' : 'false'}>Todas</button>
             {MESAS.map((m) => <button type="button" data-mesa={m.valor} aria-pressed={mesaInicial === m.valor ? 'true' : 'false'}>{m.label}</button>)}
           </div>
+          <span class="seg orden" role="group" aria-label="Orden">
+            <a href={linkOrden(false)} aria-current={utiles ? undefined : 'true'} data-orden>Más recientes</a>
+            <a href={linkOrden(true)} aria-current={utiles ? 'true' : undefined} data-orden>Más útiles</a>
+          </span>
           <label class="sr" for="filtro-materia">Materia</label>
           <select id="filtro-materia" class="mini">
             <option value="">Todas las materias</option>
@@ -165,7 +182,15 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
                 </div>
                 <div class="post-tools">
                   <div class="group">
-                    {!isOwner && <a class="btn quiet" href={reportar(exp)} title="Reportar esta experiencia"><Icon name="flag" /> Reportar</a>}
+                    {!isOwner && (
+                      <button type="button" class:list={['btn', votadas.has(String(exp.id)) ? 'pressed' : 'quiet']} data-votar-final
+                        aria-pressed={votadas.has(String(exp.id)) ? 'true' : 'false'} data-login={user ? undefined : ''}
+                        title={user ? 'Marcar como útil' : 'Iniciá sesión para votar'}>
+                        <Icon name="thumb" /> Me sirvió <span class="votos-count">{exp.votos_utilidad || 0}</span>
+                      </button>
+                    )}
+                    {isOwner && (exp.votos_utilidad || 0) > 0 && <span class="sub">Le sirvió a {exp.votos_utilidad} persona{exp.votos_utilidad !== 1 ? 's' : ''}</span>}
+                    {!isOwner && <button type="button" class="btn quiet" data-reportar-final data-login={user ? undefined : ''} title="Reportar esta experiencia"><Icon name="flag" /> Reportar</button>}
                     <ShareButton mini titulo="Mirá cómo tomaron este final en UTN REP" ruta={`/finales?materia=${exp.materia?.id}#final-${exp.id}`} />
                   </div>
                   {(isOwner || userIsAdmin) && (
@@ -290,6 +315,45 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
       ocultas[i].classList.remove('hidden', 'final-extra');
     }
     if (!document.querySelector('.final-extra.hidden')) showMoreBtn.style.display = 'none';
+  });
+
+  // Me sirvió y Reportar (sin sesión, data-login abre la ventana de ingreso)
+  cards.forEach((card) => {
+    const id = card.getAttribute('data-id');
+    const voto = card.querySelector<HTMLButtonElement>('[data-votar-final]');
+    if (voto && !voto.hasAttribute('data-login')) voto.addEventListener('click', async () => {
+      const votar = voto.getAttribute('aria-pressed') !== 'true';
+      voto.disabled = true;
+      try {
+        const res = await fetch('/api/finales/votar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ final_id: id, accion: votar ? 'votar' : 'desvotar' }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'No se pudo votar.');
+        voto.setAttribute('aria-pressed', String(votar));
+        voto.classList.toggle('pressed', votar);
+        voto.classList.toggle('quiet', !votar);
+        voto.querySelector('.votos-count')!.textContent = String(data.votos ?? 0);
+      } catch (e) {
+        alert((e as Error).message);
+      } finally {
+        voto.disabled = false;
+      }
+    });
+    const rep = card.querySelector<HTMLButtonElement>('[data-reportar-final]');
+    if (rep && !rep.hasAttribute('data-login')) rep.addEventListener('click', async () => {
+      const motivo = prompt('¿Por qué la reportás? (por ejemplo: insultos, datos personales, no es sobre el final)');
+      if (motivo === null) return;
+      rep.disabled = true;
+      try {
+        const res = await fetch('/api/finales/reportar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ final_id: id, motivo: motivo.trim() || 'Contenido inapropiado' }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok && res.status !== 409) throw new Error(data.error || 'No se pudo reportar.');
+        rep.innerHTML = '';
+        rep.textContent = res.status === 409 ? 'Ya la reportaste' : 'Reportada, gracias';
+      } catch (e) {
+        alert((e as Error).message);
+        rep.disabled = false;
+      }
+    });
   });
 
   // Editar y eliminar

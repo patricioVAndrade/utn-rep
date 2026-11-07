@@ -25,7 +25,7 @@ Todas corren en una transacción (si algo falla, no se aplica nada), se pueden v
 - **Archivo:** `supabase/migrations/20261108000000_finales_autor.sql`. Vuelta atrás: `supabase/rollback/20261108000000_finales_autor.sql`.
 - **Verificación esperada:** `columnas_nuevas = 2`, `vista = 1`, `anon_puede_leer_tabla = false` y la cantidad de experiencias que tenés en la base de prueba.
 
-### 2. "Me sirvió" y Reportar en finales (F21)
+### 2. "Me sirvió" y Reportar en finales (F21) — **corrida en prueba el 7/11, código subido**
 
 - **Para qué:** votar las experiencias de finales que te sirvieron (con contador y orden "Más útiles") y que Reportar vaya a la cola de Reportes del admin en vez de abrir un mail.
 - **Qué cambia:** tabla `votos_finales` (una fila por persona y experiencia, como los votos de reseñas), columna `votos_utilidad` en la experiencia y una función para votar que solo suma o resta de a uno. Tabla `reportes_finales`, igual a la de reseñas.
