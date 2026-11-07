@@ -11,7 +11,7 @@
 --       L1 Primera reseña
 --       L2 Abriste camino: la primera reseña de una materia
 --       L3 Útil para 10 estudiantes: tus reseñas suman 10 "Me sirvió"
---       L4 Rendí y conté: primera experiencia de final
+--       L4 Rendí y compartí mi experiencia: primera experiencia de final
 --       L5 Madrugada de parcial: una reseña escrita entre las 2 y las 5
 --       L6 Los cinco años: reseñas de materias de los cinco años
 --     L7 (Bedelía al día) depende de los cambios de profesores (2027).
@@ -111,7 +111,7 @@ BEGIN
           WHEN 'L1' THEN 'Primera reseña'
           WHEN 'L2' THEN 'Abriste camino'
           WHEN 'L3' THEN 'Útil para 10 estudiantes'
-          WHEN 'L4' THEN 'Rendí y conté'
+          WHEN 'L4' THEN 'Rendí y compartí mi experiencia'
           WHEN 'L5' THEN 'Madrugada de parcial'
           WHEN 'L6' THEN 'Los cinco años'
           ELSE v_logro END;
