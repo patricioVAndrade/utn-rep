@@ -32,7 +32,14 @@ BEGIN
   END IF;
 END $$;
 
-CREATE OR REPLACE VIEW public.experiencias_finales_publicas AS
+-- Solo si no existe: la migración 2 le suma columnas y volver a correr
+-- esta no tiene que pisarla.
+DO $do$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.views
+                 WHERE table_schema = 'public' AND table_name = 'experiencias_finales_publicas') THEN
+    EXECUTE $v$
+CREATE VIEW public.experiencias_finales_publicas AS
 SELECT
   f.id,
   f.materia_id,
@@ -43,7 +50,10 @@ SELECT
   f.es_anonima,
   CASE WHEN f.es_anonima THEN NULL ELSE f.nombre_usuario END AS nombre_usuario,
   f.created_at
-FROM public.experiencias_finales f;
+FROM public.experiencias_finales f
+    $v$;
+  END IF;
+END $do$;
 
 GRANT SELECT ON public.experiencias_finales_publicas TO anon, authenticated;
 

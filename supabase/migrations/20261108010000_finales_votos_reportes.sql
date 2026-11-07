@@ -44,7 +44,7 @@ FROM public.experiencias_finales f;
 
 GRANT SELECT ON public.experiencias_finales_publicas TO anon, authenticated;
 
-DO $$
+DO $do$
 DECLARE
   tipo text;
 BEGIN
@@ -106,7 +106,7 @@ BEGIN
 
   EXECUTE format('REVOKE ALL ON FUNCTION public.votar_final(%1$s, boolean) FROM PUBLIC, anon', tipo);
   EXECUTE format('GRANT EXECUTE ON FUNCTION public.votar_final(%1$s, boolean) TO authenticated', tipo);
-END $$;
+END $do$;
 
 -- Votos: cada uno ve los suyos (para pintar el botón); escribir, solo la función.
 ALTER TABLE public.votos_finales ENABLE ROW LEVEL SECURITY;
