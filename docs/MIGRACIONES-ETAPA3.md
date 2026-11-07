@@ -49,11 +49,14 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108030000_moderacion.sql`. Vuelta atrás: `supabase/rollback/20261108030000_moderacion.sql` (borra respuestas, registro, palabras, pedidos y reportes automáticos; las reseñas no se tocan).
 - **Verificación esperada:** `tablas = 3`, `columnas_pedido = 2`, `trigger = 1`, `reportes_automaticos = 1`, `publico_lee_respuestas = true`, `publico_lee_registro = false`, `publico_lee_palabras = false`.
 
-### 5. Perfil y preferencias (Mi cuenta)
+### 5. Perfil y preferencias (Mi cuenta) — **lista para correr en prueba**
 
 - **Para qué:** lo que falta de Mi cuenta como la V6.
-- **Qué cambia:** tabla `perfiles` (una fila por persona): nombre para mostrar, foto elegida (inicial, Google o dibujo), si muestra la ficha, **tus años de cursada** (hoy quedan en el navegador; con esto te siguen en el celular y la compu) y si no quiere que le pregunte "¿Cómo te fue?".
-- **Borrar la cuenta:** una función del servidor que deja tus reseñas como anónimas y borra tu usuario.
+- **Tabla `perfiles`** (una fila por persona, se crea la primera vez que guarda algo): nombre para mostrar, foto elegida (inicial, Google o uno de 12 dibujos), si muestra la ficha, **tus años de cursada** (hoy quedan en el navegador; con esto te siguen en el celular y la compu) y si quiere que le pregunten "¿Cómo te fue?" (con la pausa de 30 días de "Ahora no"). Cada persona lee y cambia solo la suya; sin sesión no se lee nada.
+- **Nombre para mostrar:** si elegís uno, tus reseñas nuevas salen con ese nombre y se actualiza en las que ya publicaste con nombre (también en finales). Si lo borrás, vuelve el de Google. Las anónimas siguen anónimas.
+- **Borrar la cuenta:** función `anonimizar_usuario` que deja tus reseñas y experiencias como anónimas y sin dueño, para que no se borren junto con el usuario (hoy se borrarían). Solo la puede llamar el servidor, que después borra el usuario. Por eso `user_id` pasa a aceptar vacío en `resenas` y `experiencias_finales`.
+- **Archivo:** `supabase/migrations/20261108040000_perfiles.sql`. Vuelta atrás: `supabase/rollback/20261108040000_perfiles.sql` (borra los perfiles; los nombres ya copiados a las reseñas quedan).
+- **Verificación esperada:** `tabla = 1`, `triggers = 2`, `anon_lee_perfiles = false`, `usuario_puede_anonimizar = false` y cuántas reseñas tienen dueño.
 
 ### 6. Seguir materias (F11)
 
