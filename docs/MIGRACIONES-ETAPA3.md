@@ -79,10 +79,16 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108060000_notificaciones.sql`. Vuelta atrás: `supabase/rollback/20261108060000_notificaciones.sql` (borra los avisos y las preferencias).
 - **Verificación esperada:** `tablas = 2`, `triggers = 4`, `anon_lee = false`, `puede_crear_avisos = false`.
 
-### 8. Rangos, escudos, logros y ficha (F5, F15 a F18)
+### 8. Rangos, escudos, logros y ficha (F5, F15 a F18) — **lista para correr en prueba**
 
-- Tabla `logros_usuario` (qué logro ganó cada persona y cuándo). El rango no se guarda: sale de contar reseñas.
-- Escudo al lado del nombre, ficha al tocar el nombre, easter egg del Anónimo y logros en Mis reseñas y Mi cuenta. Logros L1 a L7; L8 a L19 esperan tu voto.
+- **Tabla `logros_usuario`:** qué logro ganó cada persona y cuándo. Un logro ganado no se pierde. Cada uno ve los suyos; la ficha que ven los demás la arma el servidor y solo si la persona la deja ver (Mi cuenta).
+- **Se dan solos:** L1 Primera reseña, L2 Abriste camino (primera reseña de una materia), L3 Útil para 10 estudiantes (tus reseñas suman 10 "Me sirvió"), L4 Rendí y conté (primera experiencia de final), L5 Madrugada de parcial (reseña entre las 2 y las 5), L6 Los cinco años. Cada logro nuevo deja un aviso.
+- **L7 (Bedelía al día)** era por avisar cambios de profesores, que quedó para 2027: espera a eso. **L8 a L19** esperan tu voto; la tabla ya los acepta.
+- A quienes ya tienen reseñas les da los logros que ya ganaron, sin aviso.
+- **Rango:** no se guarda, sale de contar reseñas: 1 Ingresante, 2 a 4 Cursante, 5 a 14 Referente, 15 o más Leyenda.
+- **Foto de Google en las reseñas:** columna `foto_url` en `perfiles`, que guarda el servidor cuando elegís mostrarla. Nadie la puede escribir desde el sitio.
+- **Archivo:** `supabase/migrations/20261108070000_logros.sql`. Vuelta atrás: `supabase/rollback/20261108070000_logros.sql`.
+- **Verificación esperada:** `tabla = 1`, `triggers = 2`, `anon_lee = false`, `puede_escribir_foto = false` y cuántos logros se dieron (en la base de prueba, 0 si las reseñas no tienen dueño).
 
 ### 9. Admin: Usuarios y links compartidos (3.14, F28)
 
