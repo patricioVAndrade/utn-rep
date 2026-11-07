@@ -76,6 +76,21 @@ if (feed.length > 0) {
   cursoDeDictado = new Map((data || []).map((d: any) => [d.id, (Array.isArray(d.cursos) ? d.cursos[0] : d.cursos)?.identificador || '']));
 }
 const nombreMateria = new Map(materias.map((m) => [m.id, m.nombre]));
+
+// Reseña destacada: la más votada de todas. Si otra la pasa, ocupa su lugar;
+// con empate se queda la que llegó primero. Aparece desde los 3 votos.
+const { data: destRaw } = await supabase
+  .from('resenas_publicas')
+  .select('id, dictado_id, comentario, calificacion_general, votos_utilidad, nombre_usuario, es_anonima, created_at, dictados ( cursos ( identificador ), materias ( nombre ) )')
+  .gte('votos_utilidad', 3)
+  .order('votos_utilidad', { ascending: false })
+  .order('created_at', { ascending: true })
+  .limit(1);
+const destacada = (destRaw || [])[0] as any;
+const destDictado = destacada ? (Array.isArray(destacada.dictados) ? destacada.dictados[0] : destacada.dictados) : null;
+const destCurso = destDictado ? (Array.isArray(destDictado.cursos) ? destDictado.cursos[0] : destDictado.cursos)?.identificador : '';
+const destMateria = destDictado ? (Array.isArray(destDictado.materias) ? destDictado.materias[0] : destDictado.materias)?.nombre : '';
+const recortar = (t: string, n = 180) => (t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t);
 const autor = (r: { es_anonima: boolean; nombre_usuario: string | null }) => (r.es_anonima ? 'Anónimo' : r.nombre_usuario || 'Estudiante');
 const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
 ---
@@ -191,6 +206,18 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
           )}
         </div>
       </section>
+
+      {destacada && (
+        <section class="panel destacada">
+          <h3><Icon name="thumb" /> Reseña destacada</h3>
+          <div class="in">
+            <a href={`/dictado/${destacada.dictado_id}#resena-${destacada.id}`}><b>{destMateria}{destCurso ? `, ${destCurso}` : ''}</b></a>
+            <span class="sub"><Stars value={destacada.calificacion_general} /> por {autor(destacada)}</span>
+            <blockquote class="quote-mini">"{recortar(destacada.comentario || '')}"</blockquote>
+            <span class="sub">Le sirvió a <b>{destacada.votos_utilidad} personas</b>. Es la más votada del sitio: si otra la supera, toma su lugar.</span>
+          </div>
+        </section>
+      )}
 
       {feed.length > 0 && (
         <section class="panel">

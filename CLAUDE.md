@@ -29,7 +29,7 @@ Objetivo: publicarlo a mediados de diciembre de 2026, cuando terminan las cursad
 - Las maquetas están en la carpeta del proyecto (`propuestas/`). La última es la V6; las decisiones de Pato están en `propuestas/decisiones-diseno.md`.
 - **Qué de la V6 está hecho y qué falta: `docs/REDISENO-V6.md`.** Mantenelo al día en cada cambio del rediseño.
 - Etapa 1 (hecha): el look nuevo en todas las páginas. Etapa 2 (hecha): funcionalidades sin cambios en la base. Revisión del 7/11 (hecha): pantallas fieles a la V6, etiquetas sin neón (opción C), importador y admin nuevo. Etapa 3 (pendiente): rangos, logros, ficha de usuario, respuestas, notas de moderación, seguir materias, notificaciones, contador en línea, "Me sirvió" y autor en finales, Mi cuenta y el resto del admin. El listado completo de lo que falta está en `propuestas/rama/falta-implementar.md` (carpeta del proyecto).
-- Pendiente de Pato: elegir el logo (opciones A a F), votar F29 a F37 y los logros L8 a L19, y decir si quiere el cartel de bienvenida y la página "Qué cambió".
+- Pendiente de Pato: elegir el logo (opciones A a F) y votar los logros L8 a L19. Cartel de bienvenida, "Qué cambió", Términos e imagen por página: aprobados y hechos.
 - Cambios de profesores (F22 a F27): después de marzo de 2027.
 
 ## Cómo está armado el diseño
@@ -39,9 +39,10 @@ Objetivo: publicarlo a mediados de diciembre de 2026, cuando terminan las cursad
 - Un `style="display:..."` en línea le gana a `.hidden`: para alternar algo que tiene display en línea, cambiá `style.display`.
 - El diseño se adapta con container queries sobre `.forum` (820 px y 600 px). Por debajo de 600 px aparece la barra inferior y las tablas pasan a tarjetas (`.grid-tbl.stack`).
 - Componentes: `Layout.astro` (banner, pestañas, migas, pie, buscador y ventana de ingreso), `UserBar`, `ReviewCard`, `CursoChips`, `Stars`, `Icon`, `ShareButton`, `LoginModal`, `UtnMark`.
-- Panel de admin: `/admin` (resumen), `/admin/reportes`, `/admin/finales` e `/admin/importar` usan el estilo nuevo con `AdminNav`. Reseñas, Materias y cursos y Profesores siguen en `/admin/gestion`, con el estilo oscuro anterior dentro de `.legacy` (prop `legacy` del Layout). Las acciones de admin piden CSRF: `tokenCsrf(Astro.cookies)` en la página y `requireAdmin(request, cookies, { requireCsrf: true })` en la API.
+- Panel de admin: `/admin` (resumen), `/admin/reportes`, `/admin/resenas`, `/admin/finales`, `/admin/materias`, `/admin/profesores` e `/admin/importar`, todos con `AdminNav`. `/admin/gestion` solo redirige. Las acciones de admin piden CSRF: `tokenCsrf(Astro.cookies)` en la página (en `#admin-csrf`) y `adminFetch` de `src/scripts/admin-api.ts`; en la API, `requireAdmin(request, cookies, { requireCsrf: true })`.
 - Importador (`src/lib/xlsx.ts`, `planilla.ts`, `importar.ts`): lee las planillas de horarios del Drive (Sistemas, una pestaña por curso; Básicas, una pestaña por materia), solo cursos K, y compara con la base. Los nombres en la base salen de esas mismas planillas (ETL de Pato), así que se compara por texto normalizado.
-- Lo que se guarda solo en el navegador (`localStorage`): tema, última visita (`src/scripts/visitas.ts`), años cerrados del inicio y borrador de reseña.
+- Lo que se guarda solo en el navegador (`localStorage`): tema, última visita (`src/scripts/visitas.ts`), tus años (`misAnios`, se eligen en Mi cuenta), cartel y etiquetas "Nuevo" (`src/scripts/bienvenida.ts`) y borradores.
+- Imagen al compartir: `src/lib/og.ts` (satori + resvg, fuente DejaVu recortada en `og-fuentes.ts`) y `src/pages/og/[tipo]/[id].png.ts`. Cada página pasa `ogImage` y, si quiere, `ogTitle` al Layout.
 
 ## Probar sin base
 

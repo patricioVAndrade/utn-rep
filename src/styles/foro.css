@@ -474,6 +474,9 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .panel.finals .big:not(.btn) { font: bold 22px var(--f-title); color: var(--ink); font-variant-numeric: tabular-nums; }
 .panel.finals .quote-mini { border-left: 3px solid var(--amber); padding: 3px 8px; background: var(--box); font-style: italic; }
 .panel.finals .quote-mini .sub { font-style: normal; }
+.panel.destacada > h3 { justify-content: flex-start; }
+.panel.destacada > h3 svg { width: 13px; height: 13px; }
+.panel.destacada .quote-mini { margin: 0; border-left: 3px solid var(--amber); padding: 3px 8px; background: var(--box); font-style: italic; overflow-wrap: anywhere; }
 .sec { margin: 4px 0 0; font: bold 14px var(--f-title); color: var(--ink); }
 .notice.soft b { display: inline; font-size: inherit; }
 .feed.boxed { border: 1px solid var(--line); background: var(--row-a); padding: 9px; font-size: 11.5px; }
