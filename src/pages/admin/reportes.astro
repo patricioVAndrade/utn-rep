@@ -1,0 +1,136 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminNav from '../../components/AdminNav.astro';
+import Icon from '../../components/Icon.astro';
+import Stars from '../../components/Stars.astro';
+import { isAdmin } from '../../lib/admin';
+import { supabaseAdmin } from '../../lib/supabase-admin';
+import { ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+import { tokenCsrf } from '../../lib/admin-csrf';
+
+const user = Astro.locals.user;
+if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+const csrfToken = tokenCsrf(Astro.cookies);
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
+
+const { data: reportes } = await supabaseAdmin
+  .from('reportes_resenas')
+  .select('id, motivo, created_at, resena_id, resenas ( id, comentario, calificacion_general, nombre_usuario, es_anonima, created_at, user_id, dictado_id, dictados ( cursos ( identificador ), materias ( nombre ) ) )')
+  .order('created_at', { ascending: true });
+
+// Un bloque por reseña, con sus motivos contados
+type Grupo = { resena: any; motivos: Map<string, number>; total: number; primero: string };
+const grupos = new Map<number, Grupo>();
+for (const r of reportes || []) {
+  const resena = one((r as any).resenas);
+  if (!resena) continue;
+  const g = grupos.get(r.resena_id) || { resena, motivos: new Map(), total: 0, primero: r.created_at };
+  const m = (r.motivo || 'Sin motivo').trim();
+  g.motivos.set(m, (g.motivos.get(m) || 0) + 1);
+  g.total++;
+  grupos.set(r.resena_id, g);
+}
+const lista = [...grupos.values()].sort((a, b) => b.total - a.total || a.primero.localeCompare(b.primero));
+
+// Historial del autor (solo lo ve el admin)
+const autores = [...new Set(lista.map((g) => g.resena.user_id).filter(Boolean))];
+const resenasPorAutor = new Map<string, number>();
+if (autores.length) {
+  const { data } = await supabaseAdmin.from('resenas').select('user_id').in('user_id', autores);
+  (data || []).forEach((r: any) => resenasPorAutor.set(r.user_id, (resenasPorAutor.get(r.user_id) || 0) + 1));
+}
+
+// Palabras para marcar: teléfonos, mails e insultos comunes
+const MARCAR = /(\b\d[\d\s-]{7,}\d\b|[\w.+-]+@[\w-]+\.[\w.]+|\b(?:in[uú]til(?:es)?|idiota[s]?|pelotud[oa]s?|bolud[oa]s?|forr[oa]s?|mierda|imb[eé]cil(?:es)?|est[uú]pid[oa]s?|tarad[oa]s?)\b)/gi;
+const marcado = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(MARCAR, '<mark>$1</mark>');
+const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+---
+
+<Layout title="Reportes - Panel de admin" crumbs={[{ label: 'Panel de admin', href: '/admin' }, { label: 'Reportes' }]}>
+  <div class="admin-wrap">
+    <AdminNav actual="reportes" />
+    <div class="admin-main">
+      <div class="topic">
+        <div>
+          <h1>Reportes</h1>
+          <p>{lista.length ? `${lista.length} reseña${lista.length !== 1 ? 's' : ''} sin revisar. Siguen visibles hasta que decidas.` : 'No hay reportes sin revisar.'}</p>
+        </div>
+      </div>
+
+      {lista.length > 0 && (
+        <div class="notice soft">
+          <Icon name="info" />
+          <span>Por ahora hay dos salidas: dejarla o borrarla. "Agregar nota de moderación" y "Pedirle que la edite" llegan con la etapa 3.</span>
+        </div>
+      )}
+
+      {lista.map((g) => {
+        const r = g.resena;
+        const d = one(r.dictados);
+        const previas = r.user_id ? (resenasPorAutor.get(r.user_id) || 1) : 0;
+        return (
+          <article class="rep" data-resena={r.id}>
+            <div class="rep-head">
+              <span><a href={`/dictado/${r.dictado_id}#resena-${r.id}`}><b>{one(d?.materias)?.nombre}, {one(d?.cursos)?.identificador}</b></a> · reseña #{r.id} · {fecha(r.created_at)}</span>
+              <span class:list={['tag', { bad: g.total > 1 }]}>{g.total} reporte{g.total !== 1 ? 's' : ''}</span>
+            </div>
+            <div class="rep-body">
+              <div>
+                <div class="sub" style="margin-bottom:4px">Autor: <b>{r.es_anonima ? 'Anónimo' : r.nombre_usuario || 'Estudiante'}</b>{' '}
+                  <span>(lo ves solo vos: {r.nombre_usuario || 'sin nombre'}, {previas} reseña{previas !== 1 ? 's' : ''})</span>
+                </div>
+                <Stars value={r.calificacion_general} />
+                <p style="margin:4px 0 0" set:html={marcado(r.comentario || '')} />
+              </div>
+              <div>
+                <b>Motivo{g.motivos.size !== 1 ? 's' : ''}</b>
+                <div style="display:grid;gap:4px;margin-top:4px">
+                  {[...g.motivos.entries()].map(([m, n]) => <span class="tag">{m}{n > 1 ? ` (${n})` : ''}</span>)}
+                </div>
+              </div>
+            </div>
+            <div class="rep-acts">
+              <span class="sub">Qué hacer:</span>
+              <button type="button" class="btn approve" data-accion="dismiss">Dejarla como está</button>
+              <button type="button" class="btn danger" data-accion="delete_resena"><Icon name="trash" /> Borrarla</button>
+              <span class="sub" data-estado></span>
+            </div>
+          </article>
+        );
+      })}
+
+      {lista.length === 0 && (
+        <div class="notice ok"><Icon name="check" /><div><b>Todo al día.</b> Cuando alguien reporte una reseña, aparece acá completa.</div></div>
+      )}
+    </div>
+  </div>
+</Layout>
+
+<script define:vars={{ csrfToken, csrfHeader: ADMIN_CSRF_HEADER }}>
+  window.__reportesCsrf = { token: csrfToken, header: csrfHeader };
+</script>
+
+<script>
+  const { token, header } = (window as any).__reportesCsrf as { token: string; header: string };
+  document.querySelectorAll<HTMLButtonElement>('.rep [data-accion]').forEach((b) => b.addEventListener('click', async () => {
+    const art = b.closest<HTMLElement>('.rep')!;
+    const accion = b.dataset.accion!;
+    if (accion === 'delete_resena' && !confirm('¿Borrar esta reseña? No se puede deshacer.')) return;
+    const estado = art.querySelector('[data-estado]')!;
+    art.querySelectorAll('button').forEach((x) => { x.disabled = true; });
+    try {
+      const res = await fetch('/api/admin/reportes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', [header]: token },
+        credentials: 'same-origin',
+        body: JSON.stringify({ action: accion, resena_id: Number(art.dataset.resena) }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo.');
+      estado.textContent = accion === 'dismiss' ? 'Listo: la reseña queda como está.' : 'Listo: reseña borrada.';
+      art.style.opacity = '.55';
+    } catch (e: any) {
+      estado.textContent = e.message;
+      art.querySelectorAll('button').forEach((x) => { x.disabled = false; });
+    }
+  }));
+</script>

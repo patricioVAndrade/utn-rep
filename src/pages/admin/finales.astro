@@ -1,0 +1,65 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminNav from '../../components/AdminNav.astro';
+import Icon from '../../components/Icon.astro';
+import { isAdmin } from '../../lib/admin';
+import { supabaseAdmin } from '../../lib/supabase-admin';
+import { mesaTexto, tiempoRelativo } from '../../lib/format';
+
+const user = Astro.locals.user;
+if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
+
+const { data } = await supabaseAdmin
+  .from('experiencias_finales')
+  .select('id, anio, mesa, profesor_nombre, comentario, created_at, materias ( id, nombre, nivel )')
+  .order('created_at', { ascending: false })
+  .limit(300);
+const finales = (data || []).map((f: any) => ({ ...f, materia: one(f.materias) }));
+---
+
+<Layout title="Finales - Panel de admin" crumbs={[{ label: 'Panel de admin', href: '/admin' }, { label: 'Finales' }]}>
+  <div class="admin-wrap">
+    <AdminNav actual="finales" />
+    <div class="admin-main">
+      <div class="topic">
+        <div>
+          <h1>Experiencias de finales</h1>
+          <p>{finales.length ? `Las ${finales.length} más recientes.` : 'Todavía nadie contó un final.'} Desde acá podés borrar las que no corresponden.</p>
+        </div>
+      </div>
+      <div class="mine">
+        {finales.map((f) => (
+          <article class="mine-row" data-id={f.id}>
+            <div class="top">
+              {f.materia?.nivel && <span class:list={['yr', `y${f.materia.nivel}`]}>{f.materia.nivel}.º</span>}
+              <a href={`/finales?materia=${f.materia?.id}#final-${f.id}`}><b>{f.materia?.nombre || 'Materia'}</b></a>
+              <span class="mesa-mini">{mesaTexto(f.mesa, f.anio)}</span>
+              <span class="sub">Tomado por: {f.profesor_nombre || 'no lo indicó'}</span>
+            </div>
+            <span>{f.comentario}</span>
+            <div class="bottom">
+              <span class="sub">Contada {tiempoRelativo(f.created_at).toLowerCase()}</span>
+              <span class="acts"><button type="button" class="btn danger" data-borrar={f.id}><Icon name="trash" /> Borrar</button></span>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-borrar]').forEach((b) => b.addEventListener('click', async () => {
+    if (!confirm('¿Borrar esta experiencia de final? No se puede deshacer.')) return;
+    b.disabled = true;
+    try {
+      const res = await fetch('/api/finales/acciones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'eliminar', id: b.dataset.borrar }) });
+      if (!res.ok) throw new Error();
+      b.closest('.mine-row')?.remove();
+    } catch {
+      alert('No se pudo borrar.');
+      b.disabled = false;
+    }
+  }));
+</script>

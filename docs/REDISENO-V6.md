@@ -1,11 +1,12 @@
 # Rediseño estilo foro: qué hay de la V6 en esta rama
 
-Rama: `claude/project-thread-e3wgmo`. Última actualización: 6/11/2026.
+Rama: `claude/project-thread-e3wgmo`. Última actualización: 7/11/2026 (tu revisión del 7/11, puntos de "Ahora" del `plan-7-11.md`).
 
 Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/foro-v6.html` en el chat del proyecto) con lo que ya funciona en la versión de prueba. Cada fila dice si está **Hecho**, **Parcial** (está, pero distinto de la maqueta; la columna "Diferencia" explica por qué), **Falta** o **Después de marzo 2027**.
 
 - **Etapa 1** (subida el 6/11): el look de la V6 en todas las páginas que ya existían. Sin cambios en la base.
 - **Etapa 2** (subida el 6/11): funcionalidades de la V6 que no necesitan tablas nuevas.
+- **Revisión del 7/11** (subida el 7/11): pantallas pasadas tal cual la V6, sin neones (opción C), importador de planillas y panel de admin nuevo.
 - **Etapa 3** (pendiente): lo que necesita tablas o columnas nuevas. Se prueba primero en la base de prueba.
 
 ## Funcionalidades aprobadas (F1 a F21 y F28)
@@ -14,7 +15,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 |---|---|---|---|---|
 | F1 | Modo noche | Hecho | Interruptor "Modo noche" arriba a la derecha | Si nunca lo tocaste, sigue el modo del teléfono o la compu. |
 | F2 | Carpetas de "nuevas desde tu última visita" | Hecho | Inicio, carpeta amarilla y "hay nuevas" | Se guarda en el navegador, no en la cuenta: en otro dispositivo empieza de cero. La primera vez marca como nuevas las de las últimas dos semanas. Arriba dice "Tu última visita". |
-| F3 | Buscador con sugerencias agrupadas | Hecho | Banner, en cualquier página | Agrupa Materias, Cursos y Profesores. No hay página de resultados: Enter va a la primera sugerencia. |
+| F3 | Buscador con sugerencias agrupadas | Hecho | Banner, en cualquier página; Enter abre `/buscar?q=` | Sugerencias agrupadas en Materias, Cursos y Profesores. La página de resultados suma Finales, filtros y qué hacer si no hay nada. |
 | F4 | Reparto de estrellas | Hecho | Curso y materia, "Cómo lo puntuaron" | — |
 | F5 | Rangos por cantidad de reseñas | Falta (etapa 3) | — | Necesita contar reseñas por persona y mostrarlo en público. |
 | F6 | Etiqueta de plan de estudios (2008 o 2023) | Falta (etapa 3) | — | La base no guarda el plan. Hace falta una columna nueva y la pregunta en el formulario. |
@@ -30,10 +31,10 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F16 | Easter egg de Anónimo | Falta (etapa 3) | — | Va junto con F15. |
 | F17 | Escudos de rango | Falta (etapa 3) | — | Va con F5. |
 | F18 | Logros | Falta (etapa 3) | — | Tabla nueva. Los logros L1 a L7 están aprobados; L8 a L19 esperan tu voto. |
-| F19 | Filtros de finales | Hecho | Experiencias de finales | Mesa (Diciembre, Febrero/marzo, Julio, Especial) y materia. El filtro queda en la dirección, así que el link se puede compartir. Al costado: "Materias con más finales contados". |
-| F20 | Recordar años abiertos | Hecho | Inicio: cerrá un año y recargá | Se guarda en el navegador. |
+| F19 | Filtros de finales | Hecho | Experiencias de finales | Mesa (Diciembre, Febrero/marzo, Julio, Especial) y materia. El filtro queda en la dirección, así que el link se puede compartir. Al costado: "Materias con más experiencias". Tarjeta como la que mandaste, con "Tomado por:" enlazado al profe cuando coincide y "Nueva" desde tu última visita (también "N nuevas" en la pestaña). El autor sale siempre como "Anónimo" hasta la etapa 3. |
+| F20 | Recordar años abiertos | Hecho | Inicio | Los años vienen cerrados; con "¿Qué año cursás?" elegís cuáles vienen abiertos (más de uno). Se guarda en el navegador. |
 | F21 | "Me sirvió" en finales | Falta (etapa 3) | — | Tabla de votos nueva. |
-| F28 | Compartir por WhatsApp | Parcial | Botón verde en curso, materia, profesor y comparador; "Compartir" en cada reseña; aviso "Pasalo al grupo" después de publicar | En el celular abre el menú de compartir del teléfono; en la compu, WhatsApp Web. **Falta** el código corto `?de=` y el logro "Pasalo al grupo" (L8), que necesitan guardar quién compartió. |
+| F28 | Compartir por WhatsApp | Parcial | Botón verde en curso, materia, profesor y comparador; "Compartir" en cada reseña y cada final; "Pasásela a tu curso" en Reseña publicada | En el celular abre el menú de compartir del teléfono; en la compu, WhatsApp Web. Hay imagen de vista previa genérica (`/og-image.png`), que cambia cuando elijas el logo. **Falta** el código corto `?de=` y el logro "Pasalo al grupo" (L8), que necesitan guardar quién compartió. |
 
 ## Otros pedidos tuyos (v4 a v6)
 
@@ -41,7 +42,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 |---|---|---|
 | Logo de la UTN en el encabezado | Hecho | Símbolo UTN en vector. El logo nuevo de UTN REP (opciones A a F) y el favicon esperan tu elección. |
 | "¿Cómo funciona?" con signo de pregunta | Hecho | Pestaña y pie. |
-| Estadísticas como "Así viene el cuatri", sin profesores | Hecho | Reseñas, esta semana, finales contados y cursos reseñados. |
+| Estadísticas como "Así viene el cuatri", sin profesores | Hecho | Reseñas, esta semana, experiencias de finales y cursos reseñados. |
 | Materia = cátedra, adentro hay cursos | Hecho | En todos los textos. |
 | Pestaña "Materias" en vez de "Índice" | Hecho | — |
 | "Experiencias de finales" en vez de "Finales" | Hecho | — |
@@ -53,7 +54,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Celular: lo importante arriba, "Ir a" en una línea, sin "Tu cuenta" en el inicio | Hecho | — |
 | "Por X" en Última reseña abre la ficha o el easter egg | Falta (etapa 3) | Va con F15 y F16. |
 | Foto de perfil: inicial por defecto | Hecho | En Mi cuenta se iba a poder elegir foto: falta, porque Mi cuenta no existe todavía. |
-| Mejoras del panel de admin (resumen, reportes, importar) | Falta (etapa 3) | El admin funciona igual que antes, con su estilo oscuro dentro del marco nuevo. |
+| Mejoras del panel de admin (resumen, reportes, importar) | Parcial | Resumen, Reportes, Finales e Importar cuatrimestre son nuevos, como la V6. Reseñas, Materias y cursos y Profesores siguen en la pantalla anterior (`/admin/gestion`). Usuarios, palabras marcadas con historial, links abiertos de WhatsApp, registro de moderación y "Pedirle que la edite" van con la etapa 3. |
 | Cambios de profesores (F22 a F27) | Después de marzo 2027 | Lo que decidiste. |
 
 ## Pantallas de la V6 (23)
@@ -64,22 +65,22 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Un año | Hecho | `/nivel/2` |
 | Una materia | Hecho | `/materia/ID` |
 | Un curso | Hecho | `/dictado/ID` |
-| Profesor | Hecho | `/profesor/ID` |
-| Búsqueda | Parcial | Sugerencias en el banner; no hay página de resultados. |
+| Profesor | Hecho | `/profesor/ID`. "Promedio de sus cursos" (lo elegiste el 7/11; la V6 no tenía puntaje). El rol (Titular, JTP) va con la etapa 3. |
+| Búsqueda | Hecho | `/buscar?q=` |
 | Comparar cursos | Hecho | `/materia/ID/comparar` |
 | Experiencias de finales | Hecho | `/finales` |
 | Contar un final | Hecho | `/finales/nuevo` |
 | Escribir, paso 1 y paso 2 | Hecho | `/nueva-resena` |
-| Reseña publicada | Hecho | Aviso verde en el curso con "Pasalo al grupo" |
-| Mis reseñas | Parcial | `/mis-resenas`, sin rango ni logros |
+| Reseña publicada | Hecho | `/resena-publicada?curso=ID`. Rango y logros van con la etapa 3. |
+| Mis reseñas | Parcial | `/mis-resenas` con Reseñas, Finales contados y Borradores, sin turno. "Te faltan reseñar" sale de los años que elegiste en el inicio (hasta que exista Mi inscripción). Sin rango ni logros. Los finales contados se reconocen solo en este navegador, porque la base no guarda el autor. |
 | Mi cuenta | Falta (etapa 3) | — |
 | Mi inscripción (F29) | Falta | Espera tu voto |
 | Ingresar | Hecho | Ventana de ingreso con mail, Google y GitHub |
 | ¿Cómo funciona? | Hecho | `/sobre` |
 | Términos | Parcial | `/terminos`: diseño nuevo, pero el texto todavía dice que se entra solo con Google o GitHub |
 | Error 404 | Hecho | Cualquier dirección que no existe |
-| Link compartido por WhatsApp | Parcial | Cada página tiene título y descripción propios; falta la imagen de vista previa por página |
-| Admin: resumen, reportes e importar | Falta (etapa 3) | `/admin` sigue como antes |
+| Link compartido por WhatsApp | Parcial | Título y descripción propios por página e imagen genérica. Falta una imagen por página (por ejemplo, la nota del curso). |
+| Admin: resumen, reportes e importar | Hecho | `/admin`, `/admin/reportes`, `/admin/finales`, `/admin/importar`. El resto en `/admin/gestion`. |
 
 ## Ideas que esperan tu voto
 
@@ -90,6 +91,10 @@ F29 a F37 y logros L8 a L19 (detalle en la encuesta de la V6). Nada de esto est�
 | Código | Qué es | Estado | Nota |
 |---|---|---|---|
 | F38 | Completar "¿Cómo te fue?" en reseñas viejas | Propuesta para etapa 3 | Al entrar, una franja (no una ventana) con tus reseñas sin estado y tres botones: Promocioné, Regularicé, Quedé libre. Opciones "Ahora no" (vuelve en 30 días) y "No preguntar más". Solo pregunta por cursadas de años anteriores o reseñas con más de 4 meses. También se puede completar desde Mis reseñas. Cambio en la base: permitir editar `condicion_final` de la reseña propia (hoy solo se puede editar el comentario). |
+
+## Importar cuatrimestre (nuevo)
+
+`/admin/importar`. Pegás los links de las planillas de horarios (Sistemas, una pestaña por curso; Básicas, una pestaña por materia) o subís el .xlsx o un CSV. Lee solo cursos con K, compara con la base y muestra qué cambia: cursos nuevos (con su turno), materias que no encontró, equipos que cambian, profesores nuevos. Nada se guarda hasta tocar Guardar, y solo lo que dejás marcado. Las pestañas de subgrupos de electivas (4K1A, 4K1B) se saltean. Las planillas tienen que estar compartidas como "cualquiera con el link". Probado con la de 4.º año y la de Básicas en datos inventados; falta probarlo en la base de prueba.
 
 ## Cómo probarlo
 

@@ -1,26 +1,20 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Icon from '../../components/Icon.astro';
+import AdminNav from '../../components/AdminNav.astro';
+import { tokenCsrf } from '../../lib/admin-csrf';
 import { isAdmin } from '../../lib/admin';
-import { ADMIN_CSRF_COOKIE, ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+import { ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
 
 const user = Astro.locals.user;
 if (!user || !isAdmin(user.id)) return Astro.redirect('/');
 
-const existingCsrf = Astro.cookies.get(ADMIN_CSRF_COOKIE)?.value;
-const csrfToken = existingCsrf || crypto.randomUUID();
-if (!existingCsrf) {
-  Astro.cookies.set(ADMIN_CSRF_COOKIE, csrfToken, { path: '/', sameSite: 'strict', secure: import.meta.env.PROD, httpOnly: false, maxAge: 60 * 60 * 8 });
-}
+const csrfToken = tokenCsrf(Astro.cookies);
 ---
 
 <Layout title="Importar cuatrimestre - Panel de admin" crumbs={[{ label: 'Panel de admin', href: '/admin' }, { label: 'Importar cuatrimestre' }]}>
   <div class="admin-wrap">
-    <nav class="anav" aria-label="Secciones del panel">
-      <a href="/admin">Panel</a>
-      <a href="/admin/importar" aria-current="page">Importar cuatrimestre</a>
-      <span class="later" style="padding:7px 12px;font-size:12px">Cambios de profesores <span class="soon">2027</span></span>
-    </nav>
+    <AdminNav actual="importar" />
     <div class="admin-main">
       <div class="topic">
         <div>

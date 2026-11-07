@@ -312,7 +312,7 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .summary { display: grid; grid-template-columns: 170px minmax(0,1fr) minmax(0,1fr); border: 1px solid var(--line); background: var(--row-a); }
 .summary > div { padding: 10px 12px; border-right: 1px solid var(--line-soft); display: grid; gap: 4px; align-content: start; min-width: 0; }
 .summary > div:last-child { border-right: 0; }
-.summary.two { grid-template-columns: 170px minmax(0,1fr); }
+.summary.s2 { grid-template-columns: 170px minmax(0,1fr); }
 .big-score { font: bold 30px/1 var(--f-title); color: var(--ink); font-variant-numeric: tabular-nums; }
 .big-score small { font: 12px var(--f-body); color: var(--muted); }
 .dist div { grid-template-columns: 26px minmax(0,1fr) 22px; }
@@ -541,7 +541,7 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
 .foro .anav a, .anav button { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 7px 12px; color: var(--ink); font: 12px var(--f-body); border: 0; border-left: 3px solid transparent; background: none; text-align: left; cursor: pointer; }
 .foro .anav a:hover, .anav button:hover { background: var(--row-hover); text-decoration: none; }
 .foro .anav [aria-current="page"] { background: var(--box); border-left-color: var(--amber); font-weight: bold; }
-.anav .later { color: var(--muted); }
+.anav .later { color: var(--muted); padding: 7px 12px; font-size: 12px; display: flex; gap: 6px; align-items: center; }
 .anav .cnt { background: var(--bad); color: #fff; font-size: 10px; font-weight: bold; padding: 0 6px; border-radius: 8px; }
 .anav .soon { border: 1px dashed var(--line); font-size: 9.5px; padding: 0 4px; border-radius: 3px; }
 .admin-main { padding: 12px 14px; display: grid; gap: 12px; align-content: start; min-width: 0; }
@@ -555,6 +555,7 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
 .stat4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
 .stat4 > div { border: 1px solid var(--line); background: var(--row-a); padding: 8px 10px; display: grid; gap: 2px; font-size: 11px; color: var(--muted); }
 .stat4 b { font: bold 22px var(--f-title); color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat4 em { font-style: normal; }
 .stat4 .up { color: var(--ok); font-weight: bold; } .stat4 .down { color: var(--bad); font-weight: bold; }
 .chart { display: flex; align-items: flex-end; gap: 3px; height: 90px; padding-top: 8px; }
 .chart i { flex: 1; background: linear-gradient(var(--head-a), var(--head-b)); min-height: 2px; }
@@ -603,8 +604,8 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
   .side { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
   .summary { grid-template-columns: 1fr 1fr; }
   .summary > div:last-child { grid-column: 1 / -1; border-top: 1px solid var(--line-soft); }
-  .summary.two { grid-template-columns: 170px minmax(0,1fr); }
-  .summary.two > div:last-child { grid-column: auto; border-top: 0; }
+  .summary.s2 { grid-template-columns: 170px minmax(0,1fr); }
+  .summary.s2 > div:last-child { grid-column: auto; border-top: 0; }
 }
 @container (max-width: 600px) {
   .banner { padding: 10px 10px 10px 58px; grid-template-columns: 1fr; grid-template-areas: "logo" "search"; background-image: linear-gradient(90deg, transparent 40px, var(--margin-red) 40px, var(--margin-red) 42px, transparent 42px), linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); }
@@ -632,8 +633,8 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
   .summary { grid-template-columns: 1fr; }
   .summary > div { border-right: 0; border-top: 1px solid var(--line-soft); }
   .summary > div:first-child { border-top: 0; }
-  .summary.two { grid-template-columns: 1fr; }
-  .summary.two > div:last-child { border-top: 1px solid var(--line-soft); }
+  .summary.s2 { grid-template-columns: 1fr; }
+  .summary.s2 > div:last-child { border-top: 1px solid var(--line-soft); }
   .post-main { grid-template-columns: 1fr; }
   .author { grid-template-columns: auto minmax(0,1fr); column-gap: 10px; align-items: center; border-right: 0; border-bottom: 1px solid var(--line-soft); }
   .author .avatar { width: 44px; height: 44px; font-size: 18px; grid-row: span 3; }
