@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { checkRateLimit } from '../../../lib/rate-limit';
 import { createSupabaseServerClient } from '../../../lib/supabase';
-import { json, readJson } from '../../../lib/http';
+import { json, readJson, esBloqueo, cuentaBloqueada } from '../../../lib/http';
 import { finalCreateSchema, parseBody } from '../../../lib/validation';
 import { displayName } from '../../../lib/user';
 
@@ -41,6 +41,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
   if (insertError) {
+    if (esBloqueo(insertError)) return cuentaBloqueada();
     console.error('[Finales Crear API] Error:', insertError);
     return json({ error: 'No se pudo guardar. Intentá de nuevo.' }, 500);
   }

@@ -145,12 +145,26 @@ class Q {
 }
 
 const DEMO = process.env.MOCK_USER === '1';
+function cuentasMock() {
+  const vistos = new Map<string, any>();
+  (T.resenas || []).forEach((r: any) => {
+    if (!r.user_id || vistos.has(r.user_id)) return;
+    const nombre = r.user_id === 'u-demo' ? 'Sofía Rivas' : r.nombre_usuario || 'Estudiante';
+    vistos.set(r.user_id, { id: r.user_id, email: nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, '.') + '@gmail.com', created_at: '2025-03-10T12:00:00Z', last_sign_in_at: '2026-11-06T12:00:00Z', app_metadata: { provider: 'google' }, user_metadata: { full_name: nombre } });
+  });
+  return [...vistos.values()];
+}
 const meta: any = { full_name: 'Sofía Rivas' };
 const auth = {
   getUser: async () => ({ data: { user: DEMO ? { id: 'u-demo', email: 'sofia@frc.utn.edu.ar', created_at: '2025-03-10T12:00:00Z', app_metadata: { provider: 'google' }, user_metadata: meta } : null }, error: null }),
   updateUser: async ({ data }: any) => { Object.assign(meta, data); return { data: {}, error: null }; },
   signOut: async () => ({ error: null }),
-  admin: { deleteUser: async () => ({ data: {}, error: null }) },
+  admin: {
+    deleteUser: async () => ({ data: {}, error: null }),
+    // Cuentas inventadas a partir de los dueños de las reseñas del fixture
+    listUsers: async ({ page = 1 }: any = {}) => ({ data: { users: page > 1 ? [] : cuentasMock() }, error: null }),
+    getUserById: async (id: string) => ({ data: { user: cuentasMock().find((u) => u.id === id) || null }, error: null }),
+  },
 };
 async function rpc(nombre: string, args: any) {
   if (nombre === 'votar_final') {

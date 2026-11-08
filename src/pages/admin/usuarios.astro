@@ -1,0 +1,199 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminNav from '../../components/AdminNav.astro';
+import Icon from '../../components/Icon.astro';
+import { isAdmin } from '../../lib/admin';
+import { supabaseAdmin } from '../../lib/supabase-admin';
+import { ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+import { tokenCsrf } from '../../lib/admin-csrf';
+import { tiempoRelativo } from '../../lib/format';
+
+// Usuarios (migración 9): quién escribe, cuántos reportes recibió y bloquear.
+const user = Astro.locals.user;
+if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+const csrfToken = tokenCsrf(Astro.cookies);
+
+const params = Astro.url.searchParams;
+const q = (params.get('q') || '').trim().toLowerCase().slice(0, 80);
+const filtro = params.get('ver') || 'activos';
+const POR_PAGINA = 50;
+const pag = Math.max(1, Number(params.get('pag')) || 1);
+
+// Todas las cuentas (de a 1000)
+const cuentas: any[] = [];
+for (let page = 1; page <= 20; page++) {
+  const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+  if (error) { console.error('[admin/usuarios]', error.message); break; }
+  cuentas.push(...(data?.users || []));
+  if ((data?.users || []).length < 1000) break;
+}
+
+const [{ data: perfiles }, { data: resenas }, { data: finales }, { data: reportes }, { data: links }, { data: aperturas }] = await Promise.all([
+  supabaseAdmin.from('perfiles').select('user_id, nombre_mostrar, bloqueado_at, bloqueo_motivo'),
+  supabaseAdmin.from('resenas').select('id, user_id, nombre_usuario'),
+  supabaseAdmin.from('experiencias_finales').select('user_id'),
+  supabaseAdmin.from('reportes_resenas').select('resena_id'),
+  supabaseAdmin.from('links_compartidos').select('codigo, user_id'),
+  supabaseAdmin.from('aperturas_link').select('codigo'),
+]);
+
+const perfilDe = new Map((perfiles || []).map((p: any) => [p.user_id, p]));
+const duenioResena = new Map((resenas || []).map((r: any) => [r.id, r.user_id]));
+const contar = (filas: any[] | null, clave: (x: any) => string | null) => {
+  const m = new Map<string, number>();
+  (filas || []).forEach((x) => { const k = clave(x); if (k) m.set(k, (m.get(k) || 0) + 1); });
+  return m;
+};
+const nResenas = contar(resenas, (r) => r.user_id);
+const nFinales = contar(finales, (r) => r.user_id);
+const nReportes = contar(reportes, (r) => duenioResena.get(r.resena_id) || null);
+const aperturasDe = contar(aperturas, (a) => a.codigo);
+const codigoDe = new Map((links || []).map((l: any) => [l.user_id, l.codigo]));
+
+const filas = cuentas.map((c) => {
+  const p: any = perfilDe.get(c.id) || {};
+  const meta = c.user_metadata || {};
+  const nombre = p.nombre_mostrar || meta.nombre_mostrar || meta.full_name || meta.name || (c.email || '').split('@')[0] || 'Sin nombre';
+  const codigo = codigoDe.get(c.id);
+  return {
+    id: c.id as string,
+    nombre: String(nombre),
+    email: (c.email || '') as string,
+    alta: c.created_at as string,
+    ultimo: (c.last_sign_in_at || null) as string | null,
+    proveedor: c.app_metadata?.provider || 'email',
+    resenas: nResenas.get(c.id) || 0,
+    finales: nFinales.get(c.id) || 0,
+    reportes: nReportes.get(c.id) || 0,
+    aperturas: codigo ? aperturasDe.get(codigo) || 0 : 0,
+    bloqueado: !!p.bloqueado_at,
+    bloqueadoAt: p.bloqueado_at as string | null,
+    motivo: (p.bloqueo_motivo || '') as string,
+    admin: isAdmin(c.id),
+  };
+});
+
+const totalBloqueados = filas.filter((f) => f.bloqueado).length;
+const totalReportados = filas.filter((f) => f.reportes > 0).length;
+let lista = filas.filter((f) => (filtro === 'bloqueados' ? f.bloqueado : filtro === 'reportados' ? f.reportes > 0 : true));
+if (q) lista = lista.filter((f) => f.nombre.toLowerCase().includes(q) || f.email.toLowerCase().includes(q));
+lista.sort((a, b) => b.reportes - a.reportes || b.resenas - a.resenas || a.nombre.localeCompare(b.nombre));
+const total = lista.length;
+const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+lista = lista.slice((pag - 1) * POR_PAGINA, pag * POR_PAGINA);
+
+const link = (cambios: Record<string, string | number | null>) => {
+  const u = new URL(Astro.url);
+  Object.entries(cambios).forEach(([k, v]) => (v === null || v === '' ? u.searchParams.delete(k) : u.searchParams.set(k, String(v))));
+  if (!('pag' in cambios)) u.searchParams.delete('pag');
+  return u.pathname + u.search;
+};
+const PROVEEDOR: Record<string, string> = { google: 'Google', github: 'GitHub', email: 'Link por mail' };
+const n = (x: number, uno: string, varios: string) => `${x} ${x === 1 ? uno : varios}`;
+---
+
+<Layout title="Usuarios - Panel de admin" crumbs={[{ label: 'Panel de admin', href: '/admin' }, { label: 'Usuarios' }]}>
+  <div id="admin-csrf" hidden data-h={ADMIN_CSRF_HEADER} data-t={csrfToken}></div>
+  <div class="admin-wrap">
+    <AdminNav actual="usuarios" />
+    <div class="admin-main">
+      <div class="topic">
+        <div>
+          <h1>Usuarios</h1>
+          <p>{n(filas.length, 'cuenta', 'cuentas')}. Primero quienes recibieron reportes. Una cuenta bloqueada no puede escribir, editar, votar ni reportar; lo que ya publicó queda a la vista.</p>
+        </div>
+      </div>
+
+      <div class="seg" role="group" aria-label="Qué cuentas ver">
+        <a href={link({ ver: null })} aria-current={filtro !== 'bloqueados' && filtro !== 'reportados' ? 'true' : undefined}>Todas</a>
+        <a href={link({ ver: 'reportados' })} aria-current={filtro === 'reportados' ? 'true' : undefined}>Con reportes ({totalReportados})</a>
+        <a href={link({ ver: 'bloqueados' })} aria-current={filtro === 'bloqueados' ? 'true' : undefined}>Bloqueadas ({totalBloqueados})</a>
+      </div>
+
+      <form class="filters afil" method="get">
+        {filtro !== 'activos' && <input type="hidden" name="ver" value={filtro} />}
+        <label class="sr" for="f-q">Buscar por nombre o mail</label>
+        <input id="f-q" class="ainput" type="search" name="q" value={q} placeholder="Buscar por nombre o mail" />
+        <button class="btn secondary" type="submit"><Icon name="search" /> Buscar</button>
+      </form>
+
+      {lista.length === 0 && <p class="sub">No hay cuentas con estos filtros.</p>}
+
+      <div class="mine">
+        {lista.map((f) => (
+          <article class:list={['mine-row usr', { bloq: f.bloqueado }]} data-id={f.id} data-nombre={f.nombre}>
+            <div class="top">
+              <b class="snip">{f.nombre}</b>
+              <span class="sub">{f.email}</span>
+              {f.admin && <span class="tag">Admin</span>}
+              {f.bloqueado && <span class="tag bad">Bloqueada</span>}
+            </div>
+            <div class="usr-datos sub">
+              <span>{n(f.resenas, 'reseña', 'reseñas')}</span>
+              <span>{n(f.finales, 'final', 'finales')}</span>
+              <span class:list={{ warn: f.reportes > 0 }}>{n(f.reportes, 'reporte recibido', 'reportes recibidos')}</span>
+              {f.aperturas > 0 && <span>{n(f.aperturas, 'persona abrió sus links', 'personas abrieron sus links')}</span>}
+              <span>Entra con {PROVEEDOR[f.proveedor] || f.proveedor}</span>
+              <span>Alta {new Date(f.alta).toLocaleDateString('es-AR')}</span>
+              {f.ultimo && <span>Último ingreso {tiempoRelativo(f.ultimo).toLowerCase()}</span>}
+            </div>
+            {f.bloqueado && <div class="sub pedido">Bloqueada {f.bloqueadoAt ? tiempoRelativo(f.bloqueadoAt).toLowerCase() : ''}{f.motivo ? `. Motivo: ${f.motivo}` : ''}</div>}
+            <div class="bottom">
+              <span>{f.resenas > 0 && <a href={`/admin/resenas?q=${encodeURIComponent(f.nombre)}`}>Ver sus reseñas</a>}</span>
+              <span class="acts">
+                {f.admin ? <span class="sub">No se puede bloquear a un admin</span>
+                  : f.bloqueado
+                    ? <button type="button" class="btn quiet" data-desbloquear><Icon name="check" /> Desbloquear</button>
+                    : <button type="button" class="btn danger" data-bloquear><Icon name="flag" /> Bloquear</button>}
+              </span>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {paginas > 1 && (
+        <nav class="pager" aria-label="Páginas">
+          {pag > 1 && <a href={link({ pag: pag - 1 })}>‹ Anterior</a>}
+          <span class="sub">Página {pag} de {paginas}</span>
+          {pag < paginas && <a href={link({ pag: pag + 1 })}>Siguiente ›</a>}
+        </nav>
+      )}
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { adminFetch, aviso } from '../../scripts/admin-api';
+
+  document.querySelectorAll<HTMLElement>('.usr[data-id]').forEach((row) => {
+    const id = row.dataset.id!;
+    const nombre = row.dataset.nombre || 'esta cuenta';
+    row.querySelector('[data-bloquear]')?.addEventListener('click', async (e) => {
+      const motivo = prompt(`¿Por qué bloqueás a ${nombre}? Lo ves solo vos (y queda en el registro).`);
+      if (motivo === null) return;
+      const b = e.currentTarget as HTMLButtonElement;
+      b.disabled = true;
+      try {
+        await adminFetch('/api/admin/usuarios', { accion: 'bloquear', user_id: id, motivo });
+        aviso(`${nombre} quedó bloqueada.`);
+        location.reload();
+      } catch (err) {
+        aviso((err as Error).message, true);
+        b.disabled = false;
+      }
+    });
+    row.querySelector('[data-desbloquear]')?.addEventListener('click', async (e) => {
+      if (!confirm(`¿Desbloquear a ${nombre}?`)) return;
+      const b = e.currentTarget as HTMLButtonElement;
+      b.disabled = true;
+      try {
+        await adminFetch('/api/admin/usuarios', { accion: 'desbloquear', user_id: id });
+        aviso(`${nombre} ya puede escribir de nuevo.`);
+        location.reload();
+      } catch (err) {
+        aviso((err as Error).message, true);
+        b.disabled = false;
+      }
+    });
+  });
+</script>

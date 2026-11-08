@@ -91,7 +91,11 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108070000_logros.sql`. Vuelta atrás: `supabase/rollback/20261108070000_logros.sql`.
 - **Verificación esperada:** `tabla = 1`, `triggers = 2`, `anon_lee = false`, `puede_escribir_foto = false` y cuántos logros se dieron (en la base de prueba, 0 si las reseñas no tienen dueño).
 
-### 9. Admin: Usuarios y links compartidos (3.14, F28)
+### 9. Admin: Usuarios y links compartidos (3.14, F28) — **corrida en prueba el 8/11, código subido**
+
+- **Archivo:** `supabase/migrations/20261108080000_usuarios_links.sql`. Vuelta atrás: `supabase/rollback/20261108080000_usuarios_links.sql`.
+- **Bloquear:** `perfiles.bloqueado_at` y `bloqueo_motivo`, solo los escribe el admin. Triggers `trg_bloqueo` (al crear en reseñas, finales, votos y reportes), `trg_bloqueo_editar` (editar reseña) y `trg_bloqueo_perfil` (nombre y foto) frenan con el código `UB001`; las APIs lo traducen a "Tu cuenta está bloqueada".
+- **Links:** `links_compartidos` (un código por persona) y `aperturas_link` (una por visitante). Solo con la clave de servicio.
 
 - **Usuarios:** marca de bloqueado en `perfiles` y la lista en el admin con reseñas y reportes recibidos.
 - **Links compartidos:** tabla `links_compartidos` con un código corto (`?de=k7p2`) y cuántas personas distintas lo abrieron. Sirve para "Links compartidos esta semana" en el admin y el logro "Pasalo al grupo" (L8).

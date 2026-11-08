@@ -4,19 +4,21 @@ import { encontrarPalabra } from './palabras';
 
 export type AccionModeracion =
   | 'borrar' | 'dejar' | 'editar_texto' | 'responder' | 'borrar_respuesta'
-  | 'pedir_edicion' | 'quitar_pedido' | 'marcada_automatica' | 'agregar_palabra' | 'quitar_palabra';
+  | 'pedir_edicion' | 'quitar_pedido' | 'marcada_automatica' | 'agregar_palabra' | 'quitar_palabra'
+  | 'bloquear' | 'desbloquear';
 
 /** Anota en el registro. Si falla, no frena la acción: solo queda en el log del servidor. */
 export async function registrar(
   moderadorId: string | null,
   accion: AccionModeracion,
-  sobre: { resena_id?: number | null; final_id?: number | string | null; detalle?: string | null } = {},
+  sobre: { resena_id?: number | null; final_id?: number | string | null; usuario_id?: string | null; detalle?: string | null } = {},
 ) {
   const { error } = await supabaseAdmin.from('registro_moderacion').insert({
     moderador_id: moderadorId,
     accion,
     resena_id: sobre.resena_id ?? null,
     final_id: sobre.final_id ?? null,
+    ...(sobre.usuario_id ? { usuario_id: sobre.usuario_id } : {}),
     detalle: sobre.detalle ? String(sobre.detalle).slice(0, 1000) : null,
   });
   if (error) console.error('[moderacion] no se pudo registrar', accion, error);

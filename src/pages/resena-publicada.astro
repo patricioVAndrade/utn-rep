@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { turnoLabel } from '../lib/format';
+import { codigoDe } from '../lib/links';
 import Escudo from '../components/Escudo.astro';
 import LogroIcono from '../components/LogroIcono.astro';
 import { LOGROS, logroPorId, progresoRango, rango } from '../lib/logros';
@@ -48,6 +49,9 @@ const hace15 = Date.now() - 15 * 60 * 1000;
 const nuevos = (logrosRaw || []).filter((l: any) => new Date(l.ganado_at).getTime() > hace15).map((l: any) => logroPorId(l.logro)?.nombre).filter(Boolean);
 
 const ruta = `/dictado/${dictadoId}`;
+// El link lleva tu código corto (migración 9): no dice quién sos
+const codigo = await codigoDe(user.id).catch(() => null);
+const rutaCompartida = codigo ? `${ruta}?de=${codigo}` : ruta;
 const nombre = `${materia?.nombre || 'la materia'}, ${curso?.identificador || 'tu curso'}`;
 const mensaje = `Escribí una reseña de ${nombre} en UTN REP. Si cursaste, sumá la tuya así la próxima camada elige mejor 👉`;
 ---
@@ -82,9 +86,9 @@ const mensaje = `Escribí una reseña de ${nombre} en UTN REP. Si cursaste, sum�
       <section class="share-box">
         <h2><Icon name="share" /> Pasásela a tu curso</h2>
         <p class="sub" style="margin:0">Es donde se decide la inscripción. Te armamos el mensaje:</p>
-        <div class="wa-msg" id="wa-msg" data-ruta={ruta}>{mensaje} <span class="link-curso">{`utnrep.app${ruta}`}</span></div>
+        <div class="wa-msg" id="wa-msg" data-ruta={rutaCompartida}>{mensaje} <span class="link-curso">{`utnrep.app${rutaCompartida}`}</span></div>
         <div class="sh-acts">
-          <a class="btn wa" id="enviar-wa" href={`https://wa.me/?text=${encodeURIComponent(`${mensaje} https://utnrep.app${ruta}`)}`} target="_blank" rel="noopener"><Icon name="share" /> Enviar por WhatsApp</a>
+          <a class="btn wa" id="enviar-wa" href={`https://wa.me/?text=${encodeURIComponent(`${mensaje} https://utnrep.app${rutaCompartida}`)}`} target="_blank" rel="noopener"><Icon name="share" /> Enviar por WhatsApp</a>
           <button type="button" class="btn quiet" id="copiar-link"><Icon name="link" /> <span>Copiar link</span></button>
         </div>
       </section>

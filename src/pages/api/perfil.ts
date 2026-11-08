@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../lib/supabase';
 import { supabaseAdmin } from '../../lib/supabase-admin';
-import { json, readJson } from '../../lib/http';
+import { json, readJson, esBloqueo, cuentaBloqueada } from '../../lib/http';
 import { parseBody, perfilSchema } from '../../lib/validation';
 
 const DIAS_30 = 30 * 24 * 60 * 60 * 1000;
@@ -28,6 +28,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const { error } = await client.from('perfiles').upsert({ user_id: user.id, ...cambios }, { onConflict: 'user_id' });
   if (error) {
+    if (esBloqueo(error)) return cuentaBloqueada();
     console.error('Error guardando perfil:', error);
     return json({ error: 'No se pudo guardar. Probá de nuevo.' }, 500);
   }

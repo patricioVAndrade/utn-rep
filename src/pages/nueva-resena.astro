@@ -4,8 +4,10 @@ import Icon from '../components/Icon.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { anioLabel, turnoLabel } from '../lib/format';
 import { safeReturnTo } from '../lib/redirect';
+import { estaBloqueada } from '../lib/perfil';
 
 const user = Astro.locals.user;
+const bloqueada = user ? await estaBloqueada(createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies }).client, user.id) : false;
 
 // ¿Viene con curso o materia ya elegidos?
 const dictadoIdParam = Astro.url.searchParams.get('dictado');
@@ -74,7 +76,12 @@ const crumbs = [
 <Layout title="Escribir una reseña - UTN REP" tab="escribir" crumbs={crumbs}>
   <div class="layout">
     <div class="main">
-      {!user ? (
+      {bloqueada ? (
+        <div class="notice bad" role="alert">
+          <Icon name="alert" />
+          <div><b>Tu cuenta está bloqueada</b><p>La moderación la bloqueó: podés leer el sitio, pero no escribir, votar ni reportar. Si creés que es un error, <a href="mailto:patriciovandrade@gmail.com?subject=Cuenta%20bloqueada">escribinos</a>.</p></div>
+        </div>
+      ) : !user ? (
         <div class="empty">
           <h1 style="margin:0;font:bold 16px var(--f-title)"><Icon name="lock" class="ico" /> Iniciá sesión para escribir una reseña</h1>
           <span>Necesitás una cuenta para dejar tu opinión. Es rápido y no pide contraseña.</span>

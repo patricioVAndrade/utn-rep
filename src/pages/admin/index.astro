@@ -25,6 +25,8 @@ const [
   { data: conProfes },
   { data: stats },
   { data: ultimas },
+  { count: linksSemana },
+  { count: linksAntes },
 ] = await Promise.all([
   supabaseAdmin.from('reportes_resenas').select('id, resena_id, created_at').order('created_at', { ascending: true }),
   supabaseAdmin.from('resenas').select('id, user_id, created_at').gte('created_at', hace30.toISOString()).range(0, 9999),
@@ -34,6 +36,9 @@ const [
   supabaseAdmin.from('dictado_profesores').select('dictado_id').range(0, 49999),
   supabaseAdmin.from('stats_dictados').select('dictado_id, cantidad').range(0, 19999),
   supabaseAdmin.from('resenas').select('id, dictado_id, calificacion_general, created_at, es_anonima, nombre_usuario, dictados ( materias ( nombre ), cursos ( identificador ) )').order('created_at', { ascending: false }).limit(6),
+  // Links compartidos (migración 9): personas distintas que abrieron un link con ?de=
+  supabaseAdmin.from('aperturas_link').select('codigo', { count: 'exact', head: true }).gte('created_at', hace7),
+  supabaseAdmin.from('aperturas_link').select('codigo', { count: 'exact', head: true }).gte('created_at', hace14).lt('created_at', hace7),
 ]);
 
 // Para hacer hoy
@@ -59,6 +64,7 @@ const kpis = [
   { label: 'Reseñas nuevas', n: semana.length, c: comparar(semana.length, anterior.length) },
   { label: 'Finales contados', n: finalesSemana || 0, c: comparar(finalesSemana || 0, finalesAntes || 0) },
   { label: 'Personas que reseñaron', n: personas(semana), c: comparar(personas(semana), personas(anterior)) },
+  { label: 'Links abiertos', n: linksSemana || 0, c: comparar(linksSemana || 0, linksAntes || 0) },
   { label: 'Reportes nuevos', n: nuevosReportes, c: { cls: '', txt: `${resenasReportadas} reseña${resenasReportadas !== 1 ? 's' : ''} sin revisar` } },
 ];
 

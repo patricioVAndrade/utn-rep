@@ -109,3 +109,14 @@ export const notificaciones = [
   { id: 2, user_id: 'u-demo', tipo: 'te_sirvio', titulo: 'Tu reseña le sirvió a 5 personas', texto: 'La de Análisis Matemático I.', link: '/mis-resenas', leida_at: null, created_at: '2026-11-06T20:00:00Z' },
   { id: 3, user_id: 'u-demo', tipo: 'respuesta_moderador', titulo: 'La moderación respondió tu reseña', texto: 'Gracias, ya lo revisamos con la cátedra.', link: '/mis-resenas', leida_at: '2026-11-05T12:00:00Z', created_at: '2026-11-05T10:00:00Z' },
 ];
+
+// Usuarios y links compartidos (migración 9)
+{
+  const p = perfiles.find((x) => x.user_id === 'u-mica-ledesma');
+  if (p) { p.bloqueado_at = '2026-11-05T10:00:00Z'; p.bloqueo_motivo = 'Insultos en dos reseñas'; }
+}
+export const links_compartidos = [{ codigo: 'k7p2', user_id: 'u-demo', created_at: '2026-11-01T10:00:00Z' }];
+export const aperturas_link = [
+  { codigo: 'k7p2', visitante: 'v-aaaaaaaa1', ruta: '/dictado/1', created_at: '2026-11-06T18:42:00Z' },
+  { codigo: 'k7p2', visitante: 'v-aaaaaaaa2', ruta: '/dictado/1', created_at: '2026-11-07T09:10:00Z' },
+];

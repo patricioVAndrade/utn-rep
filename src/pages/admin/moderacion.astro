@@ -39,6 +39,8 @@ const ACCIONES: Record<string, string> = {
   marcada_automatica: 'Mandó a Reportes',
   agregar_palabra: 'Agregó la palabra',
   quitar_palabra: 'Quitó la palabra',
+  bloquear: 'Bloqueó a',
+  desbloquear: 'Desbloqueó a',
 };
 const quien = (id: string | null) => (id === null ? 'Automático' : id === user.id ? 'Vos' : 'Otro admin');
 const fecha = (iso: string) => new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Cordoba' });
@@ -87,9 +89,9 @@ const fecha = (iso: string) => new Date(iso).toLocaleString('es-AR', { day: '2-d
                     ? <a href={`/dictado/${lugar.dictado}#resena-${r.resena_id}`}>la reseña de {lugar.texto}</a>
                     : <span>la reseña #{r.resena_id}{r.accion === 'borrar' ? '' : ' (ya no está)'}</span>)}
                   {r.final_id && <span>la experiencia de final #{r.final_id}</span>}
-                  {(r.accion === 'agregar_palabra' || r.accion === 'quitar_palabra' || r.accion === 'marcada_automatica') && r.detalle && <span> "{r.detalle}"</span>}
+                  {['agregar_palabra', 'quitar_palabra', 'marcada_automatica', 'bloquear', 'desbloquear'].includes(r.accion) && r.detalle && <span> "{r.detalle}"</span>}
                 </span>
-                <span class="sub">{fecha(r.created_at)}{r.detalle && !['agregar_palabra', 'quitar_palabra', 'marcada_automatica'].includes(r.accion) ? `. ${r.detalle.length > 140 ? r.detalle.slice(0, 140) + '…' : r.detalle}` : ''}</span>
+                <span class="sub">{fecha(r.created_at)}{r.detalle && !['agregar_palabra', 'quitar_palabra', 'marcada_automatica', 'bloquear', 'desbloquear'].includes(r.accion) ? `. ${r.detalle.length > 140 ? r.detalle.slice(0, 140) + '…' : r.detalle}` : ''}</span>
               </div>
             );
           })}

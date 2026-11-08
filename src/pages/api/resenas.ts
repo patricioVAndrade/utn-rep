@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../lib/supabase';
-import { json, readJson } from '../../lib/http';
+import { json, readJson, esBloqueo, cuentaBloqueada } from '../../lib/http';
 import { parseBody, resenaCreateSchema } from '../../lib/validation';
 import { revisarPalabras } from '../../lib/moderacion';
 
@@ -61,6 +61,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .single();
 
   if (insertError) {
+    if (esBloqueo(insertError)) return cuentaBloqueada();
     // 23505 = unique_violation (unique_user_dictado)
     if (insertError.code === '23505') {
       return json({ error: 'Ya escribiste una reseña para este curso. Solo se permite una por curso.' }, 409);

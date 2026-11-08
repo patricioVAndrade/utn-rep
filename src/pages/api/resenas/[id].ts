@@ -2,7 +2,7 @@ import type { APIRoute, AstroCookies } from 'astro';
 import { createSupabaseServerClient } from '../../../lib/supabase';
 import { isAdmin } from '../../../lib/admin';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { json, readJson } from '../../../lib/http';
+import { json, readJson, esBloqueo, cuentaBloqueada } from '../../../lib/http';
 import { parseBody, resenaEditSchema } from '../../../lib/validation';
 import { registrar, revisarPalabras } from '../../../lib/moderacion';
 
@@ -113,6 +113,7 @@ async function handleEdit(params: Record<string, string | undefined>, request: R
     .maybeSingle();
 
   if (updateError) {
+    if (esBloqueo(updateError)) return cuentaBloqueada();
     console.error('Error updating resena:', updateError);
     return json({ error: 'No se pudo actualizar la reseña.' }, 500);
   }

@@ -44,3 +44,9 @@ export async function leerPerfil(client: any, userId: string): Promise<Perfil & 
 /** ¿Hay que preguntarle "¿Cómo te fue?" en el inicio? */
 export const preguntarComoTeFue = (p: Perfil, ahora = Date.now()) =>
   p.preguntar_como_te_fue && !(p.como_te_fue_pausa_hasta && new Date(p.como_te_fue_pausa_hasta).getTime() > ahora);
+
+/** ¿La cuenta está bloqueada? (migración 9). Cada uno puede leer su propio perfil. */
+export async function estaBloqueada(client: any, userId: string): Promise<boolean> {
+  const { data, error } = await client.from('perfiles').select('bloqueado_at').eq('user_id', userId).maybeSingle();
+  return !error && !!data?.bloqueado_at;
+}

@@ -21,10 +21,12 @@ const { titulo, ruta, mini = false, label = 'Compartir' } = Astro.props;
 </button>
 
 <script>
+  import { conCodigo } from '../scripts/links';
+  // El link lleva tu código corto (?de=) si iniciaste sesión: no dice quién sos.
   document.addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-share]');
     if (!btn) return;
-    const url = new URL(btn.dataset.ruta || location.pathname, location.origin).href;
+    const url = conCodigo(new URL(btn.dataset.ruta || location.pathname, location.origin).href);
     const texto = btn.dataset.titulo || document.title;
     const celular = matchMedia('(pointer: coarse)').matches;
     if (celular && navigator.share) {

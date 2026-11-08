@@ -3,7 +3,7 @@
 import { supabaseAdmin } from '../lib/supabase-admin';
 
 interface Props {
-  actual: 'resumen' | 'reportes' | 'moderacion' | 'resenas' | 'finales' | 'materias' | 'profesores' | 'importar';
+  actual: 'resumen' | 'reportes' | 'moderacion' | 'resenas' | 'finales' | 'materias' | 'profesores' | 'importar' | 'usuarios';
 }
 const { actual } = Astro.props;
 const [{ count: repResenas }, { count: repFinales }] = await Promise.all([
@@ -21,7 +21,7 @@ const cur = (s: string) => (s === actual ? 'page' : undefined);
   <a href="/admin/finales" aria-current={cur('finales')}>Finales</a>
   <a href="/admin/materias" aria-current={cur('materias')}>Materias y cursos</a>
   <a href="/admin/profesores" aria-current={cur('profesores')}>Profesores</a>
+  <a href="/admin/usuarios" aria-current={cur('usuarios')}>Usuarios</a>
   <a href="/admin/importar" aria-current={cur('importar')}>Importar cuatrimestre</a>
-  <span class="later">Usuarios <span class="soon">etapa 3</span></span>
   <span class="later">Cambios de profesores <span class="soon">2027</span></span>
 </nav>

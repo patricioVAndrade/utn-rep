@@ -27,6 +27,8 @@ interface Props {
   forumClass?: string;
   /** Panel de admin: mantiene su diseño oscuro original adentro del foro */
   legacy?: boolean;
+  /** Franja para quien llega por un link compartido (?de=): qué es y dónde escribir */
+  compartido?: { que: string; escribir?: string };
 }
 
 const {
@@ -39,9 +41,13 @@ const {
   crumbs,
   forumClass,
   legacy = false,
+  compartido = { que: 'esta página' },
 } = Astro.props;
 
 const user = Astro.locals.user;
+// Llegó por un link compartido (migración 9). La apertura la anota el navegador.
+const de = (Astro.url.searchParams.get('de') || '').toLowerCase();
+const llegoPorLink = /^[a-z0-9]{4,8}$/.test(de);
 const canonicalURL = Astro.url.href;
 const siteURL = Astro.url.origin;
 const ogImageUrl = new URL(ogImage, siteURL).href;
@@ -111,7 +117,7 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
 
     {schema && <script type="application/ld+json" set:html={schema} />}
   </head>
-  <body class="foro">
+  <body class="foro" data-sesion={user ? '1' : undefined} data-de={llegoPorLink ? de : undefined}>
     <a class="skip" href="#contenido">Saltar al contenido</a>
 
     <div class:list={['forum', forumClass]}>
@@ -158,6 +164,17 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
       )}
 
       <main id="contenido">
+        {llegoPorLink && !legacy && (
+          <div class="de-wrap" id="de-bar">
+            <div class="ln-bar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20.5l1.4-4.1A8.3 8.3 0 1112 20.3a8.3 8.3 0 01-4-1z" stroke-linejoin="round"/><path d="M9.2 8.6c-.3 2.9 2.6 6 5.8 6.1l1-1.5-2-1.1-1 .9a4.4 4.4 0 01-2-2l.8-1-.9-2.1z" fill="currentColor" stroke="none"/></svg>
+              <span><b>Te pasaron {compartido.que} por WhatsApp.</b>{compartido.escribir
+                ? <> ¿Ya cursaste? <a href={compartido.escribir}>Sumá tu reseña</a>, así sigue sirviendo en el grupo.</>
+                : <> Esto es UTN REP: reseñas de cursos escritas por estudiantes.</>}</span>
+              <button type="button" class="x" aria-label="Cerrar" data-de-cerrar>×</button>
+            </div>
+          </div>
+        )}
         {legacy ? <div class="legacy"><slot /></div> : <slot />}
       </main>
 
@@ -186,6 +203,10 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
 </html>
 
 <script>
+  // ========== LINKS COMPARTIDOS (?de=) ==========
+  import { iniciarLinks } from '../scripts/links';
+  iniciarLinks();
+
   // ========== ÚLTIMA VISITA ==========
   import { visitaAnterior, textoVisita } from '../scripts/visitas';
   const anteriorVisita = visitaAnterior();

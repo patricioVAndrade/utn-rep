@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../../lib/supabase';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { checkRateLimit } from '../../../lib/rate-limit';
-import { json, readJson } from '../../../lib/http';
+import { json, readJson, esBloqueo, cuentaBloqueada } from '../../../lib/http';
 import { parseBody, reporteFinalSchema } from '../../../lib/validation';
 
 /**
@@ -27,6 +27,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const { error } = await supabaseAdmin.from('reportes_finales').insert({ final_id, user_id: user.id, motivo });
   if (error) {
+    if (esBloqueo(error)) return cuentaBloqueada();
     if (error.code === '23505') return json({ error: 'Ya reportaste esta experiencia.' }, 409);
     if (error.code === '23503') return json({ error: 'La experiencia ya no existe.' }, 404);
     console.error('[Reportar final] Error:', error);

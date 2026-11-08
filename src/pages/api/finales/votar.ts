@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../../lib/supabase';
 import { checkRateLimit } from '../../../lib/rate-limit';
-import { json, readJson } from '../../../lib/http';
+import { json, readJson, esBloqueo, cuentaBloqueada } from '../../../lib/http';
 import { parseBody, votoFinalSchema } from '../../../lib/validation';
 
 /**
@@ -25,6 +25,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const { data: votos, error } = await supabase.rpc('votar_final', { p_final_id: final_id, p_votar: accion === 'votar' });
   if (error) {
+    if (esBloqueo(error)) return cuentaBloqueada();
     if (error.code === '23503') return json({ error: 'La experiencia ya no existe.' }, 404);
     console.error('[Votar final] Error:', error);
     return json({ error: 'Error interno del servidor.' }, 500);
