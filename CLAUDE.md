@@ -51,6 +51,6 @@ Objetivo: publicarlo a mediados de diciembre de 2026, cuando terminan las cursad
 
 `npm run dev:mock` levanta el sitio con datos inventados (`dev/mock/`), sin Supabase. Con sesión y admin: `MOCK_USER=1 ADMIN_IDS=u-demo npm run dev:mock`. El mock implementa lo justo de PostgREST; si una página usa un filtro nuevo, agregalo en `dev/mock/supabase-mock.ts`.
 
-Desde la migración 10, pruebas primero (TDD): cada endpoint o regla nueva arranca con su prueba en `tests/` (con `vi.mock` de `supabase-admin` cuando toca la base). Lo que se puede probar a mano va en `docs/PRUEBAS-API.md`, que sirve de base para la colección de Postman que Pato quiere al terminar la etapa 3.
+Desde la migración 10, pruebas primero (TDD): cada endpoint o regla nueva arranca con su prueba en `tests/` (con `vi.mock` de `supabase-admin` cuando toca la base). Todas las pruebas (SQL `supabase/pruebas/verificar-todo.sql`, automáticas y endpoints) están juntas en `docs/PRUEBAS.md`; sumá ahí cada prueba nueva, que sirve de base para la colección de Postman que Pato quiere al terminar la etapa 3.
 
 Antes de subir: `npm run check`, `npm test` y `npm run build`. Revisá cada página a 390 px de ancho (sin scroll horizontal) y en modo noche.
