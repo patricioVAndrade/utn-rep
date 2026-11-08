@@ -247,17 +247,21 @@ const csrfToken = tokenCsrf(Astro.cookies);
     if (p.dictadosNuevos.length) plegable('Materias en cursos nuevos', null, p.dictadosNuevos, true);
 
     // Horarios (migración 12): se reemplaza el horario de cada curso marcado
-    const horariosSel: { cb: HTMLInputElement; h: any }[] = [];
+    const horariosSel: { cb: HTMLInputElement; crear: HTMLInputElement | null; h: any }[] = [];
     if (horarios.length) {
       const cuerpo = el('div', { class: 'imp-det' }, el('p', { class: 'sub' }, `Sirven para avisar en Mi inscripción si dos cursos se pisan. ${p.horariosIguales ? `Otros ${p.horariosIguales} ya están iguales en la base.` : ''}${horarios.some((h) => !h.materia_id) ? ' Los que dicen "elegí la materia arriba" se guardan con la que elijas en "Materias que no encontré".' : ''}`));
       for (const h of horarios) {
         const cb = check();
+        // Si el curso no tiene la materia (una electiva de un subgrupo, por ejemplo), se puede agregar
+        const crear = h.dictado_id ? null : check(false);
         if (h.materia_id && !h.dictado_id) cb.checked = false;
-        horariosSel.push({ cb, h });
-        cuerpo.append(el('label', { class: 'imp-box' },
-          el('div', { class: 'imp-tit' }, cb, ' ', el('b', {}, `${h.materia}, ${h.curso}`), el('span', { class: 'sub' }, !h.materia_id ? ' · elegí la materia arriba' : !h.dictado_id ? ' · este curso no tiene la materia en la base: no se guarda' : h.hoja === 'CSV' ? ' · CSV' : ` · pestaña ${h.hoja}`)),
+        crear?.addEventListener('change', () => { if (crear.checked) cb.checked = true; });
+        horariosSel.push({ cb, crear, h });
+        cuerpo.append(el('div', { class: 'imp-box' },
+          el('label', { class: 'imp-tit' }, cb, ' ', el('b', {}, `${h.materia}, ${h.curso}`), el('span', { class: 'sub' }, !h.materia_id ? ' · elegí la materia arriba' : !h.dictado_id ? ' · este curso no tiene la materia en la base' : h.hoja === 'CSV' ? ' · CSV' : ` · pestaña ${h.hoja}`)),
           h.antes ? el('div', { class: 'imp-line del' }, el('span', { class: 'imp-k' }, 'Antes'), el('span', {}, h.antes)) : null,
-          el('div', { class: 'imp-line add' }, el('span', { class: 'imp-k' }, h.antes ? 'Ahora' : 'Nuevo'), el('span', {}, h.ahora))));
+          el('div', { class: 'imp-line add' }, el('span', { class: 'imp-k' }, h.antes ? 'Ahora' : 'Nuevo'), el('span', {}, h.ahora)),
+          crear ? el('label', { class: 'imp-crear' }, crear, ` Agregar la materia a ${h.curso} si no la tiene`) : null));
       }
       det.append(el('details', { class: 'imp-sec', open: horarios.length <= 8 }, el('summary', {}, el('b', {}, `Horarios (${horarios.length})`)), cuerpo));
     }
@@ -289,7 +293,7 @@ const csrfToken = tokenCsrf(Astro.cookies);
         dictados,
         horarios: horariosSel
           .filter((x) => x.cb.checked)
-          .map(({ h }) => ({ curso_id: h.curso_id, curso: h.curso, materia_id: materiaDe(h), dictado_id: h.materia_id ? h.dictado_id : null, bloques: h.bloques }))
+          .map(({ h, crear }) => ({ curso_id: h.curso_id, curso: h.curso, materia_id: materiaDe(h), dictado_id: h.materia_id ? h.dictado_id : null, crear: !!crear?.checked, bloques: h.bloques }))
           .filter((h) => h.materia_id),
       };
       if (!body.cursosNuevos.length && !body.turnos.length && !dictados.length && !body.horarios.length) return aviso('bad', 'No dejaste nada marcado para guardar.');

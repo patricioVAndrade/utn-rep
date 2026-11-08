@@ -265,12 +265,12 @@ curso,materia,cuatrimestre,dia,desde,hasta
 1K16,Lógica y Estructuras Discretas,2,Sábado,9:40,10:25
 1K16,Lógica y Estructuras Discretas,2,Sábado,10:25,11:10
 1K16,Lógica y Estructuras Discretas,2,Sábado,12:05,12:50
-1K16,Sistemas y Procesos de Negocio,2,Martes,15:40,16:25
-1K16,Sistemas y Procesos de Negocio,2,Martes,16:35,17:20
-1K16,Sistemas y Procesos de Negocio,2,Martes,17:20,18:05
-1K16,Sistemas y Procesos de Negocio,2,Jueves,15:40,16:25
-1K16,Sistemas y Procesos de Negocio,2,Jueves,16:35,17:20
-1K16,Sistemas y Procesos de Negocio,2,Jueves,17:20,18:05
+1K16,Sistemas y Procesos de Negocios,2,Martes,15:40,16:25
+1K16,Sistemas y Procesos de Negocios,2,Martes,16:35,17:20
+1K16,Sistemas y Procesos de Negocios,2,Martes,17:20,18:05
+1K16,Sistemas y Procesos de Negocios,2,Jueves,15:40,16:25
+1K16,Sistemas y Procesos de Negocios,2,Jueves,16:35,17:20
+1K16,Sistemas y Procesos de Negocios,2,Jueves,17:20,18:05
 1K17,Algoritmos y Estructuras de Datos,,Martes,9:40,10:25
 1K17,Algoritmos y Estructuras de Datos,,Martes,10:25,11:10
 1K17,Algoritmos y Estructuras de Datos,,Jueves,8:00,8:45
@@ -1338,14 +1338,14 @@ curso,materia,cuatrimestre,dia,desde,hasta
 3K5,Análisis Numérico,2,Viernes,17:20,18:05
 3K5,Análisis Numérico,2,Viernes,18:15,19:00
 3K5,Análisis Numérico,2,Viernes,19:00,19:45
-3K5,Backend de Aplicaciones,1,Miércoles,19:55,20:40
-3K5,Backend de Aplicaciones,1,Miércoles,20:40,21:25
-3K5,Backend de Aplicaciones,1,Miércoles,21:35,22:20
-3K5,Backend de Aplicaciones,1,Miércoles,22:20,23:05
-3K5,Backend de Aplicaciones,1,Viernes,19:55,20:40
-3K5,Backend de Aplicaciones,1,Viernes,20:40,21:25
-3K5,Backend de Aplicaciones,1,Viernes,21:35,22:20
-3K5,Backend de Aplicaciones,1,Viernes,22:20,23:05
+3K5,Elec Backend,1,Miércoles,19:55,20:40
+3K5,Elec Backend,1,Miércoles,20:40,21:25
+3K5,Elec Backend,1,Miércoles,21:35,22:20
+3K5,Elec Backend,1,Miércoles,22:20,23:05
+3K5,Elec Backend,1,Viernes,19:55,20:40
+3K5,Elec Backend,1,Viernes,20:40,21:25
+3K5,Elec Backend,1,Viernes,21:35,22:20
+3K5,Elec Backend,1,Viernes,22:20,23:05
 3K5,Base de Datos,1,Martes,19:55,20:40
 3K5,Base de Datos,1,Martes,20:40,21:25
 3K5,Base de Datos,1,Martes,21:35,22:20
@@ -1815,12 +1815,12 @@ curso,materia,cuatrimestre,dia,desde,hasta
 5K2,Consultoría en Negocios Digitales,2,Viernes,13:15,14:00
 5K2,Consultoría en Negocios Digitales,2,Viernes,14:00,14:45
 5K2,Consultoría en Negocios Digitales,2,Viernes,14:55,15:40
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Miércoles,15:40,16:25
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Miércoles,16:35,17:20
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Miércoles,17:20,18:05
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Viernes,15:40,16:25
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Viernes,16:35,17:20
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Viernes,17:20,18:05
+5K2,Creatividad y desarrollo de Entornos virtuales,1,Miércoles,15:40,16:25
+5K2,Creatividad y desarrollo de Entornos virtuales,1,Miércoles,16:35,17:20
+5K2,Creatividad y desarrollo de Entornos virtuales,1,Miércoles,17:20,18:05
+5K2,Creatividad y desarrollo de Entornos virtuales,1,Viernes,15:40,16:25
+5K2,Creatividad y desarrollo de Entornos virtuales,1,Viernes,16:35,17:20
+5K2,Creatividad y desarrollo de Entornos virtuales,1,Viernes,17:20,18:05
 5K2,Decisiones en Escenarios Complejos,2,Miércoles,13:15,14:00
 5K2,Decisiones en Escenarios Complejos,2,Miércoles,14:00,14:45
 5K2,Decisiones en Escenarios Complejos,2,Miércoles,14:55,15:40

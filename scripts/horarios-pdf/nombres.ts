@@ -32,7 +32,16 @@ planillas.forEach((f, i) => {
 const deCurso = new Map([...porPlanilla].map(([c, l]) => [c, [...new Set(l.flat())]]));
 /** Busca primero entre los nombres de la primera planilla que tenga el curso, después en las demás. */
 function cargada(curso: string, materia: string): string | null {
-  for (const l of porPlanilla.get(curso) || []) {
+  return enListas(porPlanilla.get(curso) || [], materia);
+}
+/** La materia en otros cursos del mismo año (cuando el curso no la tiene cargada). */
+function deOtroCurso(curso: string, materia: string): string | null {
+  const anio = parseInt(curso, 10);
+  const listas = planillas.map((_, i) => [...new Set([...porPlanilla].filter(([c]) => parseInt(c, 10) === anio).flatMap(([, l]) => l[i]))]);
+  return enListas(listas, materia);
+}
+function enListas(listas: string[][], materia: string): string | null {
+  for (const l of listas) {
     if (!l.length) continue;
     const alias = (MISMA[materia] || []).find((x) => l.includes(x));
     if (alias) return alias;
@@ -49,8 +58,10 @@ for (const h of leidos.horarios) {
   const cargadas = deCurso.get(h.curso);
   if (!cargadas) { sinCruce.push(`${h.curso}: el curso no está en las planillas (${h.materia})`); continue; }
   const m = cargada(h.curso, h.materia);
-  if (m) nuevo.set(`${h.curso}|${h.materia}`, m);
-  else sinCruce.push(`${h.curso}: ${h.materia} no está cargada en ese curso`);
+  if (m) { nuevo.set(`${h.curso}|${h.materia}`, m); continue; }
+  const otro = deOtroCurso(h.curso, h.materia);
+  if (otro) nuevo.set(`${h.curso}|${h.materia}`, otro);
+  sinCruce.push(`${h.curso}: ${h.materia} no está cargada en ese curso${otro ? ` (en otros cursos se llama "${otro}")` : ''}`);
 }
 const usadas = new Set([...nuevo.entries()].map(([k, v]) => `${k.split('|')[0]}|${v}`));
 const faltan: string[] = [];

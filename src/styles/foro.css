@@ -659,6 +659,7 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
 .imp-row { display: flex; flex-wrap: wrap; gap: 6px 10px; justify-content: space-between; align-items: center; padding: 5px 8px; background: var(--row-a); border: 1px solid var(--line-soft); font-size: 12px; }
 .imp-box { display: grid; gap: 3px; padding: 6px 8px; border: 1px solid var(--line-soft); background: var(--box); font-size: 12px; }
 .imp-tit { margin-bottom: 2px; }
+.imp-crear { display: flex; gap: 6px; align-items: center; padding: 2px 4px; color: var(--muted); }
 .imp-sec { border: 1px solid var(--line); background: var(--row-a); }
 .imp-sec > summary { cursor: pointer; padding: 6px 8px; font-size: 12.5px; }
 .imp-sec > .imp-det { padding: 0 8px 8px; }

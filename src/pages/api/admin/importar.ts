@@ -179,7 +179,14 @@ async function aplicar(body: any) {
       const { data } = await supabaseAdmin.from('dictados').select('id').eq('materia_id', materiaId).eq('curso_id', cid).maybeSingle();
       dictadoId = data?.id ?? null;
     }
-    if (!dictadoId) { res.errores.push(`${h?.curso || '?'} no tiene esa materia: marcala también arriba para crearla.`); continue; }
+    // Una materia que el curso no tenía (por ejemplo, una electiva de un subgrupo): se agrega si lo pidió
+    if (!dictadoId && h?.crear === true) {
+      const { data, error } = await supabaseAdmin.from('dictados').insert({ materia_id: materiaId, curso_id: cid }).select('id').single();
+      if (error || !data) { res.errores.push(`No pude agregar la materia a ${h?.curso || '?'}.`); continue; }
+      dictadoId = data.id;
+      res.dictados++;
+    }
+    if (!dictadoId) { res.errores.push(`${h?.curso || '?'} no tiene esa materia: marcá "Agregarla al curso" para crearla.`); continue; }
     const { error: e1 } = await supabaseAdmin.from('horarios').delete().eq('dictado_id', dictadoId);
     const { error: e2 } = e1 ? { error: e1 } : await supabaseAdmin.from('horarios').insert(bloques.map((x) => ({ dictado_id: dictadoId, cuatri: x.cuatri, dia: x.dia, desde: horaBase(x.desde), hasta: horaBase(x.hasta) })));
     if (e1 || e2) res.errores.push(`No pude guardar el horario de ${h?.curso || '?'}. ¿Ya corriste la migración 12?`);

@@ -5,14 +5,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let esAdmin = true;
 const tablas: Record<string, unknown[]> = {};
+const hechas: { tabla: string; op: string; args: unknown[] }[] = [];
 
 vi.mock('../src/lib/admin-guards', () => ({ requireAdmin: async () => (esAdmin ? { id: 'admin' } : null) }));
 vi.mock('../src/lib/supabase-admin', () => ({
   supabaseAdmin: {
     from: (t: string) => {
-      const q: any = {};
-      for (const m of ['select', 'eq', 'range']) q[m] = () => q;
-      q.then = (ok: any) => Promise.resolve({ data: tablas[t] ?? [], error: null }).then(ok);
+      const q: any = { op: 'select' };
+      for (const m of ['select', 'eq', 'range', 'insert', 'delete', 'maybeSingle', 'single']) {
+        q[m] = (...args: unknown[]) => {
+          if (['insert', 'delete'].includes(m)) { q.op = m; hechas.push({ tabla: t, op: m, args }); }
+          if (m === 'maybeSingle') q.uno = true;
+          if (m === 'single') q.nuevo = true;
+          return q;
+        };
+      }
+      q.then = (ok: any) => Promise.resolve(q.nuevo ? { data: { id: 555 }, error: null } : q.uno ? { data: null, error: null } : { data: q.op === 'select' ? tablas[t] ?? [] : null, error: null }).then(ok);
       return q;
     },
   },
@@ -29,6 +37,7 @@ const subir = async (nombre: string, texto: string) => {
 
 beforeEach(() => {
   esAdmin = true;
+  hechas.length = 0;
   tablas.materias = [{ id: 1, nombre: 'Economía', nivel: 3 }];
   tablas.cursos = [{ id: 10, identificador: '3K1', turno: 'MAÑANA', anio_carrera: 3 }];
   tablas.profesores = [];
@@ -49,5 +58,26 @@ describe('POST /api/admin/importar (vista previa)', () => {
   it('si no hay ni equipos ni horarios de cursos K → 400', async () => {
     const r = await subir('h.csv', 'curso,materia,cuatrimestre,dia,desde,hasta\n3R1,Química,1,Lunes,8:00,8:45\n');
     expect(r.status).toBe(400);
+  });
+});
+
+describe('POST /api/admin/importar (guardar horarios)', () => {
+  const guardar = async (horarios: unknown[]) => {
+    const res = await POST({ request: new Request('http://x/api/admin/importar', { method: 'POST', body: JSON.stringify({ accion: 'aplicar', horarios }), headers: { 'Content-Type': 'application/json' } }), cookies: {} } as any);
+    return res.json();
+  };
+  const bloques = [{ cuatri: 1, dia: 3, desde: 1195, hasta: 1385 }];
+  it('si el curso no tiene la materia y no se pidió crearla, no guarda', async () => {
+    const r = await guardar([{ curso_id: 10, curso: '3K5', materia_id: 1, dictado_id: null, bloques }]);
+    expect(r.horarios).toBe(0);
+    expect(r.errores[0]).toContain('3K5');
+    expect(hechas).toEqual([]);
+  });
+  it('con crear: true agrega la materia al curso y guarda el horario', async () => {
+    const r = await guardar([{ curso_id: 10, curso: '3K5', materia_id: 1, dictado_id: null, crear: true, bloques }]);
+    expect(r.horarios).toBe(1);
+    expect(r.dictados).toBe(1);
+    expect(hechas.find((h) => h.tabla === 'dictados')?.args[0]).toEqual({ materia_id: 1, curso_id: 10 });
+    expect(hechas.find((h) => h.tabla === 'horarios' && h.op === 'insert')?.args[0]).toEqual([{ dictado_id: 555, cuatri: 1, dia: 3, desde: '19:55', hasta: '23:05' }]);
   });
 });
