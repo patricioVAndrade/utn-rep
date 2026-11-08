@@ -107,7 +107,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 
 ## Importar cuatrimestre (nuevo)
 
-`/admin/importar`. Pegás los links de las planillas de horarios (Sistemas, una pestaña por curso; Básicas, una pestaña por materia) o subís el .xlsx o un CSV. Lee solo cursos con K, compara con la base y muestra qué cambia: cursos nuevos (con su turno), materias que no encontró, equipos que cambian, profesores nuevos. Nada se guarda hasta tocar Guardar, y solo lo que dejás marcado. Las pestañas de subgrupos de electivas (4K1A, 4K1B) se saltean. Las planillas tienen que estar compartidas como "cualquiera con el link". Probado con la de 4.º año y la de Básicas en datos inventados; falta probarlo en la base de prueba.
+`/admin/importar`. Pegás los links de las planillas de horarios (Sistemas, una pestaña por curso; Básicas, una pestaña por materia) o subís el .xlsx o un CSV. Lee solo cursos con K, compara con la base y muestra qué cambia: cursos nuevos (con su turno), materias que no encontró, equipos que cambian, profesores nuevos. Nada se guarda hasta tocar Guardar, y solo lo que dejás marcado. Las pestañas de subgrupos de electivas (4K1A, 4K1B) se saltean. Las planillas tienen que estar compartidas como "cualquiera con el link". También lee un CSV de horarios (curso, materia, cuatrimestre, dia, desde, hasta) que gana sobre las planillas: `datos/horarios-2026-pdf.csv` tiene los de todos los años sacados de los PDF oficiales (`scripts/horarios-pdf/`). Probado con la de 4.º año y la de Básicas en datos inventados; falta probarlo en la base de prueba.
 
 ## Cómo probarlo
 

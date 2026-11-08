@@ -77,7 +77,7 @@ async function previa(request: Request) {
     }
   }
   const lectura = juntar(lecturas);
-  if (!lectura.asignaciones.length) return json({ error: 'No encontré cursos de Sistemas (con K) en lo que mandaste.', omitidas: lectura.omitidas }, 400);
+  if (!lectura.asignaciones.length && !lectura.horarios.length) return json({ error: 'No encontré cursos de Sistemas (con K) en lo que mandaste.', omitidas: lectura.omitidas }, 400);
   const base = await traerBase();
   return json({ previa: compararConBase(lectura.asignaciones, base, lectura.horarios), omitidas: lectura.omitidas, materias: base.materias.map((m) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel })) });
 }

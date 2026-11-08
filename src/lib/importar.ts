@@ -21,9 +21,10 @@ export type Base = {
 export type CambioHorario = {
   clave: string;
   curso: string;
-  curso_id: number | null;
-  materia: string;
-  materia_id: number;
+  curso_id: number;
+  materia: string; // nombre en la base, o el de la planilla si no se encontró
+  materia_planilla: string;
+  materia_id: number | null;
   dictado_id: number | null;
   antes: string;
   ahora: string;
@@ -65,6 +66,8 @@ export type Previa = {
   sinCambios: number;
   horarios: CambioHorario[];
   horariosIguales: number;
+  /** Cursos de los horarios que no están en la base. */
+  horariosSinCurso: string[];
   leidos: { cursos: number; materias: number };
 };
 
@@ -150,7 +153,7 @@ export function buscarProfesor(nombre: string, indice: Indice[]): Entra {
 }
 
 export function compararConBase(asignaciones: Asignacion[], base: Base, horarios: HorarioLeido[] = []): Previa {
-  const previa: Previa = { cursosNuevos: [], turnoDistinto: [], materiasSinCoincidencia: [], dictadosNuevos: [], cambiosDeEquipo: [], profesoresNuevos: [], sinCambios: 0, horarios: [], horariosIguales: 0, leidos: { cursos: 0, materias: 0 } };
+  const previa: Previa = { cursosNuevos: [], turnoDistinto: [], materiasSinCoincidencia: [], dictadosNuevos: [], cambiosDeEquipo: [], profesoresNuevos: [], sinCambios: 0, horarios: [], horariosIguales: 0, horariosSinCurso: [], leidos: { cursos: 0, materias: 0 } };
   const cursoPorIdent = new Map(base.cursos.map((c) => [c.identificador.toUpperCase(), c]));
   const profPorId = new Map(base.profesores.map((p) => [p.id, p]));
   const dictadoPor = new Map(base.dictados.map((d) => [`${d.curso_id}-${d.materia_id}`, d]));
@@ -241,26 +244,37 @@ function compararHorarios(horarios: HorarioLeido[], base: Base, previa: Previa) 
   const dictadoPor = new Map(base.dictados.map((d) => [`${d.curso_id}-${d.materia_id}`, d]));
   const deBase = new Map<number, Base['horarios']>();
   (base.horarios || []).forEach((h) => deBase.set(h.dictado_id, [...(deBase.get(h.dictado_id) || []), h]));
-  // Si una materia está en las dos planillas, gana la de Sistemas
-  const elegidos = new Map<string, { h: HorarioLeido; materia: BaseMateria }>();
+  // Si una materia está en varias fuentes, gana el CSV (los PDF oficiales),
+  // después la planilla de Sistemas y por último la de Básicas.
+  const prioridad = { csv: 0, sistemas: 1, basicas: 2 } as const;
+  const elegidos = new Map<string, { h: HorarioLeido; materia: BaseMateria | null }>();
+  const sinCurso = new Set<string>();
   for (const h of horarios) {
-    const { materia } = buscarMateria(h.materia, base.materias, parseInt(h.curso, 10) || 0);
-    if (!materia) continue;
-    const k = `${h.curso}|${materia.id}`;
+    if (!cursoPorIdent.has(h.curso)) { sinCurso.add(h.curso); continue; }
+    const { materia, sugerencias } = buscarMateria(h.materia, base.materias, parseInt(h.curso, 10) || 0);
+    if (!materia) {
+      // Se pide en "Materias que no encontré", junto con las de los equipos
+      const s = previa.materiasSinCoincidencia.find((x) => norm(x.nombre) === norm(h.materia));
+      if (s) { if (!s.cursos.includes(h.curso)) s.cursos = [...s.cursos, h.curso].sort(); }
+      else previa.materiasSinCoincidencia.push({ nombre: h.materia, cursos: [h.curso], sugerencias });
+    }
+    const k = `${h.curso}|${materia ? `m${materia.id}` : norm(h.materia)}`;
     const prev = elegidos.get(k);
-    if (!prev || (prev.h.formato === 'basicas' && h.formato === 'sistemas')) elegidos.set(k, { h, materia });
+    if (!prev || prioridad[h.formato] < prioridad[prev.h.formato]) elegidos.set(k, { h, materia });
   }
+  previa.horariosSinCurso = [...sinCurso].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
   for (const [k, { h, materia }] of elegidos) {
-    const curso = cursoPorIdent.get(h.curso);
-    const dictado = curso ? dictadoPor.get(`${curso.id}-${materia.id}`) : undefined;
+    const curso = cursoPorIdent.get(h.curso)!;
+    const dictado = materia ? dictadoPor.get(`${curso.id}-${materia.id}`) : undefined;
     const antes = dictado ? bloquesDeBase(deBase.get(dictado.id) || []) : [];
     if (antes.length && mismoHorario(antes, h.bloques)) { previa.horariosIguales++; continue; }
     previa.horarios.push({
       clave: k,
       curso: h.curso,
-      curso_id: curso?.id ?? null,
-      materia: materia.nombre,
-      materia_id: materia.id,
+      curso_id: curso.id,
+      materia: materia?.nombre ?? h.materia,
+      materia_planilla: h.materia,
+      materia_id: materia?.id ?? null,
       dictado_id: dictado?.id ?? null,
       antes: textoBloques(antes),
       ahora: textoBloques(h.bloques),

@@ -24,7 +24,7 @@ export type HorarioLeido = {
   curso: string;
   materia: string; // como está en la tabla de materias de la pestaña
   bloques: Bloque[];
-  formato: 'sistemas' | 'basicas';
+  formato: 'sistemas' | 'basicas' | 'csv';
   hoja: string;
 };
 
@@ -274,18 +274,26 @@ export function partirCsv(texto: string): string[][] {
 }
 
 /**
- * CSV cargado a mano: columnas curso, materia, docentes y (opcional) turno.
- * Los docentes van separados por " | " o por ";" dentro de la celda.
+ * CSV cargado a mano, de dos clases:
+ *  - Equipos: columnas curso, materia, docentes y (opcional) turno. Los
+ *    docentes van separados por " | " o por ";" dentro de la celda.
+ *  - Horarios (por ejemplo, los PDF oficiales pasados a CSV): columnas curso,
+ *    materia, cuatrimestre (1, 2 o vacío si es anual), dia, desde y hasta. Una
+ *    fila por módulo; se juntan los de cada curso y materia.
  */
 export function leerCsv(texto: string): LecturaPlanilla {
   const out: LecturaPlanilla = { asignaciones: [], horarios: [], omitidas: [] };
-  const filas = partirCsv(texto.replace(/^﻿/, ''));
+  const filas = partirCsv(texto.replace(/^\ufeff/, ''));
   const enc = (filas[0] || []).map(clave);
   const iC = enc.findIndex((c) => c === 'curso');
   const iM = enc.findIndex((c) => c === 'materia');
   const iD = enc.findIndex((c) => /^(docentes?|profesor(es)?)$/.test(c));
   const iT = enc.findIndex((c) => c === 'turno');
-  if (iC < 0 || iM < 0 || iD < 0) throw new Error('El CSV tiene que tener las columnas curso, materia y docentes.');
+  const iDia = enc.findIndex((c) => c === 'dia');
+  const iDesde = enc.findIndex((c) => c === 'desde');
+  const iHasta = enc.findIndex((c) => c === 'hasta');
+  if (iC >= 0 && iM >= 0 && iD < 0 && iDia >= 0 && iDesde >= 0 && iHasta >= 0) return leerCsvHorarios(filas, iC, iM, enc.findIndex((c) => /^cuatri(mestre)?$/.test(c)), iDia, iDesde, iHasta);
+  if (iC < 0 || iM < 0 || iD < 0) throw new Error('El CSV tiene que tener las columnas curso, materia y docentes (o curso, materia, cuatrimestre, dia, desde y hasta).');
   for (const f of filas.slice(1)) {
     const curso = limpiar(f[iC] || '').toUpperCase();
     const materia = limpiar(f[iM] || '');
@@ -294,6 +302,33 @@ export function leerCsv(texto: string): LecturaPlanilla {
     const docentes = (f[iD] || '').split(/\s*[|;]\s*|\r?\n/).map(limpiar).filter(Boolean);
     out.asignaciones.push({ curso, turno: iT >= 0 ? turnoDe(f[iT] || '') : null, materia, docentes, formato: 'csv', hoja: 'CSV' });
   }
+  return out;
+}
+
+function leerCsvHorarios(filas: string[][], iC: number, iM: number, iQ: number, iDia: number, iDesde: number, iHasta: number): LecturaPlanilla {
+  const out: LecturaPlanilla = { asignaciones: [], horarios: [], omitidas: [] };
+  const grupos = new Map<string, { curso: string; materia: string; bloques: Bloque[] }>();
+  filas.slice(1).forEach((f, i) => {
+    const curso = limpiar(f[iC] || '').toUpperCase();
+    const materia = limpiar(f[iM] || '');
+    if (!curso && !materia) return;
+    if (!CURSO_K.test(curso)) { out.omitidas.push({ hoja: curso || '?', motivo: 'No es un curso de Sistemas (K)' }); return; }
+    const q = clave(iQ >= 0 ? f[iQ] || '' : '');
+    const cuatri = /^(1|1er|1ro|primer)/.test(q) ? 1 : /^(2|2do|segundo)/.test(q) ? 2 : !q || q === 'anual' ? null : undefined;
+    const d = limpiar(f[iDia] || '');
+    const dia = /^[1-6]$/.test(d) ? Number(d) : diaDe(d);
+    const desde = hora(f[iDesde]);
+    const hasta = hora(f[iHasta]);
+    if (!materia || cuatri === undefined || !dia || desde === null || hasta === null || hasta <= desde) {
+      out.omitidas.push({ hoja: curso, motivo: `Fila ${i + 2}: no entendí el horario` });
+      return;
+    }
+    const k = `${curso}|${clave(materia)}`;
+    const g = grupos.get(k) || { curso, materia, bloques: [] };
+    g.bloques.push({ cuatri, dia, desde, hasta });
+    grupos.set(k, g);
+  });
+  for (const g of grupos.values()) out.horarios.push({ ...g, bloques: juntarBloques(g.bloques), formato: 'csv', hoja: 'CSV' });
   return out;
 }
 

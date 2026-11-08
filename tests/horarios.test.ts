@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { leerXlsx, rellenarCombinadas } from '../src/lib/xlsx';
-import { leerPlanilla } from '../src/lib/planilla';
+import { leerCsv, leerPlanilla } from '../src/lib/planilla';
 import { compararConBase } from '../src/lib/importar';
 import {
   bloquesDeBase, bloquesValidos, costoSigla, hora, horaTexto, juntarBloques, mismoHorario, superposiciones, textoBloques, type Bloque,
@@ -206,8 +206,51 @@ describe('importar: horarios que cambian', () => {
     expect(previa.horarios[0].ahora).toBe('1.er cuatri: Martes 12:05 a 12:50 · Martes 13:15 a 14:45');
     expect(previa.horariosIguales).toBe(1);
   });
-  it('si la materia no está en la base, no se puede guardar el horario', () => {
+  it('si la materia no está en la base, la pide en "Materias que no encontré" y deja el horario sin materia', () => {
     const previa = compararConBase([], base, [{ curso: '4K2', materia: 'Green Software', bloques: [b(1, '8:00', '9:00', 1)], formato: 'sistemas', hoja: '4k2' }]);
+    expect(previa.materiasSinCoincidencia).toEqual([expect.objectContaining({ nombre: 'Green Software', cursos: ['4K2'] })]);
+    expect(previa.horarios).toEqual([expect.objectContaining({ curso: '4K2', materia: 'Green Software', materia_planilla: 'Green Software', materia_id: null, dictado_id: null, antes: '' })]);
+  });
+  it('los cursos que no están en la base se avisan aparte y no se ofrecen', () => {
+    const previa = compararConBase([], base, [{ curso: '4K9', materia: 'Simulación', bloques: [b(1, '8:00', '9:00')], formato: 'csv', hoja: 'CSV' }]);
     expect(previa.horarios).toEqual([]);
+    expect(previa.horariosSinCurso).toEqual(['4K9']);
+  });
+  it('el CSV de horarios (los PDF oficiales) le gana a las planillas', () => {
+    const previa = compararConBase([], base, [
+      { curso: '4K2', materia: 'Simulación', bloques: [b(2, '8:00', '9:00', 1)], formato: 'sistemas', hoja: '4k2' },
+      { curso: '4K2', materia: 'Simulación', bloques: [b(3, '8:00', '9:00', 1)], formato: 'csv', hoja: 'CSV' },
+    ]);
+    expect(previa.horarios).toHaveLength(1);
+    expect(previa.horarios[0].ahora).toBe('1.er cuatri: Miércoles 8:00 a 9:00');
+  });
+});
+
+describe('CSV de horarios', () => {
+  it('lee una fila por módulo y junta los de cada curso y materia', () => {
+    const r = leerCsv([
+      'curso,materia,cuatrimestre,dia,desde,hasta',
+      '3K1,Comunicación de Datos,1,Lunes,10:25,11:10',
+      '3K1,Comunicación de Datos,1,lunes,11:20,12:05',
+      '3K1,Comunicación de Datos,2,Miércoles,8:00,8:45',
+      '3k1,Economía,,Martes,11:20,12:50',
+      '3K1,Economía,anual,5,9:40,10:25',
+    ].join('\n'));
+    expect(r.asignaciones).toEqual([]);
+    expect(r.horarios).toHaveLength(2);
+    const com = r.horarios.find((h) => h.materia === 'Comunicación de Datos')!;
+    expect(com).toMatchObject({ curso: '3K1', formato: 'csv', hoja: 'CSV' });
+    expect(textoBloques(com.bloques)).toBe('1.er cuatri: Lunes 10:25 a 12:05 · 2.º cuatri: Miércoles 8:00 a 8:45');
+    const eco = r.horarios.find((h) => h.materia === 'Economía')!;
+    expect(eco.curso).toBe('3K1');
+    expect(textoBloques(eco.bloques)).toBe('Martes 11:20 a 12:50 · Viernes 9:40 a 10:25');
+  });
+  it('avisa las filas que no entiende y los cursos que no son K', () => {
+    const r = leerCsv('curso;materia;cuatrimestre;dia;desde;hasta\n3K1;Economía;1;Domingo;8:00;9:00\n3K1;Economía;1;Lunes;9:00;8:00\n3R1;Química;1;Lunes;8:00;9:00\n');
+    expect(r.horarios).toEqual([]);
+    expect(r.omitidas.map((o) => o.hoja)).toEqual(['3K1', '3K1', '3R1']);
+  });
+  it('un CSV sin docentes ni horarios no se puede leer', () => {
+    expect(() => leerCsv('curso,materia\n3K1,Economía\n')).toThrow();
   });
 });

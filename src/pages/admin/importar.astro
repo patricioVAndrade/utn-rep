@@ -27,7 +27,7 @@ const csrfToken = tokenCsrf(Astro.cookies);
         <Icon name="info" />
         <div>
           <b>Qué se lee</b>
-          Solo los cursos de Sistemas (los que tienen K, como 4K1). En la planilla de cada año se lee la tabla "Materia / Docentes" y la grilla de horarios de cada pestaña (entiende las siglas, como ADSI o IOP). En la de básicas, cada pestaña es una materia y se leen solo las filas de cursos K, con los horarios de cada día. Si una materia aparece en las dos, vale la de Sistemas. Las planillas tienen que estar compartidas como "Cualquier persona con el vínculo".
+          Solo los cursos de Sistemas (los que tienen K, como 4K1). En la planilla de cada año se lee la tabla "Materia / Docentes" y la grilla de horarios de cada pestaña (entiende las siglas, como ADSI o IOP). En la de básicas, cada pestaña es una materia y se leen solo las filas de cursos K, con los horarios de cada día. Si una materia aparece en las dos, vale la de Sistemas. También podés subir un .csv de horarios (columnas curso, materia, cuatrimestre, dia, desde y hasta, una fila por módulo), que le gana a las planillas. Las planillas tienen que estar compartidas como "Cualquier persona con el vínculo".
         </div>
       </div>
 
@@ -42,7 +42,7 @@ const csrfToken = tokenCsrf(Astro.cookies);
             <label class="btn secondary" for="archivo">Subir .xlsx o .csv</label>
             <input type="file" id="archivo" accept=".xlsx,.csv" multiple class="sr" />
           </div>
-          <span class="sub">El CSV lleva las columnas curso, materia, docentes y turno (opcional). Los docentes van separados por "|".</span>
+          <span class="sub">El CSV de equipos lleva las columnas curso, materia, docentes y turno (opcional); los docentes van separados por "|". El de horarios: curso, materia, cuatrimestre (1, 2 o vacío si es anual), dia, desde y hasta.</span>
         </div>
       </section>
 
@@ -141,7 +141,8 @@ const csrfToken = tokenCsrf(Astro.cookies);
     if (p.turnoDistinto.length) fila('chg', `~ ${p.turnoDistinto.length} turno${p.turnoDistinto.length !== 1 ? 's' : ''} distinto${p.turnoDistinto.length !== 1 ? 's' : ''}`, lista(p.turnoDistinto.map((t: any) => `${t.identificador}: ${TURNO_TXT[t.antes] || t.antes || 'sin turno'} → ${TURNO_TXT[t.ahora]}`)));
     if (p.materiasSinCoincidencia.length) fila('del', `! ${p.materiasSinCoincidencia.length} materia${p.materiasSinCoincidencia.length !== 1 ? 's' : ''} que no encontré`, lista(p.materiasSinCoincidencia.map((m: any) => m.nombre)));
     if (horarios.length) fila('chg', `~ ${horarios.length} horario${horarios.length !== 1 ? 's' : ''} nuevo${horarios.length !== 1 ? 's' : ''} o distinto${horarios.length !== 1 ? 's' : ''}`, lista(horarios.map((h: any) => `${h.materia} ${h.curso}`), 3));
-    fila('', `= ${p.sinCambios} sin cambios`, `Leí ${p.leidos.cursos} cursos y ${p.leidos.materias} materias en total.`);
+    if (p.horariosSinCurso?.length) fila('del', `! ${p.horariosSinCurso.length} curso${p.horariosSinCurso.length !== 1 ? 's' : ''} con horario que no está${p.horariosSinCurso.length !== 1 ? 'n' : ''} en la base`, lista(p.horariosSinCurso, 6));
+    fila('', `= ${p.leidos.cursos ? p.sinCambios : p.horariosIguales} sin cambios`, p.leidos.cursos ? `Leí ${p.leidos.cursos} cursos y ${p.leidos.materias} materias en total.` : `Leí ${horarios.length + p.horariosIguales} horarios.`);
     if (data.omitidas?.length) fila('', `${data.omitidas.length} pestaña${data.omitidas.length !== 1 ? 's' : ''} sin leer`, lista(data.omitidas.map((o: any) => `${o.hoja} (${o.motivo.toLowerCase()})`), 3));
 
     const cont: Node[] = [el('section', { class: 'panel' }, el('h3', {}, '2. Qué cambia'), el('div', { class: 'in' }, resumen))];
@@ -248,12 +249,13 @@ const csrfToken = tokenCsrf(Astro.cookies);
     // Horarios (migración 12): se reemplaza el horario de cada curso marcado
     const horariosSel: { cb: HTMLInputElement; h: any }[] = [];
     if (horarios.length) {
-      const cuerpo = el('div', { class: 'imp-det' }, el('p', { class: 'sub' }, `Sirven para avisar en Mi inscripción si dos cursos se pisan. ${p.horariosIguales ? `Otros ${p.horariosIguales} ya están iguales en la base.` : ''}`));
+      const cuerpo = el('div', { class: 'imp-det' }, el('p', { class: 'sub' }, `Sirven para avisar en Mi inscripción si dos cursos se pisan. ${p.horariosIguales ? `Otros ${p.horariosIguales} ya están iguales en la base.` : ''}${horarios.some((h) => !h.materia_id) ? ' Los que dicen "elegí la materia arriba" se guardan con la que elijas en "Materias que no encontré".' : ''}`));
       for (const h of horarios) {
         const cb = check();
+        if (h.materia_id && !h.dictado_id) cb.checked = false;
         horariosSel.push({ cb, h });
         cuerpo.append(el('label', { class: 'imp-box' },
-          el('div', { class: 'imp-tit' }, cb, ' ', el('b', {}, `${h.materia}, ${h.curso}`), el('span', { class: 'sub' }, ` · pestaña ${h.hoja}`)),
+          el('div', { class: 'imp-tit' }, cb, ' ', el('b', {}, `${h.materia}, ${h.curso}`), el('span', { class: 'sub' }, !h.materia_id ? ' · elegí la materia arriba' : !h.dictado_id ? ' · este curso no tiene la materia en la base: no se guarda' : h.hoja === 'CSV' ? ' · CSV' : ` · pestaña ${h.hoja}`)),
           h.antes ? el('div', { class: 'imp-line del' }, el('span', { class: 'imp-k' }, 'Antes'), el('span', {}, h.antes)) : null,
           el('div', { class: 'imp-line add' }, el('span', { class: 'imp-k' }, h.antes ? 'Ahora' : 'Nuevo'), el('span', {}, h.ahora))));
       }
@@ -285,7 +287,10 @@ const csrfToken = tokenCsrf(Astro.cookies);
         cursosNuevos: cursosSel.filter((c) => c.cb.checked).map((c) => ({ identificador: c.ident, turno: c.turno.value })),
         turnos: turnosSel.filter((t) => t.cb.checked).map((t) => ({ curso_id: t.curso_id, turno: t.turno })),
         dictados,
-        horarios: horariosSel.filter((x) => x.cb.checked).map(({ h }) => ({ curso_id: h.curso_id, curso: h.curso, materia_id: h.materia_id, dictado_id: h.dictado_id, bloques: h.bloques })),
+        horarios: horariosSel
+          .filter((x) => x.cb.checked)
+          .map(({ h }) => ({ curso_id: h.curso_id, curso: h.curso, materia_id: materiaDe(h), dictado_id: h.materia_id ? h.dictado_id : null, bloques: h.bloques }))
+          .filter((h) => h.materia_id),
       };
       if (!body.cursosNuevos.length && !body.turnos.length && !dictados.length && !body.horarios.length) return aviso('bad', 'No dejaste nada marcado para guardar.');
       const sinTurno = body.cursosNuevos.filter((c) => !c.turno).map((c) => c.identificador);

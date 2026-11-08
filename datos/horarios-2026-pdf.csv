@@ -1,0 +1,2002 @@
+curso,materia,cuatrimestre,dia,desde,hasta
+1K1,Algoritmos y Estructuras de Datos,,Martes,11:20,12:05
+1K1,Algoritmos y Estructuras de Datos,,Martes,12:05,12:50
+1K1,Algoritmos y Estructuras de Datos,,Martes,13:15,14:00
+1K1,Algoritmos y Estructuras de Datos,,Miércoles,8:00,8:45
+1K1,Algoritmos y Estructuras de Datos,,Miércoles,8:45,9:30
+1K1,Análisis Matemático I,,Lunes,8:00,8:45
+1K1,Análisis Matemático I,,Lunes,8:45,9:30
+1K1,Análisis Matemático I,,Lunes,9:40,10:25
+1K1,Análisis Matemático I,,Martes,8:00,8:45
+1K1,Análisis Matemático I,,Martes,8:45,9:30
+1K1,Arquitectura de Computadoras,2,Jueves,9:40,10:25
+1K1,Arquitectura de Computadoras,2,Jueves,10:25,11:10
+1K1,Arquitectura de Computadoras,2,Jueves,11:20,12:05
+1K1,Arquitectura de Computadoras,2,Jueves,12:05,12:50
+1K1,Arquitectura de Computadoras,2,Viernes,8:00,8:45
+1K1,Arquitectura de Computadoras,2,Viernes,8:45,9:30
+1K1,Arquitectura de Computadoras,2,Viernes,9:40,10:25
+1K1,Arquitectura de Computadoras,2,Viernes,10:25,11:10
+1K1,Física I,,Martes,9:40,10:25
+1K1,Física I,,Martes,10:25,11:10
+1K1,Física I,,Miércoles,9:40,10:25
+1K1,Física I,,Miércoles,10:25,11:10
+1K1,Física I,,Miércoles,11:20,12:05
+1K1,Ingeniería y Sociedad,2,Jueves,8:00,8:45
+1K1,Ingeniería y Sociedad,2,Jueves,8:45,9:30
+1K1,Ingeniería y Sociedad,2,Viernes,11:20,12:05
+1K1,Ingeniería y Sociedad,2,Viernes,12:05,12:50
+1K1,Inglés I,,Lunes,13:15,14:00
+1K1,Inglés I,,Lunes,14:00,14:45
+1K1,Lógica y Estructuras Discretas,1,Jueves,8:00,8:45
+1K1,Lógica y Estructuras Discretas,1,Jueves,8:45,9:30
+1K1,Lógica y Estructuras Discretas,1,Jueves,9:40,10:25
+1K1,Lógica y Estructuras Discretas,1,Viernes,10:25,11:10
+1K1,Lógica y Estructuras Discretas,1,Viernes,11:20,12:05
+1K1,Lógica y Estructuras Discretas,1,Viernes,12:05,12:50
+1K1,Sistemas y Procesos de Negocio,1,Jueves,10:25,11:10
+1K1,Sistemas y Procesos de Negocio,1,Jueves,11:20,12:05
+1K1,Sistemas y Procesos de Negocio,1,Jueves,12:05,12:50
+1K1,Sistemas y Procesos de Negocio,1,Viernes,8:00,8:45
+1K1,Sistemas y Procesos de Negocio,1,Viernes,8:45,9:30
+1K1,Sistemas y Procesos de Negocio,1,Viernes,9:40,10:25
+1K1,Álgebra y Geometría Analítica,,Lunes,10:25,11:10
+1K1,Álgebra y Geometría Analítica,,Lunes,11:20,12:05
+1K1,Álgebra y Geometría Analítica,,Lunes,12:05,12:50
+1K1,Álgebra y Geometría Analítica,,Miércoles,12:05,12:50
+1K1,Álgebra y Geometría Analítica,,Miércoles,13:15,14:00
+1K10,Algoritmos y Estructuras de Datos,,Martes,14:55,15:40
+1K10,Algoritmos y Estructuras de Datos,,Martes,15:40,16:25
+1K10,Algoritmos y Estructuras de Datos,,Viernes,12:05,12:50
+1K10,Algoritmos y Estructuras de Datos,,Viernes,13:15,14:00
+1K10,Algoritmos y Estructuras de Datos,,Viernes,14:00,14:45
+1K10,Análisis Matemático I,,Martes,12:05,12:50
+1K10,Análisis Matemático I,,Martes,13:15,14:00
+1K10,Análisis Matemático I,,Martes,14:00,14:45
+1K10,Análisis Matemático I,,Viernes,14:55,15:40
+1K10,Análisis Matemático I,,Viernes,15:40,16:25
+1K10,Arquitectura de Computadoras,2,Miércoles,14:55,15:40
+1K10,Arquitectura de Computadoras,2,Miércoles,15:40,16:25
+1K10,Arquitectura de Computadoras,2,Miércoles,16:35,17:20
+1K10,Arquitectura de Computadoras,2,Miércoles,17:20,18:05
+1K10,Arquitectura de Computadoras,2,Jueves,13:15,14:00
+1K10,Arquitectura de Computadoras,2,Jueves,14:00,14:45
+1K10,Arquitectura de Computadoras,2,Jueves,14:55,15:40
+1K10,Arquitectura de Computadoras,2,Jueves,15:40,16:25
+1K10,Física I,,Lunes,15:40,16:25
+1K10,Física I,,Lunes,16:35,17:20
+1K10,Física I,,Lunes,17:20,18:05
+1K10,Física I,,Martes,16:35,17:20
+1K10,Física I,,Martes,17:20,18:05
+1K10,Ingeniería y Sociedad,2,Miércoles,13:15,14:00
+1K10,Ingeniería y Sociedad,2,Miércoles,14:00,14:45
+1K10,Ingeniería y Sociedad,2,Jueves,16:35,17:20
+1K10,Ingeniería y Sociedad,2,Jueves,17:20,18:05
+1K10,Inglés I,,Jueves,9:40,10:25
+1K10,Inglés I,,Jueves,10:25,11:10
+1K10,Lógica y Estructuras Discretas,1,Miércoles,13:15,14:00
+1K10,Lógica y Estructuras Discretas,1,Miércoles,14:00,14:45
+1K10,Lógica y Estructuras Discretas,1,Miércoles,14:55,15:40
+1K10,Lógica y Estructuras Discretas,1,Jueves,15:40,16:25
+1K10,Lógica y Estructuras Discretas,1,Jueves,16:35,17:20
+1K10,Lógica y Estructuras Discretas,1,Jueves,17:20,18:05
+1K10,Sistemas y Procesos de Negocio,1,Miércoles,15:40,16:25
+1K10,Sistemas y Procesos de Negocio,1,Miércoles,16:35,17:20
+1K10,Sistemas y Procesos de Negocio,1,Miércoles,17:20,18:05
+1K10,Sistemas y Procesos de Negocio,1,Jueves,13:15,14:00
+1K10,Sistemas y Procesos de Negocio,1,Jueves,14:00,14:45
+1K10,Sistemas y Procesos de Negocio,1,Jueves,14:55,15:40
+1K10,Álgebra y Geometría Analítica,,Lunes,13:15,14:00
+1K10,Álgebra y Geometría Analítica,,Lunes,14:00,14:45
+1K10,Álgebra y Geometría Analítica,,Lunes,14:55,15:40
+1K10,Álgebra y Geometría Analítica,,Viernes,16:35,17:20
+1K10,Álgebra y Geometría Analítica,,Viernes,17:20,18:05
+1K11,Algoritmos y Estructuras de Datos,,Miércoles,21:35,22:20
+1K11,Algoritmos y Estructuras de Datos,,Miércoles,22:20,23:05
+1K11,Algoritmos y Estructuras de Datos,,Viernes,18:15,19:00
+1K11,Algoritmos y Estructuras de Datos,,Viernes,19:00,19:45
+1K11,Algoritmos y Estructuras de Datos,,Viernes,19:55,20:40
+1K11,Arquitectura de Computadoras,1,Jueves,14:55,15:40
+1K11,Arquitectura de Computadoras,1,Jueves,15:40,16:25
+1K11,Arquitectura de Computadoras,1,Jueves,16:35,17:20
+1K11,Arquitectura de Computadoras,1,Jueves,17:20,18:05
+1K11,Arquitectura de Computadoras,1,Viernes,13:15,14:00
+1K11,Arquitectura de Computadoras,1,Viernes,14:00,14:45
+1K11,Arquitectura de Computadoras,1,Viernes,14:55,15:40
+1K11,Arquitectura de Computadoras,1,Viernes,15:40,16:25
+1K11,Lógica y Estructuras Discretas,2,Martes,13:15,14:00
+1K11,Lógica y Estructuras Discretas,2,Martes,14:00,14:45
+1K11,Lógica y Estructuras Discretas,2,Martes,14:55,15:40
+1K11,Lógica y Estructuras Discretas,2,Viernes,13:15,14:00
+1K11,Lógica y Estructuras Discretas,2,Viernes,14:00,14:45
+1K11,Lógica y Estructuras Discretas,2,Viernes,14:55,15:40
+1K11,Sistemas y Procesos de Negocio,2,Martes,15:40,16:00
+1K11,Sistemas y Procesos de Negocio,2,Martes,16:00,16:45
+1K11,Sistemas y Procesos de Negocio,2,Martes,16:45,17:30
+1K11,Sistemas y Procesos de Negocio,2,Martes,17:30,18:00
+1K11,Sistemas y Procesos de Negocio,2,Viernes,15:40,16:00
+1K11,Sistemas y Procesos de Negocio,2,Viernes,16:00,16:45
+1K11,Sistemas y Procesos de Negocio,2,Viernes,16:45,17:30
+1K11,Sistemas y Procesos de Negocio,2,Viernes,17:30,18:00
+1K12,Algoritmos y Estructuras de Datos,,Lunes,17:20,18:05
+1K12,Algoritmos y Estructuras de Datos,,Lunes,18:15,19:00
+1K12,Algoritmos y Estructuras de Datos,,Viernes,18:15,19:00
+1K12,Algoritmos y Estructuras de Datos,,Viernes,19:00,19:45
+1K12,Algoritmos y Estructuras de Datos,,Viernes,19:55,20:40
+1K12,Análisis Matemático I,,Lunes,20:40,21:25
+1K12,Análisis Matemático I,,Lunes,21:35,22:20
+1K12,Análisis Matemático I,,Lunes,22:20,23:05
+1K12,Análisis Matemático I,,Miércoles,17:20,18:05
+1K12,Análisis Matemático I,,Miércoles,18:15,19:00
+1K12,Arquitectura de Computadoras,2,Martes,18:15,19:00
+1K12,Arquitectura de Computadoras,2,Martes,19:00,19:45
+1K12,Arquitectura de Computadoras,2,Martes,19:55,20:40
+1K12,Arquitectura de Computadoras,2,Martes,20:40,21:25
+1K12,Arquitectura de Computadoras,2,Jueves,18:15,19:00
+1K12,Arquitectura de Computadoras,2,Jueves,19:00,19:45
+1K12,Arquitectura de Computadoras,2,Jueves,19:55,20:40
+1K12,Arquitectura de Computadoras,2,Jueves,20:40,21:25
+1K12,Física I,,Lunes,19:00,19:45
+1K12,Física I,,Lunes,19:55,20:40
+1K12,Física I,,Miércoles,20:40,21:25
+1K12,Física I,,Miércoles,21:35,22:20
+1K12,Física I,,Miércoles,22:20,23:05
+1K12,Ingeniería y Sociedad,2,Martes,21:35,22:20
+1K12,Ingeniería y Sociedad,2,Martes,22:20,23:05
+1K12,Ingeniería y Sociedad,2,Jueves,21:35,22:20
+1K12,Ingeniería y Sociedad,2,Jueves,22:20,23:05
+1K12,Inglés I,,Miércoles,15:40,16:25
+1K12,Inglés I,,Miércoles,16:35,17:20
+1K12,Lógica y Estructuras Discretas,1,Martes,18:15,19:00
+1K12,Lógica y Estructuras Discretas,1,Martes,19:45,19:55
+1K12,Lógica y Estructuras Discretas,1,Jueves,20:40,21:25
+1K12,Lógica y Estructuras Discretas,1,Jueves,21:35,22:20
+1K12,Lógica y Estructuras Discretas,1,Jueves,22:20,23:05
+1K12,Sistemas y Procesos de Negocio,1,Martes,20:40,21:25
+1K12,Sistemas y Procesos de Negocio,1,Martes,21:35,22:20
+1K12,Sistemas y Procesos de Negocio,1,Martes,22:20,23:05
+1K12,Sistemas y Procesos de Negocio,1,Jueves,18:15,19:00
+1K12,Sistemas y Procesos de Negocio,1,Jueves,19:00,19:45
+1K12,Sistemas y Procesos de Negocio,1,Jueves,19:55,20:40
+1K12,Álgebra y Geometría Analítica,,Miércoles,19:00,19:45
+1K12,Álgebra y Geometría Analítica,,Miércoles,19:55,20:40
+1K12,Álgebra y Geometría Analítica,,Viernes,20:40,21:25
+1K12,Álgebra y Geometría Analítica,,Viernes,21:35,22:20
+1K12,Álgebra y Geometría Analítica,,Viernes,22:20,23:05
+1K13,Algoritmos y Estructuras de Datos,,Miércoles,21:35,22:20
+1K13,Algoritmos y Estructuras de Datos,,Miércoles,22:20,23:05
+1K13,Algoritmos y Estructuras de Datos,,Viernes,18:15,19:00
+1K13,Algoritmos y Estructuras de Datos,,Viernes,19:00,19:45
+1K13,Algoritmos y Estructuras de Datos,,Viernes,19:55,20:40
+1K13,Análisis Matemático I,,Lunes,17:20,18:05
+1K13,Análisis Matemático I,,Lunes,18:15,19:00
+1K13,Análisis Matemático I,,Lunes,19:00,19:45
+1K13,Análisis Matemático I,,Miércoles,19:55,20:40
+1K13,Análisis Matemático I,,Miércoles,20:40,21:25
+1K13,Arquitectura de Computadoras,2,Martes,18:15,19:00
+1K13,Arquitectura de Computadoras,2,Martes,19:00,19:45
+1K13,Arquitectura de Computadoras,2,Martes,19:55,20:40
+1K13,Arquitectura de Computadoras,2,Martes,20:40,21:25
+1K13,Arquitectura de Computadoras,2,Jueves,18:15,19:00
+1K13,Arquitectura de Computadoras,2,Jueves,19:00,19:45
+1K13,Arquitectura de Computadoras,2,Jueves,19:55,20:40
+1K13,Arquitectura de Computadoras,2,Jueves,20:40,21:25
+1K13,Física I,,Lunes,21:35,22:20
+1K13,Física I,,Lunes,22:20,23:05
+1K13,Física I,,Viernes,20:40,21:25
+1K13,Física I,,Viernes,21:35,22:20
+1K13,Física I,,Viernes,22:20,23:05
+1K13,Ingeniería y Sociedad,2,Martes,21:35,22:20
+1K13,Ingeniería y Sociedad,2,Martes,22:20,23:05
+1K13,Ingeniería y Sociedad,2,Jueves,21:35,22:20
+1K13,Ingeniería y Sociedad,2,Jueves,22:20,23:05
+1K13,Inglés I,,Jueves,16:35,17:20
+1K13,Inglés I,,Jueves,17:20,18:05
+1K13,Lógica y Estructuras Discretas,1,Martes,20:40,21:25
+1K13,Lógica y Estructuras Discretas,1,Martes,21:25,21:35
+1K13,Lógica y Estructuras Discretas,1,Martes,22:20,23:05
+1K13,Lógica y Estructuras Discretas,1,Jueves,18:05,18:15
+1K13,Lógica y Estructuras Discretas,1,Jueves,18:15,19:00
+1K13,Lógica y Estructuras Discretas,1,Jueves,19:45,19:55
+1K13,Sistemas y Procesos de Negocio,1,Martes,18:15,19:00
+1K13,Sistemas y Procesos de Negocio,1,Martes,19:00,19:45
+1K13,Sistemas y Procesos de Negocio,1,Martes,19:55,20:40
+1K13,Sistemas y Procesos de Negocio,1,Jueves,20:40,21:25
+1K13,Sistemas y Procesos de Negocio,1,Jueves,21:35,22:20
+1K13,Sistemas y Procesos de Negocio,1,Jueves,22:20,23:05
+1K13,Álgebra y Geometría Analítica,,Lunes,19:55,20:40
+1K13,Álgebra y Geometría Analítica,,Lunes,20:40,21:25
+1K13,Álgebra y Geometría Analítica,,Miércoles,17:20,18:05
+1K13,Álgebra y Geometría Analítica,,Miércoles,18:15,19:00
+1K13,Álgebra y Geometría Analítica,,Miércoles,19:00,19:45
+1K14,Algoritmos y Estructuras de Datos,,Martes,11:20,12:05
+1K14,Algoritmos y Estructuras de Datos,,Martes,12:05,12:50
+1K14,Algoritmos y Estructuras de Datos,,Martes,13:15,14:00
+1K14,Algoritmos y Estructuras de Datos,,Miércoles,8:00,8:45
+1K14,Algoritmos y Estructuras de Datos,,Miércoles,8:45,9:30
+1K14,Análisis Matemático I,,Lunes,8:00,8:45
+1K14,Análisis Matemático I,,Lunes,8:45,9:30
+1K14,Análisis Matemático I,,Lunes,9:40,10:25
+1K14,Análisis Matemático I,,Martes,8:00,8:45
+1K14,Análisis Matemático I,,Martes,8:45,9:30
+1K14,Arquitectura de Computadoras,2,Jueves,9:40,10:25
+1K14,Arquitectura de Computadoras,2,Jueves,10:25,11:10
+1K14,Arquitectura de Computadoras,2,Jueves,11:20,12:05
+1K14,Arquitectura de Computadoras,2,Jueves,12:05,12:50
+1K14,Arquitectura de Computadoras,2,Viernes,8:00,8:45
+1K14,Arquitectura de Computadoras,2,Viernes,8:45,9:30
+1K14,Arquitectura de Computadoras,2,Viernes,9:40,10:25
+1K14,Arquitectura de Computadoras,2,Viernes,10:25,11:10
+1K14,Física I,,Martes,9:40,10:25
+1K14,Física I,,Martes,10:25,11:10
+1K14,Física I,,Miércoles,9:40,10:25
+1K14,Física I,,Miércoles,10:25,11:10
+1K14,Física I,,Miércoles,11:20,12:05
+1K14,Ingeniería y Sociedad,2,Jueves,8:00,8:45
+1K14,Ingeniería y Sociedad,2,Jueves,8:45,9:30
+1K14,Ingeniería y Sociedad,2,Viernes,11:20,12:05
+1K14,Ingeniería y Sociedad,2,Viernes,12:05,12:50
+1K14,Inglés I,,Lunes,13:15,14:00
+1K14,Inglés I,,Lunes,14:00,14:45
+1K14,Lógica y Estructuras Discretas,1,Jueves,8:00,8:45
+1K14,Lógica y Estructuras Discretas,1,Jueves,8:45,9:30
+1K14,Lógica y Estructuras Discretas,1,Jueves,9:40,10:25
+1K14,Lógica y Estructuras Discretas,1,Viernes,10:25,11:10
+1K14,Lógica y Estructuras Discretas,1,Viernes,11:20,12:05
+1K14,Lógica y Estructuras Discretas,1,Viernes,12:05,12:50
+1K14,Sistemas y Procesos de Negocio,1,Jueves,10:25,11:10
+1K14,Sistemas y Procesos de Negocio,1,Jueves,11:20,12:05
+1K14,Sistemas y Procesos de Negocio,1,Jueves,12:05,12:50
+1K14,Sistemas y Procesos de Negocio,1,Viernes,8:00,8:45
+1K14,Sistemas y Procesos de Negocio,1,Viernes,8:45,9:30
+1K14,Sistemas y Procesos de Negocio,1,Viernes,9:40,10:25
+1K14,Álgebra y Geometría Analítica,,Lunes,10:25,11:10
+1K14,Álgebra y Geometría Analítica,,Lunes,11:20,12:05
+1K14,Álgebra y Geometría Analítica,,Lunes,12:05,12:50
+1K14,Álgebra y Geometría Analítica,,Miércoles,12:05,12:50
+1K14,Álgebra y Geometría Analítica,,Miércoles,13:15,14:00
+1K16,Algoritmos y Estructuras de Datos,,Lunes,16:35,17:20
+1K16,Algoritmos y Estructuras de Datos,,Lunes,17:20,18:05
+1K16,Algoritmos y Estructuras de Datos,,Viernes,18:15,19:00
+1K16,Algoritmos y Estructuras de Datos,,Viernes,19:00,19:45
+1K16,Algoritmos y Estructuras de Datos,,Viernes,19:55,20:40
+1K16,Lógica y Estructuras Discretas,2,Sábado,8:00,8:45
+1K16,Lógica y Estructuras Discretas,2,Sábado,8:45,9:30
+1K16,Lógica y Estructuras Discretas,2,Sábado,9:40,10:25
+1K16,Lógica y Estructuras Discretas,2,Sábado,10:25,11:10
+1K16,Lógica y Estructuras Discretas,2,Sábado,12:05,12:50
+1K16,Sistemas y Procesos de Negocio,2,Martes,15:40,16:25
+1K16,Sistemas y Procesos de Negocio,2,Martes,16:35,17:20
+1K16,Sistemas y Procesos de Negocio,2,Martes,17:20,18:05
+1K16,Sistemas y Procesos de Negocio,2,Jueves,15:40,16:25
+1K16,Sistemas y Procesos de Negocio,2,Jueves,16:35,17:20
+1K16,Sistemas y Procesos de Negocio,2,Jueves,17:20,18:05
+1K17,Algoritmos y Estructuras de Datos,,Martes,9:40,10:25
+1K17,Algoritmos y Estructuras de Datos,,Martes,10:25,11:10
+1K17,Algoritmos y Estructuras de Datos,,Jueves,8:00,8:45
+1K17,Algoritmos y Estructuras de Datos,,Jueves,8:45,9:30
+1K17,Algoritmos y Estructuras de Datos,,Jueves,9:40,10:25
+1K17,Análisis Matemático I,,Lunes,8:00,8:45
+1K17,Análisis Matemático I,,Lunes,8:45,9:30
+1K17,Análisis Matemático I,,Lunes,9:40,10:25
+1K17,Análisis Matemático I,,Martes,8:00,8:45
+1K17,Análisis Matemático I,,Martes,8:45,9:30
+1K17,Arquitectura de Computadoras,2,Miércoles,8:00,8:45
+1K17,Arquitectura de Computadoras,2,Miércoles,8:45,9:30
+1K17,Arquitectura de Computadoras,2,Miércoles,9:40,10:25
+1K17,Arquitectura de Computadoras,2,Miércoles,10:25,11:10
+1K17,Arquitectura de Computadoras,2,Viernes,9:40,10:25
+1K17,Arquitectura de Computadoras,2,Viernes,10:25,11:10
+1K17,Arquitectura de Computadoras,2,Viernes,11:20,12:05
+1K17,Arquitectura de Computadoras,2,Viernes,12:05,12:50
+1K17,Física I,,Lunes,10:25,11:10
+1K17,Física I,,Lunes,11:20,12:05
+1K17,Física I,,Lunes,12:05,12:50
+1K17,Física I,,Jueves,12:05,12:50
+1K17,Física I,,Jueves,13:15,14:00
+1K17,Ingeniería y Sociedad,2,Miércoles,11:20,12:05
+1K17,Ingeniería y Sociedad,2,Miércoles,12:05,12:50
+1K17,Ingeniería y Sociedad,2,Viernes,8:00,8:45
+1K17,Ingeniería y Sociedad,2,Viernes,8:45,9:30
+1K17,Inglés I,,Miércoles,13:15,14:00
+1K17,Inglés I,,Miércoles,14:00,14:45
+1K17,Lógica y Estructuras Discretas,1,Miércoles,10:25,11:10
+1K17,Lógica y Estructuras Discretas,1,Miércoles,11:20,12:05
+1K17,Lógica y Estructuras Discretas,1,Miércoles,12:05,12:50
+1K17,Lógica y Estructuras Discretas,1,Viernes,8:00,8:45
+1K17,Lógica y Estructuras Discretas,1,Viernes,8:45,9:30
+1K17,Lógica y Estructuras Discretas,1,Viernes,9:40,10:25
+1K17,Sistemas y Procesos de Negocio,1,Miércoles,8:00,8:45
+1K17,Sistemas y Procesos de Negocio,1,Miércoles,8:45,9:30
+1K17,Sistemas y Procesos de Negocio,1,Miércoles,9:40,10:25
+1K17,Sistemas y Procesos de Negocio,1,Viernes,10:25,11:10
+1K17,Sistemas y Procesos de Negocio,1,Viernes,11:20,12:05
+1K17,Sistemas y Procesos de Negocio,1,Viernes,12:05,12:50
+1K17,Álgebra y Geometría Analítica,,Martes,11:20,12:05
+1K17,Álgebra y Geometría Analítica,,Martes,12:05,12:50
+1K17,Álgebra y Geometría Analítica,,Martes,13:15,14:00
+1K17,Álgebra y Geometría Analítica,,Jueves,10:25,11:10
+1K17,Álgebra y Geometría Analítica,,Jueves,11:20,12:05
+1K2,Algoritmos y Estructuras de Datos,,Lunes,8:00,8:45
+1K2,Algoritmos y Estructuras de Datos,,Lunes,8:45,9:30
+1K2,Algoritmos y Estructuras de Datos,,Lunes,9:40,10:25
+1K2,Algoritmos y Estructuras de Datos,,Miércoles,8:00,8:45
+1K2,Algoritmos y Estructuras de Datos,,Miércoles,8:45,9:30
+1K2,Análisis Matemático I,,Miércoles,9:40,10:25
+1K2,Análisis Matemático I,,Miércoles,10:25,11:10
+1K2,Análisis Matemático I,,Viernes,11:20,12:05
+1K2,Análisis Matemático I,,Viernes,12:05,12:50
+1K2,Análisis Matemático I,,Viernes,13:15,14:00
+1K2,Arquitectura de Computadoras,2,Martes,8:00,8:45
+1K2,Arquitectura de Computadoras,2,Martes,8:45,9:30
+1K2,Arquitectura de Computadoras,2,Martes,9:40,10:25
+1K2,Arquitectura de Computadoras,2,Martes,10:25,11:10
+1K2,Arquitectura de Computadoras,2,Jueves,8:00,8:45
+1K2,Arquitectura de Computadoras,2,Jueves,8:45,9:30
+1K2,Arquitectura de Computadoras,2,Jueves,9:40,10:25
+1K2,Arquitectura de Computadoras,2,Jueves,10:25,11:10
+1K2,Física I,,Miércoles,11:20,12:05
+1K2,Física I,,Miércoles,12:05,12:50
+1K2,Física I,,Miércoles,13:15,14:00
+1K2,Física I,,Viernes,9:40,10:25
+1K2,Física I,,Viernes,10:25,11:10
+1K2,Ingeniería y Sociedad,2,Martes,11:20,12:05
+1K2,Ingeniería y Sociedad,2,Martes,12:05,12:50
+1K2,Ingeniería y Sociedad,2,Jueves,11:20,12:05
+1K2,Ingeniería y Sociedad,2,Jueves,12:05,12:50
+1K2,Inglés I,,Lunes,13:15,14:00
+1K2,Inglés I,,Lunes,14:00,14:45
+1K2,Lógica y Estructuras Discretas,1,Martes,10:25,11:10
+1K2,Lógica y Estructuras Discretas,1,Martes,11:20,12:05
+1K2,Lógica y Estructuras Discretas,1,Martes,12:05,12:50
+1K2,Lógica y Estructuras Discretas,1,Jueves,8:00,8:45
+1K2,Lógica y Estructuras Discretas,1,Jueves,8:45,9:30
+1K2,Lógica y Estructuras Discretas,1,Jueves,9:40,10:25
+1K2,Sistemas y Procesos de Negocio,1,Martes,8:00,8:45
+1K2,Sistemas y Procesos de Negocio,1,Martes,8:45,9:30
+1K2,Sistemas y Procesos de Negocio,1,Martes,9:40,10:25
+1K2,Sistemas y Procesos de Negocio,1,Jueves,10:25,11:10
+1K2,Sistemas y Procesos de Negocio,1,Jueves,11:20,12:05
+1K2,Sistemas y Procesos de Negocio,1,Jueves,12:05,12:50
+1K2,Álgebra y Geometría Analítica,,Lunes,10:25,11:10
+1K2,Álgebra y Geometría Analítica,,Lunes,11:20,12:05
+1K2,Álgebra y Geometría Analítica,,Lunes,12:05,12:50
+1K2,Álgebra y Geometría Analítica,,Viernes,8:00,8:45
+1K2,Álgebra y Geometría Analítica,,Viernes,8:45,9:30
+1K3,Algoritmos y Estructuras de Datos,,Lunes,12:05,12:50
+1K3,Algoritmos y Estructuras de Datos,,Lunes,13:15,14:00
+1K3,Algoritmos y Estructuras de Datos,,Viernes,10:25,11:10
+1K3,Algoritmos y Estructuras de Datos,,Viernes,11:20,12:05
+1K3,Algoritmos y Estructuras de Datos,,Viernes,12:05,12:50
+1K3,Análisis Matemático I,,Lunes,10:25,11:10
+1K3,Análisis Matemático I,,Lunes,11:20,12:05
+1K3,Análisis Matemático I,,Martes,8:00,8:45
+1K3,Análisis Matemático I,,Martes,8:45,9:30
+1K3,Análisis Matemático I,,Martes,9:40,10:25
+1K3,Arquitectura de Computadoras,2,Miércoles,9:40,10:25
+1K3,Arquitectura de Computadoras,2,Miércoles,10:25,11:10
+1K3,Arquitectura de Computadoras,2,Miércoles,11:20,12:05
+1K3,Arquitectura de Computadoras,2,Miércoles,12:05,12:50
+1K3,Arquitectura de Computadoras,2,Jueves,8:00,8:45
+1K3,Arquitectura de Computadoras,2,Jueves,8:45,9:30
+1K3,Arquitectura de Computadoras,2,Jueves,9:40,10:25
+1K3,Arquitectura de Computadoras,2,Jueves,10:25,11:10
+1K3,Física I,,Martes,12:05,12:50
+1K3,Física I,,Martes,13:15,14:00
+1K3,Física I,,Viernes,8:00,8:45
+1K3,Física I,,Viernes,8:45,9:30
+1K3,Física I,,Viernes,9:40,10:25
+1K3,Ingeniería y Sociedad,2,Miércoles,8:00,8:45
+1K3,Ingeniería y Sociedad,2,Miércoles,8:45,9:30
+1K3,Ingeniería y Sociedad,2,Jueves,11:20,12:05
+1K3,Ingeniería y Sociedad,2,Jueves,12:05,12:50
+1K3,Inglés I,,Jueves,13:15,14:00
+1K3,Inglés I,,Jueves,14:00,14:45
+1K3,Lógica y Estructuras Discretas,1,Miércoles,8:00,8:45
+1K3,Lógica y Estructuras Discretas,1,Miércoles,8:45,9:30
+1K3,Lógica y Estructuras Discretas,1,Miércoles,9:40,10:25
+1K3,Lógica y Estructuras Discretas,1,Jueves,10:25,11:10
+1K3,Lógica y Estructuras Discretas,1,Jueves,11:20,12:05
+1K3,Lógica y Estructuras Discretas,1,Jueves,12:05,12:50
+1K3,Sistemas y Procesos de Negocio,1,Miércoles,10:25,11:10
+1K3,Sistemas y Procesos de Negocio,1,Miércoles,11:20,12:05
+1K3,Sistemas y Procesos de Negocio,1,Miércoles,12:05,12:50
+1K3,Sistemas y Procesos de Negocio,1,Jueves,8:00,8:45
+1K3,Sistemas y Procesos de Negocio,1,Jueves,8:45,9:30
+1K3,Sistemas y Procesos de Negocio,1,Jueves,9:40,10:25
+1K3,Álgebra y Geometría Analítica,,Lunes,8:00,8:45
+1K3,Álgebra y Geometría Analítica,,Lunes,8:45,9:30
+1K3,Álgebra y Geometría Analítica,,Lunes,9:40,10:25
+1K3,Álgebra y Geometría Analítica,,Martes,10:25,11:10
+1K3,Álgebra y Geometría Analítica,,Martes,11:20,12:05
+1K4,Algoritmos y Estructuras de Datos,,Martes,9:40,10:25
+1K4,Algoritmos y Estructuras de Datos,,Martes,10:25,11:10
+1K4,Algoritmos y Estructuras de Datos,,Jueves,8:00,8:45
+1K4,Algoritmos y Estructuras de Datos,,Jueves,8:45,9:30
+1K4,Algoritmos y Estructuras de Datos,,Jueves,9:40,10:25
+1K4,Análisis Matemático I,,Lunes,8:00,8:45
+1K4,Análisis Matemático I,,Lunes,8:45,9:30
+1K4,Análisis Matemático I,,Lunes,9:40,10:25
+1K4,Análisis Matemático I,,Martes,8:00,8:45
+1K4,Análisis Matemático I,,Martes,8:45,9:30
+1K4,Arquitectura de Computadoras,2,Miércoles,8:00,8:45
+1K4,Arquitectura de Computadoras,2,Miércoles,8:45,9:30
+1K4,Arquitectura de Computadoras,2,Miércoles,9:40,10:25
+1K4,Arquitectura de Computadoras,2,Miércoles,10:25,11:10
+1K4,Arquitectura de Computadoras,2,Viernes,9:40,10:25
+1K4,Arquitectura de Computadoras,2,Viernes,10:25,11:10
+1K4,Arquitectura de Computadoras,2,Viernes,11:20,12:05
+1K4,Arquitectura de Computadoras,2,Viernes,12:05,12:50
+1K4,Física I,,Lunes,10:25,11:10
+1K4,Física I,,Lunes,11:20,12:05
+1K4,Física I,,Lunes,12:05,12:50
+1K4,Física I,,Jueves,12:05,12:50
+1K4,Física I,,Jueves,13:15,14:00
+1K4,Ingeniería y Sociedad,2,Miércoles,11:20,12:05
+1K4,Ingeniería y Sociedad,2,Miércoles,12:05,12:50
+1K4,Ingeniería y Sociedad,2,Viernes,8:00,8:45
+1K4,Ingeniería y Sociedad,2,Viernes,8:45,9:30
+1K4,Inglés I,,Miércoles,13:15,14:00
+1K4,Inglés I,,Miércoles,14:00,14:45
+1K4,Lógica y Estructuras Discretas,1,Miércoles,10:25,11:10
+1K4,Lógica y Estructuras Discretas,1,Miércoles,11:20,12:05
+1K4,Lógica y Estructuras Discretas,1,Miércoles,12:05,12:50
+1K4,Lógica y Estructuras Discretas,1,Viernes,8:00,8:45
+1K4,Lógica y Estructuras Discretas,1,Viernes,8:45,9:30
+1K4,Lógica y Estructuras Discretas,1,Viernes,9:40,10:25
+1K4,Sistemas y Procesos de Negocio,1,Miércoles,8:00,8:45
+1K4,Sistemas y Procesos de Negocio,1,Miércoles,8:45,9:30
+1K4,Sistemas y Procesos de Negocio,1,Miércoles,9:40,10:25
+1K4,Sistemas y Procesos de Negocio,1,Viernes,10:25,11:10
+1K4,Sistemas y Procesos de Negocio,1,Viernes,11:20,12:05
+1K4,Sistemas y Procesos de Negocio,1,Viernes,12:05,12:50
+1K4,Álgebra y Geometría Analítica,,Martes,11:20,12:05
+1K4,Álgebra y Geometría Analítica,,Martes,12:05,12:50
+1K4,Álgebra y Geometría Analítica,,Martes,13:15,14:00
+1K4,Álgebra y Geometría Analítica,,Jueves,10:25,11:10
+1K4,Álgebra y Geometría Analítica,,Jueves,11:20,12:05
+1K5,Algoritmos y Estructuras de Datos,,Martes,10:25,11:10
+1K5,Algoritmos y Estructuras de Datos,,Martes,11:20,12:05
+1K5,Algoritmos y Estructuras de Datos,,Martes,12:05,12:50
+1K5,Algoritmos y Estructuras de Datos,,Viernes,12:05,12:50
+1K5,Algoritmos y Estructuras de Datos,,Viernes,13:15,14:00
+1K5,Análisis Matemático I,,Lunes,10:25,11:10
+1K5,Análisis Matemático I,,Lunes,11:20,12:05
+1K5,Análisis Matemático I,,Martes,8:00,8:45
+1K5,Análisis Matemático I,,Martes,8:45,9:30
+1K5,Análisis Matemático I,,Martes,9:40,10:25
+1K5,Arquitectura de Computadoras,2,Miércoles,8:00,8:45
+1K5,Arquitectura de Computadoras,2,Miércoles,8:45,9:30
+1K5,Arquitectura de Computadoras,2,Miércoles,9:40,10:25
+1K5,Arquitectura de Computadoras,2,Miércoles,10:25,11:10
+1K5,Arquitectura de Computadoras,2,Jueves,9:40,10:25
+1K5,Arquitectura de Computadoras,2,Jueves,10:25,11:10
+1K5,Arquitectura de Computadoras,2,Jueves,11:20,12:05
+1K5,Arquitectura de Computadoras,2,Jueves,12:05,12:50
+1K5,Física I,,Lunes,12:05,12:50
+1K5,Física I,,Lunes,13:15,14:00
+1K5,Física I,,Viernes,8:00,8:45
+1K5,Física I,,Viernes,8:45,9:30
+1K5,Física I,,Viernes,9:40,10:25
+1K5,Ingeniería y Sociedad,2,Miércoles,11:20,12:05
+1K5,Ingeniería y Sociedad,2,Miércoles,12:05,12:50
+1K5,Ingeniería y Sociedad,2,Jueves,8:00,8:45
+1K5,Ingeniería y Sociedad,2,Jueves,8:45,9:30
+1K5,Inglés I,,Miércoles,14:55,15:40
+1K5,Inglés I,,Miércoles,15:40,16:25
+1K5,Lógica y Estructuras Discretas,1,Miércoles,10:25,11:10
+1K5,Lógica y Estructuras Discretas,1,Miércoles,11:20,12:05
+1K5,Lógica y Estructuras Discretas,1,Miércoles,12:05,12:50
+1K5,Lógica y Estructuras Discretas,1,Jueves,8:00,8:45
+1K5,Lógica y Estructuras Discretas,1,Jueves,8:45,9:30
+1K5,Lógica y Estructuras Discretas,1,Jueves,9:40,10:25
+1K5,Sistemas y Procesos de Negocio,1,Miércoles,8:00,8:45
+1K5,Sistemas y Procesos de Negocio,1,Miércoles,8:45,9:30
+1K5,Sistemas y Procesos de Negocio,1,Miércoles,9:40,10:25
+1K5,Sistemas y Procesos de Negocio,1,Jueves,10:25,11:10
+1K5,Sistemas y Procesos de Negocio,1,Jueves,11:20,12:05
+1K5,Sistemas y Procesos de Negocio,1,Jueves,12:05,12:50
+1K5,Álgebra y Geometría Analítica,,Lunes,8:00,8:45
+1K5,Álgebra y Geometría Analítica,,Lunes,8:45,9:30
+1K5,Álgebra y Geometría Analítica,,Lunes,9:40,10:25
+1K5,Álgebra y Geometría Analítica,,Viernes,10:25,11:10
+1K5,Álgebra y Geometría Analítica,,Viernes,11:20,12:05
+1K6,Algoritmos y Estructuras de Datos,,Lunes,10:25,11:10
+1K6,Algoritmos y Estructuras de Datos,,Lunes,11:20,12:05
+1K6,Algoritmos y Estructuras de Datos,,Lunes,12:05,12:50
+1K6,Algoritmos y Estructuras de Datos,,Jueves,12:05,12:50
+1K6,Algoritmos y Estructuras de Datos,,Jueves,13:15,14:00
+1K6,Análisis Matemático I,,Miércoles,8:00,8:45
+1K6,Análisis Matemático I,,Miércoles,8:45,9:30
+1K6,Análisis Matemático I,,Miércoles,9:40,10:25
+1K6,Análisis Matemático I,,Jueves,10:25,11:10
+1K6,Análisis Matemático I,,Jueves,11:20,12:05
+1K6,Arquitectura de Computadoras,2,Martes,8:00,8:45
+1K6,Arquitectura de Computadoras,2,Martes,8:45,9:30
+1K6,Arquitectura de Computadoras,2,Martes,9:40,10:25
+1K6,Arquitectura de Computadoras,2,Martes,10:25,11:10
+1K6,Arquitectura de Computadoras,2,Viernes,8:00,8:45
+1K6,Arquitectura de Computadoras,2,Viernes,8:45,9:30
+1K6,Arquitectura de Computadoras,2,Viernes,9:40,10:25
+1K6,Arquitectura de Computadoras,2,Viernes,10:25,11:10
+1K6,Física I,,Lunes,8:00,8:45
+1K6,Física I,,Lunes,8:45,9:30
+1K6,Física I,,Lunes,9:40,10:25
+1K6,Física I,,Miércoles,10:25,11:10
+1K6,Física I,,Miércoles,11:20,12:05
+1K6,Ingeniería y Sociedad,2,Lunes,13:15,14:00
+1K6,Ingeniería y Sociedad,2,Lunes,14:00,14:45
+1K6,Ingeniería y Sociedad,2,Martes,11:20,12:05
+1K6,Ingeniería y Sociedad,2,Martes,12:05,12:50
+1K6,Inglés I,,Lunes,14:55,15:40
+1K6,Inglés I,,Lunes,15:40,16:25
+1K6,Lógica y Estructuras Discretas,1,Martes,10:25,11:10
+1K6,Lógica y Estructuras Discretas,1,Martes,11:20,12:05
+1K6,Lógica y Estructuras Discretas,1,Martes,12:05,12:50
+1K6,Lógica y Estructuras Discretas,1,Viernes,8:00,8:45
+1K6,Lógica y Estructuras Discretas,1,Viernes,8:45,9:30
+1K6,Lógica y Estructuras Discretas,1,Viernes,9:40,10:25
+1K6,Sistemas y Procesos de Negocio,1,Martes,8:00,8:45
+1K6,Sistemas y Procesos de Negocio,1,Martes,8:45,9:30
+1K6,Sistemas y Procesos de Negocio,1,Martes,9:40,10:25
+1K6,Sistemas y Procesos de Negocio,1,Viernes,10:25,11:10
+1K6,Sistemas y Procesos de Negocio,1,Viernes,11:20,12:05
+1K6,Sistemas y Procesos de Negocio,1,Viernes,12:05,12:50
+1K6,Álgebra y Geometría Analítica,,Miércoles,12:05,12:50
+1K6,Álgebra y Geometría Analítica,,Miércoles,13:15,14:00
+1K6,Álgebra y Geometría Analítica,,Jueves,8:00,8:45
+1K6,Álgebra y Geometría Analítica,,Jueves,8:45,9:30
+1K6,Álgebra y Geometría Analítica,,Jueves,9:40,10:25
+1K7,Algoritmos y Estructuras de Datos,,Miércoles,8:00,8:45
+1K7,Algoritmos y Estructuras de Datos,,Miércoles,8:45,9:30
+1K7,Algoritmos y Estructuras de Datos,,Miércoles,9:40,10:25
+1K7,Algoritmos y Estructuras de Datos,,Viernes,12:05,12:50
+1K7,Algoritmos y Estructuras de Datos,,Viernes,13:15,14:00
+1K7,Análisis Matemático I,,Jueves,8:00,8:45
+1K7,Análisis Matemático I,,Jueves,8:45,9:30
+1K7,Análisis Matemático I,,Jueves,9:40,10:25
+1K7,Análisis Matemático I,,Viernes,10:25,11:10
+1K7,Análisis Matemático I,,Viernes,11:20,12:05
+1K7,Arquitectura de Computadoras,2,Lunes,8:00,8:45
+1K7,Arquitectura de Computadoras,2,Lunes,8:45,9:30
+1K7,Arquitectura de Computadoras,2,Lunes,9:40,10:25
+1K7,Arquitectura de Computadoras,2,Lunes,10:25,11:10
+1K7,Arquitectura de Computadoras,2,Martes,9:40,10:25
+1K7,Arquitectura de Computadoras,2,Martes,10:25,11:10
+1K7,Arquitectura de Computadoras,2,Martes,11:20,12:05
+1K7,Arquitectura de Computadoras,2,Martes,12:05,12:50
+1K7,Física I,,Miércoles,10:25,11:10
+1K7,Física I,,Miércoles,11:20,12:05
+1K7,Física I,,Miércoles,12:05,12:50
+1K7,Física I,,Jueves,10:25,11:10
+1K7,Física I,,Jueves,11:20,12:05
+1K7,Ingeniería y Sociedad,2,Lunes,11:20,12:05
+1K7,Ingeniería y Sociedad,2,Lunes,12:05,12:50
+1K7,Ingeniería y Sociedad,2,Martes,8:00,8:45
+1K7,Ingeniería y Sociedad,2,Martes,8:45,9:30
+1K7,Inglés I,,Jueves,14:55,15:40
+1K7,Inglés I,,Jueves,15:40,16:25
+1K7,Lógica y Estructuras Discretas,1,Lunes,10:25,11:10
+1K7,Lógica y Estructuras Discretas,1,Lunes,11:20,12:05
+1K7,Lógica y Estructuras Discretas,1,Lunes,12:05,12:50
+1K7,Lógica y Estructuras Discretas,1,Martes,8:00,8:45
+1K7,Lógica y Estructuras Discretas,1,Martes,8:45,9:30
+1K7,Lógica y Estructuras Discretas,1,Martes,9:40,10:25
+1K7,Sistemas y Procesos de Negocio,1,Lunes,8:00,8:45
+1K7,Sistemas y Procesos de Negocio,1,Lunes,8:45,9:30
+1K7,Sistemas y Procesos de Negocio,1,Lunes,9:40,10:25
+1K7,Sistemas y Procesos de Negocio,1,Martes,10:25,11:10
+1K7,Sistemas y Procesos de Negocio,1,Martes,11:20,12:05
+1K7,Sistemas y Procesos de Negocio,1,Martes,12:05,12:50
+1K7,Álgebra y Geometría Analítica,,Jueves,12:05,12:50
+1K7,Álgebra y Geometría Analítica,,Jueves,13:15,14:00
+1K7,Álgebra y Geometría Analítica,,Viernes,8:00,8:45
+1K7,Álgebra y Geometría Analítica,,Viernes,8:45,9:30
+1K7,Álgebra y Geometría Analítica,,Viernes,9:40,10:25
+1K8,Algoritmos y Estructuras de Datos,,Lunes,8:00,8:45
+1K8,Algoritmos y Estructuras de Datos,,Lunes,8:45,9:30
+1K8,Algoritmos y Estructuras de Datos,,Lunes,9:40,10:25
+1K8,Algoritmos y Estructuras de Datos,,Miércoles,8:00,8:45
+1K8,Algoritmos y Estructuras de Datos,,Miércoles,8:45,9:30
+1K8,Arquitectura de Computadoras,1,Martes,10:25,11:10
+1K8,Arquitectura de Computadoras,1,Martes,11:20,12:05
+1K8,Arquitectura de Computadoras,1,Martes,12:05,12:50
+1K8,Arquitectura de Computadoras,1,Martes,13:15,14:00
+1K8,Arquitectura de Computadoras,1,Jueves,8:00,8:45
+1K8,Arquitectura de Computadoras,1,Jueves,8:45,9:30
+1K8,Arquitectura de Computadoras,1,Jueves,9:40,10:25
+1K8,Arquitectura de Computadoras,1,Jueves,10:25,11:10
+1K8,Lógica y Estructuras Discretas,2,Sábado,8:00,8:45
+1K8,Lógica y Estructuras Discretas,2,Sábado,8:45,9:30
+1K8,Lógica y Estructuras Discretas,2,Sábado,9:40,10:25
+1K8,Lógica y Estructuras Discretas,2,Sábado,10:25,11:10
+1K8,Lógica y Estructuras Discretas,2,Sábado,11:20,12:05
+1K8,Lógica y Estructuras Discretas,2,Sábado,12:05,12:50
+1K8,Sistemas y Procesos de Negocio,2,Lunes,18:15,19:00
+1K8,Sistemas y Procesos de Negocio,2,Lunes,19:00,19:45
+1K8,Sistemas y Procesos de Negocio,2,Lunes,19:55,20:40
+1K8,Sistemas y Procesos de Negocio,2,Miércoles,18:15,19:00
+1K8,Sistemas y Procesos de Negocio,2,Miércoles,19:00,19:45
+1K8,Sistemas y Procesos de Negocio,2,Miércoles,19:55,20:40
+1K9,Algoritmos y Estructuras de Datos,,Martes,15:40,16:25
+1K9,Algoritmos y Estructuras de Datos,,Martes,16:35,17:20
+1K9,Algoritmos y Estructuras de Datos,,Martes,17:20,18:05
+1K9,Algoritmos y Estructuras de Datos,,Viernes,16:35,17:20
+1K9,Algoritmos y Estructuras de Datos,,Viernes,17:20,18:05
+1K9,Análisis Matemático I,,Lunes,13:15,14:00
+1K9,Análisis Matemático I,,Lunes,14:00,14:45
+1K9,Análisis Matemático I,,Lunes,14:55,15:40
+1K9,Análisis Matemático I,,Martes,12:05,12:50
+1K9,Análisis Matemático I,,Martes,13:15,14:00
+1K9,Arquitectura de Computadoras,2,Miércoles,13:15,14:00
+1K9,Arquitectura de Computadoras,2,Miércoles,14:00,14:45
+1K9,Arquitectura de Computadoras,2,Miércoles,14:55,15:40
+1K9,Arquitectura de Computadoras,2,Miércoles,15:40,16:25
+1K9,Arquitectura de Computadoras,2,Jueves,14:55,15:40
+1K9,Arquitectura de Computadoras,2,Jueves,15:40,16:25
+1K9,Arquitectura de Computadoras,2,Jueves,16:35,17:20
+1K9,Arquitectura de Computadoras,2,Jueves,17:20,18:05
+1K9,Física I,,Lunes,15:40,16:25
+1K9,Física I,,Lunes,16:35,17:20
+1K9,Física I,,Lunes,17:20,18:05
+1K9,Física I,,Viernes,14:55,15:40
+1K9,Física I,,Viernes,15:40,16:25
+1K9,Ingeniería y Sociedad,2,Miércoles,16:35,17:20
+1K9,Ingeniería y Sociedad,2,Miércoles,17:20,18:05
+1K9,Ingeniería y Sociedad,2,Jueves,13:15,14:00
+1K9,Ingeniería y Sociedad,2,Jueves,14:00,14:45
+1K9,Inglés I,,Lunes,11:20,12:05
+1K9,Inglés I,,Lunes,12:05,12:50
+1K9,Lógica y Estructuras Discretas,1,Miércoles,14:55,15:40
+1K9,Lógica y Estructuras Discretas,1,Miércoles,16:35,17:20
+1K9,Lógica y Estructuras Discretas,1,Miércoles,17:20,18:05
+1K9,Lógica y Estructuras Discretas,1,Jueves,13:15,14:00
+1K9,Lógica y Estructuras Discretas,1,Jueves,14:00,14:45
+1K9,Lógica y Estructuras Discretas,1,Jueves,14:55,15:40
+1K9,Sistemas y Procesos de Negocio,1,Miércoles,13:15,14:00
+1K9,Sistemas y Procesos de Negocio,1,Miércoles,14:00,14:45
+1K9,Sistemas y Procesos de Negocio,1,Miércoles,14:55,15:40
+1K9,Sistemas y Procesos de Negocio,1,Jueves,15:40,16:25
+1K9,Sistemas y Procesos de Negocio,1,Jueves,16:35,17:20
+1K9,Sistemas y Procesos de Negocio,1,Jueves,17:20,18:05
+1K9,Álgebra y Geometría Analítica,,Martes,14:00,14:45
+1K9,Álgebra y Geometría Analítica,,Martes,14:55,15:40
+1K9,Álgebra y Geometría Analítica,,Viernes,12:05,12:50
+1K9,Álgebra y Geometría Analítica,,Viernes,13:15,14:00
+1K9,Álgebra y Geometría Analítica,,Viernes,14:00,14:45
+2K1,Análisis Matemático II,,Lunes,9:40,10:25
+2K1,Análisis Matemático II,,Lunes,10:25,11:10
+2K1,Análisis Matemático II,,Martes,8:00,8:45
+2K1,Análisis Matemático II,,Martes,8:45,9:30
+2K1,Análisis Matemático II,,Martes,9:40,10:25
+2K1,Análisis de Sistemas de Información,,Miércoles,10:25,11:10
+2K1,Análisis de Sistemas de Información,,Miércoles,11:20,12:05
+2K1,Análisis de Sistemas de Información,,Miércoles,12:05,12:50
+2K1,Análisis de Sistemas de Información,,Viernes,8:00,8:45
+2K1,Análisis de Sistemas de Información,,Viernes,8:45,9:30
+2K1,Análisis de Sistemas de Información,,Viernes,9:40,10:25
+2K1,Física II,,Miércoles,8:00,8:45
+2K1,Física II,,Miércoles,8:45,9:30
+2K1,Física II,,Miércoles,9:40,10:25
+2K1,Física II,,Viernes,10:25,11:10
+2K1,Física II,,Viernes,11:20,12:05
+2K1,Paradigmas de Programación,2,Martes,10:25,11:10
+2K1,Paradigmas de Programación,2,Martes,11:20,12:05
+2K1,Paradigmas de Programación,2,Martes,12:05,12:50
+2K1,Paradigmas de Programación,2,Martes,13:15,14:00
+2K1,Paradigmas de Programación,2,Jueves,8:00,8:45
+2K1,Paradigmas de Programación,2,Jueves,8:45,9:30
+2K1,Paradigmas de Programación,2,Jueves,9:40,10:25
+2K1,Paradigmas de Programación,2,Jueves,10:25,11:10
+2K1,Probabilidad y Estadística,1,Lunes,11:20,12:05
+2K1,Probabilidad y Estadística,1,Lunes,12:05,12:50
+2K1,Probabilidad y Estadística,1,Lunes,13:15,14:00
+2K1,Probabilidad y Estadística,1,Jueves,11:20,12:05
+2K1,Probabilidad y Estadística,1,Jueves,12:05,12:50
+2K1,Probabilidad y Estadística,1,Jueves,13:15,14:00
+2K1,Sintaxis y Semántica de los Lenguajes,1,Martes,10:25,11:10
+2K1,Sintaxis y Semántica de los Lenguajes,1,Martes,11:20,12:05
+2K1,Sintaxis y Semántica de los Lenguajes,1,Martes,12:05,12:50
+2K1,Sintaxis y Semántica de los Lenguajes,1,Martes,13:15,14:00
+2K1,Sintaxis y Semántica de los Lenguajes,1,Jueves,8:00,8:45
+2K1,Sintaxis y Semántica de los Lenguajes,1,Jueves,8:45,9:30
+2K1,Sintaxis y Semántica de los Lenguajes,1,Jueves,9:40,10:25
+2K1,Sintaxis y Semántica de los Lenguajes,1,Jueves,10:25,11:10
+2K1,Sistemas Operativos,,Lunes,8:00,8:45
+2K1,Sistemas Operativos,,Lunes,8:45,9:30
+2K1,Sistemas Operativos,,Viernes,12:05,12:50
+2K1,Sistemas Operativos,,Viernes,13:15,14:00
+2K10,Análisis Matemático II,,Jueves,18:15,19:00
+2K10,Análisis Matemático II,,Jueves,19:00,19:45
+2K10,Análisis Matemático II,,Jueves,19:55,20:40
+2K10,Análisis Matemático II,,Viernes,19:00,19:45
+2K10,Análisis Matemático II,,Viernes,19:55,20:40
+2K10,Análisis de Sistemas de Información,,Martes,17:20,18:05
+2K10,Análisis de Sistemas de Información,,Martes,18:15,19:00
+2K10,Análisis de Sistemas de Información,,Martes,19:00,19:45
+2K10,Análisis de Sistemas de Información,,Miércoles,17:20,18:05
+2K10,Análisis de Sistemas de Información,,Miércoles,18:15,19:00
+2K10,Análisis de Sistemas de Información,,Miércoles,19:00,19:45
+2K10,Física II,,Lunes,19:00,19:45
+2K10,Física II,,Lunes,19:55,20:40
+2K10,Física II,,Jueves,20:40,21:25
+2K10,Física II,,Jueves,21:35,22:20
+2K10,Física II,,Jueves,22:20,23:05
+2K10,Paradigmas de Programación,1,Martes,19:55,20:40
+2K10,Paradigmas de Programación,1,Martes,20:40,21:25
+2K10,Paradigmas de Programación,1,Martes,21:35,22:20
+2K10,Paradigmas de Programación,1,Martes,22:20,23:05
+2K10,Paradigmas de Programación,1,Miércoles,19:55,20:40
+2K10,Paradigmas de Programación,1,Miércoles,20:40,21:25
+2K10,Paradigmas de Programación,1,Miércoles,21:35,22:20
+2K10,Paradigmas de Programación,1,Miércoles,22:20,23:05
+2K10,Probabilidad y Estadística,2,Lunes,20:40,21:25
+2K10,Probabilidad y Estadística,2,Lunes,21:35,22:20
+2K10,Probabilidad y Estadística,2,Lunes,22:20,23:05
+2K10,Probabilidad y Estadística,2,Viernes,20:40,21:25
+2K10,Probabilidad y Estadística,2,Viernes,21:35,22:20
+2K10,Probabilidad y Estadística,2,Viernes,22:20,23:05
+2K10,Sintaxis y Semántica de los Lenguajes,2,Martes,19:55,20:40
+2K10,Sintaxis y Semántica de los Lenguajes,2,Martes,20:40,21:25
+2K10,Sintaxis y Semántica de los Lenguajes,2,Martes,21:35,22:20
+2K10,Sintaxis y Semántica de los Lenguajes,2,Martes,22:20,23:05
+2K10,Sintaxis y Semántica de los Lenguajes,2,Miércoles,19:55,20:40
+2K10,Sintaxis y Semántica de los Lenguajes,2,Miércoles,20:40,21:25
+2K10,Sintaxis y Semántica de los Lenguajes,2,Miércoles,21:35,22:20
+2K10,Sintaxis y Semántica de los Lenguajes,2,Miércoles,22:20,23:05
+2K10,Sistemas Operativos,,Lunes,17:20,18:05
+2K10,Sistemas Operativos,,Lunes,18:15,19:00
+2K10,Sistemas Operativos,,Viernes,17:20,18:05
+2K10,Sistemas Operativos,,Viernes,18:15,19:00
+2K11,Análisis de Sistemas de Información,,Miércoles,10:25,11:10
+2K11,Análisis de Sistemas de Información,,Miércoles,11:20,12:05
+2K11,Análisis de Sistemas de Información,,Miércoles,12:05,12:50
+2K11,Análisis de Sistemas de Información,,Viernes,8:00,8:45
+2K11,Análisis de Sistemas de Información,,Viernes,8:45,9:30
+2K11,Análisis de Sistemas de Información,,Viernes,9:40,10:25
+2K11,Paradigmas de Programación,2,Martes,10:25,11:10
+2K11,Paradigmas de Programación,2,Martes,11:20,12:05
+2K11,Paradigmas de Programación,2,Martes,12:05,12:50
+2K11,Paradigmas de Programación,2,Martes,13:15,14:00
+2K11,Paradigmas de Programación,2,Jueves,8:00,8:45
+2K11,Paradigmas de Programación,2,Jueves,8:45,9:30
+2K11,Paradigmas de Programación,2,Jueves,9:40,10:25
+2K11,Paradigmas de Programación,2,Jueves,10:25,11:10
+2K11,Probabilidad y Estadística,1,Lunes,11:20,12:05
+2K11,Probabilidad y Estadística,1,Lunes,12:05,12:50
+2K11,Probabilidad y Estadística,1,Lunes,13:15,14:00
+2K11,Probabilidad y Estadística,1,Jueves,11:20,12:05
+2K11,Probabilidad y Estadística,1,Jueves,12:05,12:50
+2K11,Probabilidad y Estadística,1,Jueves,13:15,14:00
+2K11,Sintaxis y Semántica de los Lenguajes,1,Martes,10:25,11:10
+2K11,Sintaxis y Semántica de los Lenguajes,1,Martes,11:20,12:05
+2K11,Sintaxis y Semántica de los Lenguajes,1,Martes,12:05,12:50
+2K11,Sintaxis y Semántica de los Lenguajes,1,Martes,13:15,14:00
+2K11,Sintaxis y Semántica de los Lenguajes,1,Jueves,8:00,8:45
+2K11,Sintaxis y Semántica de los Lenguajes,1,Jueves,8:45,9:30
+2K11,Sintaxis y Semántica de los Lenguajes,1,Jueves,9:40,10:25
+2K11,Sintaxis y Semántica de los Lenguajes,1,Jueves,10:25,11:10
+2K11,Sistemas Operativos,,Lunes,8:00,8:45
+2K11,Sistemas Operativos,,Lunes,8:45,9:30
+2K11,Sistemas Operativos,,Viernes,12:05,12:50
+2K11,Sistemas Operativos,,Viernes,13:15,14:00
+2K2,Análisis Matemático II,,Martes,8:00,8:45
+2K2,Análisis Matemático II,,Martes,8:45,9:30
+2K2,Análisis Matemático II,,Miércoles,11:20,12:05
+2K2,Análisis Matemático II,,Miércoles,12:05,12:50
+2K2,Análisis Matemático II,,Miércoles,13:15,14:00
+2K2,Análisis de Sistemas de Información,,Martes,11:20,12:05
+2K2,Análisis de Sistemas de Información,,Martes,12:05,12:50
+2K2,Análisis de Sistemas de Información,,Martes,13:15,14:00
+2K2,Análisis de Sistemas de Información,,Viernes,11:20,12:05
+2K2,Análisis de Sistemas de Información,,Viernes,12:05,12:50
+2K2,Análisis de Sistemas de Información,,Viernes,13:15,14:00
+2K2,Física II,,Lunes,8:00,8:45
+2K2,Física II,,Lunes,8:45,9:30
+2K2,Física II,,Lunes,9:40,10:25
+2K2,Física II,,Jueves,12:05,12:50
+2K2,Física II,,Jueves,13:15,14:00
+2K2,Paradigmas de Programación,2,Miércoles,8:00,8:45
+2K2,Paradigmas de Programación,2,Jueves,8:00,8:45
+2K2,Paradigmas de Programación,2,Jueves,8:45,9:30
+2K2,Paradigmas de Programación,2,Jueves,9:40,10:25
+2K2,Paradigmas de Programación,2,Viernes,8:00,8:45
+2K2,Paradigmas de Programación,2,Viernes,8:45,9:30
+2K2,Paradigmas de Programación,2,Viernes,9:40,10:25
+2K2,Paradigmas de Programación,2,Viernes,10:25,11:10
+2K2,Probabilidad y Estadística,1,Lunes,10:25,11:10
+2K2,Probabilidad y Estadística,1,Lunes,11:20,12:05
+2K2,Probabilidad y Estadística,1,Lunes,12:05,12:50
+2K2,Probabilidad y Estadística,1,Jueves,8:00,8:45
+2K2,Probabilidad y Estadística,1,Jueves,8:45,9:30
+2K2,Probabilidad y Estadística,1,Jueves,9:40,10:25
+2K2,Sintaxis y Semántica de los Lenguajes,1,Miércoles,8:00,8:45
+2K2,Sintaxis y Semántica de los Lenguajes,1,Miércoles,8:45,9:30
+2K2,Sintaxis y Semántica de los Lenguajes,1,Miércoles,9:40,10:25
+2K2,Sintaxis y Semántica de los Lenguajes,1,Miércoles,10:25,11:10
+2K2,Sintaxis y Semántica de los Lenguajes,1,Viernes,8:00,8:45
+2K2,Sintaxis y Semántica de los Lenguajes,1,Viernes,8:45,9:30
+2K2,Sintaxis y Semántica de los Lenguajes,1,Viernes,9:40,10:25
+2K2,Sintaxis y Semántica de los Lenguajes,1,Viernes,10:25,11:10
+2K2,Sistemas Operativos,,Martes,9:40,10:25
+2K2,Sistemas Operativos,,Martes,10:25,11:10
+2K2,Sistemas Operativos,,Jueves,10:25,11:10
+2K2,Sistemas Operativos,,Jueves,11:20,12:05
+2K3,Análisis Matemático II,,Lunes,11:20,12:05
+2K3,Análisis Matemático II,,Lunes,12:05,12:50
+2K3,Análisis Matemático II,,Lunes,13:15,14:00
+2K3,Análisis Matemático II,,Martes,10:25,11:10
+2K3,Análisis Matemático II,,Martes,11:20,12:05
+2K3,Análisis de Sistemas de Información,,Miércoles,8:00,8:45
+2K3,Análisis de Sistemas de Información,,Miércoles,8:45,9:30
+2K3,Análisis de Sistemas de Información,,Miércoles,9:40,10:25
+2K3,Análisis de Sistemas de Información,,Jueves,11:20,12:05
+2K3,Análisis de Sistemas de Información,,Jueves,12:05,12:50
+2K3,Análisis de Sistemas de Información,,Jueves,13:15,14:00
+2K3,Física II,,Jueves,8:00,8:45
+2K3,Física II,,Jueves,8:45,9:30
+2K3,Física II,,Viernes,8:00,8:45
+2K3,Física II,,Viernes,8:45,9:30
+2K3,Física II,,Viernes,9:40,10:25
+2K3,Paradigmas de Programación,2,Lunes,8:00,8:45
+2K3,Paradigmas de Programación,2,Lunes,8:45,9:30
+2K3,Paradigmas de Programación,2,Lunes,9:40,10:25
+2K3,Paradigmas de Programación,2,Lunes,10:25,11:10
+2K3,Paradigmas de Programación,2,Miércoles,10:25,11:10
+2K3,Paradigmas de Programación,2,Miércoles,11:20,12:05
+2K3,Paradigmas de Programación,2,Miércoles,12:05,12:50
+2K3,Paradigmas de Programación,2,Miércoles,13:15,14:00
+2K3,Probabilidad y Estadística,1,Martes,8:00,8:45
+2K3,Probabilidad y Estadística,1,Martes,8:45,9:30
+2K3,Probabilidad y Estadística,1,Martes,9:40,10:25
+2K3,Probabilidad y Estadística,1,Viernes,10:25,11:10
+2K3,Probabilidad y Estadística,1,Viernes,11:20,12:05
+2K3,Probabilidad y Estadística,1,Viernes,12:05,12:50
+2K3,Sintaxis y Semántica de los Lenguajes,1,Lunes,8:00,8:45
+2K3,Sintaxis y Semántica de los Lenguajes,1,Lunes,8:45,9:30
+2K3,Sintaxis y Semántica de los Lenguajes,1,Lunes,9:40,10:25
+2K3,Sintaxis y Semántica de los Lenguajes,1,Lunes,10:25,11:10
+2K3,Sintaxis y Semántica de los Lenguajes,1,Miércoles,10:25,11:10
+2K3,Sintaxis y Semántica de los Lenguajes,1,Miércoles,11:20,12:05
+2K3,Sintaxis y Semántica de los Lenguajes,1,Miércoles,12:05,12:50
+2K3,Sintaxis y Semántica de los Lenguajes,1,Miércoles,13:15,14:00
+2K3,Sistemas Operativos,,Martes,12:05,12:50
+2K3,Sistemas Operativos,,Martes,13:15,14:00
+2K3,Sistemas Operativos,,Jueves,9:40,10:25
+2K3,Sistemas Operativos,,Jueves,10:25,11:10
+2K4,Análisis Matemático II,,Lunes,8:00,8:45
+2K4,Análisis Matemático II,,Lunes,8:45,9:30
+2K4,Análisis Matemático II,,Martes,11:20,12:05
+2K4,Análisis Matemático II,,Martes,12:05,12:50
+2K4,Análisis Matemático II,,Martes,13:15,14:00
+2K4,Análisis de Sistemas de Información,,Miércoles,11:20,12:05
+2K4,Análisis de Sistemas de Información,,Miércoles,12:05,12:50
+2K4,Análisis de Sistemas de Información,,Miércoles,13:15,14:00
+2K4,Análisis de Sistemas de Información,,Viernes,10:25,11:10
+2K4,Análisis de Sistemas de Información,,Viernes,11:20,12:05
+2K4,Análisis de Sistemas de Información,,Viernes,12:05,12:50
+2K4,Física II,,Lunes,11:20,12:05
+2K4,Física II,,Lunes,12:05,12:50
+2K4,Física II,,Lunes,13:15,14:00
+2K4,Física II,,Martes,9:40,10:25
+2K4,Física II,,Martes,10:25,11:10
+2K4,Paradigmas de Programación,1,Miércoles,8:00,8:45
+2K4,Paradigmas de Programación,1,Miércoles,8:45,9:30
+2K4,Paradigmas de Programación,1,Miércoles,9:40,10:25
+2K4,Paradigmas de Programación,1,Miércoles,10:25,11:10
+2K4,Paradigmas de Programación,1,Jueves,10:25,11:10
+2K4,Paradigmas de Programación,1,Jueves,11:20,12:05
+2K4,Paradigmas de Programación,1,Jueves,12:05,12:50
+2K4,Paradigmas de Programación,1,Jueves,13:15,14:00
+2K4,Probabilidad y Estadística,2,Jueves,8:00,8:45
+2K4,Probabilidad y Estadística,2,Jueves,8:45,9:30
+2K4,Probabilidad y Estadística,2,Jueves,9:40,10:25
+2K4,Probabilidad y Estadística,2,Viernes,8:00,8:45
+2K4,Probabilidad y Estadística,2,Viernes,8:45,9:30
+2K4,Probabilidad y Estadística,2,Viernes,9:40,10:25
+2K4,Sintaxis y Semántica de los Lenguajes,2,Miércoles,8:00,8:45
+2K4,Sintaxis y Semántica de los Lenguajes,2,Miércoles,8:45,9:30
+2K4,Sintaxis y Semántica de los Lenguajes,2,Miércoles,9:40,10:25
+2K4,Sintaxis y Semántica de los Lenguajes,2,Miércoles,10:25,11:10
+2K4,Sintaxis y Semántica de los Lenguajes,2,Jueves,10:25,11:10
+2K4,Sintaxis y Semántica de los Lenguajes,2,Jueves,11:20,12:05
+2K4,Sintaxis y Semántica de los Lenguajes,2,Jueves,12:05,12:50
+2K4,Sintaxis y Semántica de los Lenguajes,2,Jueves,13:15,14:00
+2K4,Sistemas Operativos,,Lunes,9:40,10:25
+2K4,Sistemas Operativos,,Lunes,10:25,11:10
+2K4,Sistemas Operativos,,Martes,8:00,8:45
+2K4,Sistemas Operativos,,Martes,8:45,9:30
+2K5,Análisis Matemático II,,Miércoles,14:00,14:45
+2K5,Análisis Matemático II,,Miércoles,14:55,15:40
+2K5,Análisis Matemático II,,Miércoles,15:40,16:25
+2K5,Análisis Matemático II,,Jueves,14:00,14:45
+2K5,Análisis Matemático II,,Jueves,14:55,15:40
+2K5,Análisis de Sistemas de Información,,Martes,14:55,15:40
+2K5,Análisis de Sistemas de Información,,Martes,15:40,16:25
+2K5,Análisis de Sistemas de Información,,Martes,16:35,17:20
+2K5,Análisis de Sistemas de Información,,Martes,17:20,18:05
+2K5,Análisis de Sistemas de Información,,Miércoles,16:35,17:20
+2K5,Análisis de Sistemas de Información,,Miércoles,17:20,18:05
+2K5,Física II,,Martes,12:05,12:50
+2K5,Física II,,Martes,13:15,14:00
+2K5,Física II,,Martes,14:00,14:45
+2K5,Física II,,Jueves,12:05,12:50
+2K5,Física II,,Jueves,13:15,14:00
+2K5,Paradigmas de Programación,2,Lunes,14:55,15:40
+2K5,Paradigmas de Programación,2,Lunes,15:40,16:25
+2K5,Paradigmas de Programación,2,Lunes,16:35,17:20
+2K5,Paradigmas de Programación,2,Lunes,17:20,18:05
+2K5,Paradigmas de Programación,2,Viernes,13:15,14:00
+2K5,Paradigmas de Programación,2,Viernes,14:00,14:45
+2K5,Paradigmas de Programación,2,Viernes,14:55,15:40
+2K5,Paradigmas de Programación,2,Viernes,15:40,16:25
+2K5,Probabilidad y Estadística,1,Lunes,15:40,16:25
+2K5,Probabilidad y Estadística,1,Lunes,16:35,17:20
+2K5,Probabilidad y Estadística,1,Lunes,17:20,18:05
+2K5,Probabilidad y Estadística,1,Jueves,15:40,16:25
+2K5,Probabilidad y Estadística,1,Jueves,16:35,17:20
+2K5,Probabilidad y Estadística,1,Jueves,17:20,18:05
+2K5,Sintaxis y Semántica de los Lenguajes,1,Lunes,12:05,12:50
+2K5,Sintaxis y Semántica de los Lenguajes,1,Lunes,13:15,14:00
+2K5,Sintaxis y Semántica de los Lenguajes,1,Lunes,14:00,14:45
+2K5,Sintaxis y Semántica de los Lenguajes,1,Lunes,14:55,15:40
+2K5,Sintaxis y Semántica de los Lenguajes,1,Viernes,13:15,14:00
+2K5,Sintaxis y Semántica de los Lenguajes,1,Viernes,14:00,14:45
+2K5,Sintaxis y Semántica de los Lenguajes,1,Viernes,14:55,15:40
+2K5,Sintaxis y Semántica de los Lenguajes,1,Viernes,15:40,16:25
+2K5,Sistemas Operativos,,Miércoles,12:05,12:50
+2K5,Sistemas Operativos,,Miércoles,13:15,14:00
+2K5,Sistemas Operativos,,Viernes,16:35,17:20
+2K5,Sistemas Operativos,,Viernes,17:20,18:05
+2K6,Análisis Matemático II,,Lunes,14:55,15:40
+2K6,Análisis Matemático II,,Lunes,15:40,16:25
+2K6,Análisis Matemático II,,Jueves,15:40,16:25
+2K6,Análisis Matemático II,,Jueves,16:35,17:20
+2K6,Análisis Matemático II,,Jueves,17:20,18:05
+2K6,Análisis de Sistemas de Información,,Martes,15:40,16:25
+2K6,Análisis de Sistemas de Información,,Martes,16:35,17:20
+2K6,Análisis de Sistemas de Información,,Martes,17:20,18:05
+2K6,Análisis de Sistemas de Información,,Jueves,13:15,14:00
+2K6,Análisis de Sistemas de Información,,Jueves,14:00,14:45
+2K6,Análisis de Sistemas de Información,,Jueves,14:55,15:40
+2K6,Física II,,Lunes,12:05,12:50
+2K6,Física II,,Lunes,13:15,14:00
+2K6,Física II,,Lunes,14:00,14:45
+2K6,Física II,,Viernes,16:35,17:20
+2K6,Física II,,Viernes,17:20,18:05
+2K6,Paradigmas de Programación,2,Martes,12:05,12:50
+2K6,Paradigmas de Programación,2,Martes,13:15,14:00
+2K6,Paradigmas de Programación,2,Martes,14:00,14:45
+2K6,Paradigmas de Programación,2,Martes,14:55,15:40
+2K6,Paradigmas de Programación,2,Miércoles,14:55,15:40
+2K6,Paradigmas de Programación,2,Miércoles,15:40,16:25
+2K6,Paradigmas de Programación,2,Miércoles,16:35,17:20
+2K6,Paradigmas de Programación,2,Miércoles,17:20,18:05
+2K6,Probabilidad y Estadística,1,Miércoles,12:05,12:50
+2K6,Probabilidad y Estadística,1,Miércoles,13:15,14:00
+2K6,Probabilidad y Estadística,1,Miércoles,14:00,14:45
+2K6,Probabilidad y Estadística,1,Viernes,14:00,14:45
+2K6,Probabilidad y Estadística,1,Viernes,14:55,15:40
+2K6,Probabilidad y Estadística,1,Viernes,15:40,16:25
+2K6,Sintaxis y Semántica de los Lenguajes,1,Martes,12:05,12:50
+2K6,Sintaxis y Semántica de los Lenguajes,1,Martes,13:15,14:00
+2K6,Sintaxis y Semántica de los Lenguajes,1,Martes,14:00,14:45
+2K6,Sintaxis y Semántica de los Lenguajes,1,Martes,14:55,15:40
+2K6,Sintaxis y Semántica de los Lenguajes,1,Miércoles,14:55,15:40
+2K6,Sintaxis y Semántica de los Lenguajes,1,Miércoles,15:40,16:25
+2K6,Sintaxis y Semántica de los Lenguajes,1,Miércoles,16:35,17:20
+2K6,Sintaxis y Semántica de los Lenguajes,1,Miércoles,17:20,18:05
+2K6,Sistemas Operativos,,Lunes,16:35,17:20
+2K6,Sistemas Operativos,,Lunes,17:20,18:05
+2K6,Sistemas Operativos,,Viernes,12:05,12:50
+2K6,Sistemas Operativos,,Viernes,13:15,14:00
+2K7,Análisis Matemático II,,Lunes,12:05,12:50
+2K7,Análisis Matemático II,,Lunes,13:15,14:00
+2K7,Análisis Matemático II,,Jueves,12:05,12:50
+2K7,Análisis Matemático II,,Jueves,13:15,14:00
+2K7,Análisis Matemático II,,Jueves,14:00,14:45
+2K7,Análisis de Sistemas de Información,,Miércoles,15:40,16:25
+2K7,Análisis de Sistemas de Información,,Miércoles,16:35,17:20
+2K7,Análisis de Sistemas de Información,,Miércoles,17:20,18:05
+2K7,Análisis de Sistemas de Información,,Viernes,15:40,16:25
+2K7,Análisis de Sistemas de Información,,Viernes,16:35,17:20
+2K7,Análisis de Sistemas de Información,,Viernes,17:20,18:05
+2K7,Física II,,Martes,12:05,12:50
+2K7,Física II,,Martes,13:15,14:00
+2K7,Física II,,Martes,14:00,14:45
+2K7,Física II,,Martes,14:55,15:40
+2K7,Física II,,Martes,15:40,16:25
+2K7,Paradigmas de Programación,1,Miércoles,12:05,12:50
+2K7,Paradigmas de Programación,1,Miércoles,13:15,14:00
+2K7,Paradigmas de Programación,1,Miércoles,14:00,14:45
+2K7,Paradigmas de Programación,1,Miércoles,14:55,15:40
+2K7,Paradigmas de Programación,1,Jueves,14:55,15:40
+2K7,Paradigmas de Programación,1,Jueves,15:40,16:25
+2K7,Paradigmas de Programación,1,Jueves,16:35,17:20
+2K7,Paradigmas de Programación,1,Jueves,17:20,18:05
+2K7,Probabilidad y Estadística,2,Lunes,15:40,16:25
+2K7,Probabilidad y Estadística,2,Lunes,16:35,17:20
+2K7,Probabilidad y Estadística,2,Lunes,17:20,18:05
+2K7,Probabilidad y Estadística,2,Viernes,13:15,14:00
+2K7,Probabilidad y Estadística,2,Viernes,14:00,14:45
+2K7,Probabilidad y Estadística,2,Viernes,14:55,15:40
+2K7,Sintaxis y Semántica de los Lenguajes,2,Miércoles,12:05,12:50
+2K7,Sintaxis y Semántica de los Lenguajes,2,Miércoles,13:15,14:00
+2K7,Sintaxis y Semántica de los Lenguajes,2,Miércoles,14:00,14:45
+2K7,Sintaxis y Semántica de los Lenguajes,2,Miércoles,14:55,15:40
+2K7,Sintaxis y Semántica de los Lenguajes,2,Jueves,14:55,15:40
+2K7,Sintaxis y Semántica de los Lenguajes,2,Jueves,15:40,16:25
+2K7,Sintaxis y Semántica de los Lenguajes,2,Jueves,16:35,17:20
+2K7,Sintaxis y Semántica de los Lenguajes,2,Jueves,17:20,18:05
+2K7,Sistemas Operativos,,Lunes,14:00,14:45
+2K7,Sistemas Operativos,,Lunes,14:55,15:40
+2K7,Sistemas Operativos,,Martes,16:35,17:20
+2K7,Sistemas Operativos,,Martes,17:20,18:05
+2K8,Análisis Matemático II,,Lunes,18:15,19:00
+2K8,Análisis Matemático II,,Lunes,19:00,19:45
+2K8,Análisis Matemático II,,Lunes,19:55,20:40
+2K8,Análisis Matemático II,,Jueves,21:35,22:20
+2K8,Análisis Matemático II,,Jueves,22:20,23:05
+2K8,Análisis de Sistemas de Información,,Lunes,20:40,21:25
+2K8,Análisis de Sistemas de Información,,Lunes,21:35,22:20
+2K8,Análisis de Sistemas de Información,,Lunes,22:20,23:05
+2K8,Análisis de Sistemas de Información,,Miércoles,20:40,21:25
+2K8,Análisis de Sistemas de Información,,Miércoles,21:35,22:20
+2K8,Análisis de Sistemas de Información,,Miércoles,22:20,23:05
+2K8,Física II,,Martes,20:40,21:25
+2K8,Física II,,Martes,21:35,22:20
+2K8,Física II,,Martes,22:20,23:05
+2K8,Física II,,Miércoles,17:20,18:05
+2K8,Física II,,Miércoles,18:15,19:00
+2K8,Paradigmas de Programación,2,Martes,17:20,18:05
+2K8,Paradigmas de Programación,2,Martes,18:15,19:00
+2K8,Paradigmas de Programación,2,Martes,19:00,19:45
+2K8,Paradigmas de Programación,2,Martes,19:55,20:40
+2K8,Paradigmas de Programación,2,Viernes,19:55,20:40
+2K8,Paradigmas de Programación,2,Viernes,20:40,21:25
+2K8,Paradigmas de Programación,2,Viernes,21:35,22:20
+2K8,Paradigmas de Programación,2,Viernes,22:20,23:05
+2K8,Probabilidad y Estadística,1,Jueves,17:20,18:05
+2K8,Probabilidad y Estadística,1,Jueves,18:15,19:00
+2K8,Probabilidad y Estadística,1,Jueves,19:00,19:45
+2K8,Probabilidad y Estadística,1,Viernes,17:20,18:05
+2K8,Probabilidad y Estadística,1,Viernes,18:15,19:00
+2K8,Probabilidad y Estadística,1,Viernes,19:00,19:45
+2K8,Sintaxis y Semántica de los Lenguajes,1,Martes,17:20,18:05
+2K8,Sintaxis y Semántica de los Lenguajes,1,Martes,18:15,19:00
+2K8,Sintaxis y Semántica de los Lenguajes,1,Martes,19:00,19:45
+2K8,Sintaxis y Semántica de los Lenguajes,1,Martes,19:55,20:40
+2K8,Sintaxis y Semántica de los Lenguajes,1,Viernes,19:55,20:40
+2K8,Sintaxis y Semántica de los Lenguajes,1,Viernes,20:40,21:25
+2K8,Sintaxis y Semántica de los Lenguajes,1,Viernes,21:35,22:20
+2K8,Sintaxis y Semántica de los Lenguajes,1,Viernes,22:20,23:05
+2K8,Sistemas Operativos,,Miércoles,19:00,19:45
+2K8,Sistemas Operativos,,Miércoles,19:55,20:40
+2K8,Sistemas Operativos,,Jueves,19:55,20:40
+2K8,Sistemas Operativos,,Jueves,20:40,21:25
+2K9,Análisis Matemático II,,Martes,19:55,20:40
+2K9,Análisis Matemático II,,Martes,20:40,21:25
+2K9,Análisis Matemático II,,Martes,21:35,22:20
+2K9,Análisis Matemático II,,Viernes,17:20,18:05
+2K9,Análisis Matemático II,,Viernes,18:15,19:00
+2K9,Análisis de Sistemas de Información,,Lunes,17:20,18:05
+2K9,Análisis de Sistemas de Información,,Lunes,18:15,19:00
+2K9,Análisis de Sistemas de Información,,Lunes,19:00,19:45
+2K9,Análisis de Sistemas de Información,,Jueves,20:40,21:25
+2K9,Análisis de Sistemas de Información,,Jueves,21:35,22:20
+2K9,Análisis de Sistemas de Información,,Jueves,22:20,23:05
+2K9,Física II,,Martes,17:20,18:05
+2K9,Física II,,Martes,18:15,19:00
+2K9,Física II,,Martes,19:00,19:45
+2K9,Física II,,Miércoles,19:00,19:45
+2K9,Física II,,Miércoles,19:55,20:40
+2K9,Paradigmas de Programación,2,Lunes,19:55,20:40
+2K9,Paradigmas de Programación,2,Lunes,20:40,21:25
+2K9,Paradigmas de Programación,2,Lunes,21:35,22:20
+2K9,Paradigmas de Programación,2,Lunes,22:20,23:05
+2K9,Paradigmas de Programación,2,Jueves,17:20,18:05
+2K9,Paradigmas de Programación,2,Jueves,18:15,19:00
+2K9,Paradigmas de Programación,2,Jueves,19:00,19:45
+2K9,Paradigmas de Programación,2,Jueves,19:55,20:40
+2K9,Probabilidad y Estadística,1,Miércoles,20:40,21:25
+2K9,Probabilidad y Estadística,1,Miércoles,21:35,22:20
+2K9,Probabilidad y Estadística,1,Miércoles,22:20,23:05
+2K9,Probabilidad y Estadística,1,Viernes,20:40,21:25
+2K9,Probabilidad y Estadística,1,Viernes,21:35,22:20
+2K9,Probabilidad y Estadística,1,Viernes,22:20,23:05
+2K9,Sintaxis y Semántica de los Lenguajes,1,Lunes,19:55,20:40
+2K9,Sintaxis y Semántica de los Lenguajes,1,Lunes,20:40,21:25
+2K9,Sintaxis y Semántica de los Lenguajes,1,Lunes,21:35,22:20
+2K9,Sintaxis y Semántica de los Lenguajes,1,Lunes,22:20,23:05
+2K9,Sintaxis y Semántica de los Lenguajes,1,Jueves,17:20,18:05
+2K9,Sintaxis y Semántica de los Lenguajes,1,Jueves,18:15,19:00
+2K9,Sintaxis y Semántica de los Lenguajes,1,Jueves,19:00,19:45
+2K9,Sintaxis y Semántica de los Lenguajes,1,Jueves,19:55,20:40
+2K9,Sistemas Operativos,,Miércoles,17:20,18:05
+2K9,Sistemas Operativos,,Miércoles,18:15,19:00
+2K9,Sistemas Operativos,,Viernes,19:00,19:45
+2K9,Sistemas Operativos,,Viernes,19:55,20:40
+3K1,Análisis Numérico,2,Miércoles,11:20,12:05
+3K1,Análisis Numérico,2,Miércoles,12:05,12:50
+3K1,Análisis Numérico,2,Miércoles,13:15,14:00
+3K1,Análisis Numérico,2,Jueves,10:25,11:10
+3K1,Análisis Numérico,2,Jueves,11:20,12:05
+3K1,Análisis Numérico,2,Jueves,12:05,12:50
+3K1,Backend de Aplicaciones,2,Martes,8:00,8:45
+3K1,Backend de Aplicaciones,2,Martes,8:45,9:30
+3K1,Backend de Aplicaciones,2,Martes,9:40,10:25
+3K1,Backend de Aplicaciones,2,Martes,10:25,11:10
+3K1,Backend de Aplicaciones,2,Miércoles,8:00,8:45
+3K1,Backend de Aplicaciones,2,Miércoles,8:45,9:30
+3K1,Backend de Aplicaciones,2,Miércoles,9:40,10:25
+3K1,Backend de Aplicaciones,2,Miércoles,10:25,11:10
+3K1,Base de Datos,1,Miércoles,8:00,8:45
+3K1,Base de Datos,1,Miércoles,8:45,9:30
+3K1,Base de Datos,1,Miércoles,9:40,10:25
+3K1,Base de Datos,1,Miércoles,10:25,11:10
+3K1,Base de Datos,1,Viernes,9:40,10:25
+3K1,Base de Datos,1,Viernes,10:25,11:10
+3K1,Base de Datos,1,Viernes,11:20,12:05
+3K1,Base de Datos,1,Viernes,12:05,12:50
+3K1,Comunicación de Datos,,Lunes,10:25,11:10
+3K1,Comunicación de Datos,,Lunes,11:20,12:05
+3K1,Comunicación de Datos,,Lunes,12:05,12:50
+3K1,Comunicación de Datos,,Lunes,13:15,14:00
+3K1,Desarrollo de Software,1,Martes,8:00,8:45
+3K1,Desarrollo de Software,1,Martes,8:45,9:30
+3K1,Desarrollo de Software,1,Martes,9:40,10:25
+3K1,Desarrollo de Software,1,Martes,10:25,11:10
+3K1,Desarrollo de Software,1,Jueves,10:25,11:10
+3K1,Desarrollo de Software,1,Jueves,11:20,12:05
+3K1,Desarrollo de Software,1,Jueves,12:05,12:50
+3K1,Desarrollo de Software,1,Jueves,13:15,14:00
+3K1,Diseño de Sistemas de Información,,Lunes,8:00,8:45
+3K1,Diseño de Sistemas de Información,,Lunes,8:45,9:30
+3K1,Diseño de Sistemas de Información,,Lunes,9:40,10:25
+3K1,Diseño de Sistemas de Información,,Jueves,8:00,8:45
+3K1,Diseño de Sistemas de Información,,Jueves,8:45,9:30
+3K1,Diseño de Sistemas de Información,,Jueves,9:40,10:25
+3K1,Economía,2,Martes,11:20,12:05
+3K1,Economía,2,Martes,12:05,12:50
+3K1,Economía,2,Martes,13:15,14:00
+3K1,Economía,2,Viernes,9:40,10:25
+3K1,Economía,2,Viernes,10:25,11:10
+3K1,Economía,2,Viernes,11:20,12:05
+3K1,Inglés II,,Viernes,8:00,8:45
+3K1,Inglés II,,Viernes,8:45,9:30
+3K1,Seminario Integrador,2,Martes,18:15,19:00
+3K1,Seminario Integrador,2,Martes,19:00,19:45
+3K1,Seminario Integrador,2,Martes,19:55,20:40
+3K1,Seminario Integrador,2,Martes,20:40,21:25
+3K1,Seminario Integrador,2,Miércoles,18:15,19:00
+3K1,Seminario Integrador,2,Miércoles,19:00,19:45
+3K1,Seminario Integrador,2,Miércoles,19:55,20:40
+3K1,Seminario Integrador,2,Miércoles,20:40,21:25
+3K2,Análisis Numérico,2,Lunes,8:00,8:45
+3K2,Análisis Numérico,2,Lunes,8:45,9:30
+3K2,Análisis Numérico,2,Lunes,9:40,10:25
+3K2,Análisis Numérico,2,Viernes,8:00,8:45
+3K2,Análisis Numérico,2,Viernes,8:45,9:30
+3K2,Análisis Numérico,2,Viernes,9:40,10:25
+3K2,Backend de Aplicaciones,2,Martes,10:25,11:10
+3K2,Backend de Aplicaciones,2,Martes,11:20,12:05
+3K2,Backend de Aplicaciones,2,Martes,12:05,12:50
+3K2,Backend de Aplicaciones,2,Martes,13:15,14:00
+3K2,Backend de Aplicaciones,2,Jueves,8:00,8:45
+3K2,Backend de Aplicaciones,2,Jueves,8:45,9:30
+3K2,Backend de Aplicaciones,2,Jueves,9:40,10:25
+3K2,Backend de Aplicaciones,2,Jueves,10:25,11:10
+3K2,Base de Datos,1,Lunes,8:00,8:45
+3K2,Base de Datos,1,Lunes,8:45,9:30
+3K2,Base de Datos,1,Lunes,9:40,10:25
+3K2,Base de Datos,1,Lunes,10:25,11:10
+3K2,Base de Datos,1,Jueves,8:00,8:45
+3K2,Base de Datos,1,Jueves,8:45,9:30
+3K2,Base de Datos,1,Jueves,9:40,10:25
+3K2,Base de Datos,1,Jueves,10:25,11:10
+3K2,Comunicación de Datos,,Viernes,10:25,11:10
+3K2,Comunicación de Datos,,Viernes,11:20,12:05
+3K2,Comunicación de Datos,,Viernes,12:05,12:50
+3K2,Comunicación de Datos,,Viernes,13:15,14:00
+3K2,Desarrollo de Software,1,Martes,10:25,11:10
+3K2,Desarrollo de Software,1,Martes,11:20,12:05
+3K2,Desarrollo de Software,1,Martes,12:05,12:50
+3K2,Desarrollo de Software,1,Martes,13:15,14:00
+3K2,Desarrollo de Software,1,Miércoles,10:25,11:10
+3K2,Desarrollo de Software,1,Miércoles,11:20,12:05
+3K2,Desarrollo de Software,1,Miércoles,12:05,12:50
+3K2,Desarrollo de Software,1,Miércoles,13:15,14:00
+3K2,Diseño de Sistemas de Información,,Martes,8:00,8:45
+3K2,Diseño de Sistemas de Información,,Martes,8:45,9:30
+3K2,Diseño de Sistemas de Información,,Martes,9:40,10:25
+3K2,Diseño de Sistemas de Información,,Miércoles,8:00,8:45
+3K2,Diseño de Sistemas de Información,,Miércoles,8:45,9:30
+3K2,Diseño de Sistemas de Información,,Miércoles,9:40,10:25
+3K2,Economía,2,Lunes,10:25,11:10
+3K2,Economía,2,Lunes,11:20,12:05
+3K2,Economía,2,Lunes,12:05,12:50
+3K2,Economía,2,Miércoles,10:25,11:10
+3K2,Economía,2,Miércoles,11:20,12:05
+3K2,Economía,2,Miércoles,12:05,12:50
+3K2,Inglés II,,Jueves,11:20,12:05
+3K2,Inglés II,,Jueves,12:05,12:50
+3K2,Seminario Integrador,2,Martes,14:55,15:40
+3K2,Seminario Integrador,2,Martes,15:40,16:25
+3K2,Seminario Integrador,2,Martes,16:35,17:20
+3K2,Seminario Integrador,2,Martes,17:20,18:05
+3K2,Seminario Integrador,2,Miércoles,14:55,15:40
+3K2,Seminario Integrador,2,Miércoles,15:40,16:25
+3K2,Seminario Integrador,2,Miércoles,16:35,17:20
+3K2,Seminario Integrador,2,Miércoles,17:20,18:05
+3K3,Análisis Numérico,2,Miércoles,12:05,12:50
+3K3,Análisis Numérico,2,Miércoles,13:15,14:00
+3K3,Análisis Numérico,2,Miércoles,14:00,14:45
+3K3,Análisis Numérico,2,Jueves,13:15,14:00
+3K3,Análisis Numérico,2,Jueves,14:00,14:45
+3K3,Análisis Numérico,2,Jueves,14:55,15:40
+3K3,Backend de Aplicaciones,2,Martes,14:55,15:40
+3K3,Backend de Aplicaciones,2,Martes,15:40,16:25
+3K3,Backend de Aplicaciones,2,Martes,16:35,17:20
+3K3,Backend de Aplicaciones,2,Martes,17:20,18:05
+3K3,Backend de Aplicaciones,2,Viernes,14:55,15:40
+3K3,Backend de Aplicaciones,2,Viernes,15:40,16:25
+3K3,Backend de Aplicaciones,2,Viernes,16:35,17:20
+3K3,Backend de Aplicaciones,2,Viernes,17:20,18:05
+3K3,Base de Datos,1,Lunes,14:55,15:40
+3K3,Base de Datos,1,Lunes,15:40,16:25
+3K3,Base de Datos,1,Lunes,16:35,17:20
+3K3,Base de Datos,1,Lunes,17:20,18:05
+3K3,Base de Datos,1,Jueves,14:55,15:40
+3K3,Base de Datos,1,Jueves,15:40,16:25
+3K3,Base de Datos,1,Jueves,16:35,17:20
+3K3,Base de Datos,1,Jueves,17:20,18:05
+3K3,Comunicación de Datos,,Lunes,13:15,14:00
+3K3,Comunicación de Datos,,Lunes,14:00,14:45
+3K3,Comunicación de Datos,,Miércoles,14:55,15:40
+3K3,Comunicación de Datos,,Miércoles,15:40,16:25
+3K3,Desarrollo de Software,1,Martes,14:55,15:40
+3K3,Desarrollo de Software,1,Martes,15:40,16:25
+3K3,Desarrollo de Software,1,Martes,16:35,17:20
+3K3,Desarrollo de Software,1,Martes,17:20,18:05
+3K3,Desarrollo de Software,1,Viernes,14:55,15:40
+3K3,Desarrollo de Software,1,Viernes,15:40,16:25
+3K3,Desarrollo de Software,1,Viernes,16:35,17:20
+3K3,Desarrollo de Software,1,Viernes,17:20,18:05
+3K3,Diseño de Sistemas de Información,,Martes,12:05,12:50
+3K3,Diseño de Sistemas de Información,,Martes,13:15,14:00
+3K3,Diseño de Sistemas de Información,,Martes,14:00,14:45
+3K3,Diseño de Sistemas de Información,,Viernes,12:05,12:50
+3K3,Diseño de Sistemas de Información,,Viernes,13:15,14:00
+3K3,Diseño de Sistemas de Información,,Viernes,14:00,14:45
+3K3,Economía,2,Lunes,14:55,15:40
+3K3,Economía,2,Lunes,15:40,16:25
+3K3,Economía,2,Lunes,16:35,17:20
+3K3,Economía,2,Jueves,15:40,16:25
+3K3,Economía,2,Jueves,16:35,17:20
+3K3,Economía,2,Jueves,17:20,18:05
+3K3,Inglés II,,Miércoles,16:35,17:20
+3K3,Inglés II,,Miércoles,17:20,18:05
+3K4,Análisis Numérico,2,Lunes,17:20,18:05
+3K4,Análisis Numérico,2,Lunes,18:15,19:00
+3K4,Análisis Numérico,2,Lunes,19:00,19:45
+3K4,Análisis Numérico,2,Jueves,17:20,18:05
+3K4,Análisis Numérico,2,Jueves,18:15,19:00
+3K4,Análisis Numérico,2,Jueves,19:00,19:45
+3K4,Backend de Aplicaciones,2,Martes,19:55,20:40
+3K4,Backend de Aplicaciones,2,Martes,20:40,21:25
+3K4,Backend de Aplicaciones,2,Martes,21:35,22:20
+3K4,Backend de Aplicaciones,2,Martes,22:20,23:05
+3K4,Backend de Aplicaciones,2,Miércoles,19:55,20:40
+3K4,Backend de Aplicaciones,2,Miércoles,20:40,21:25
+3K4,Backend de Aplicaciones,2,Miércoles,21:35,22:20
+3K4,Backend de Aplicaciones,2,Miércoles,22:20,23:05
+3K4,Base de Datos,1,Martes,19:55,20:40
+3K4,Base de Datos,1,Martes,20:40,21:25
+3K4,Base de Datos,1,Martes,21:35,22:20
+3K4,Base de Datos,1,Martes,22:20,23:05
+3K4,Base de Datos,1,Miércoles,19:55,20:40
+3K4,Base de Datos,1,Miércoles,20:40,21:25
+3K4,Base de Datos,1,Miércoles,21:35,22:20
+3K4,Base de Datos,1,Miércoles,22:20,23:05
+3K4,Comunicación de Datos,,Viernes,19:55,20:40
+3K4,Comunicación de Datos,,Viernes,20:40,21:25
+3K4,Comunicación de Datos,,Viernes,21:35,22:20
+3K4,Comunicación de Datos,,Viernes,22:20,23:05
+3K4,Desarrollo de Software,1,Lunes,18:15,19:00
+3K4,Desarrollo de Software,1,Lunes,19:00,19:45
+3K4,Desarrollo de Software,1,Lunes,19:55,20:40
+3K4,Desarrollo de Software,1,Lunes,20:40,21:25
+3K4,Desarrollo de Software,1,Jueves,18:15,19:00
+3K4,Desarrollo de Software,1,Jueves,19:00,19:45
+3K4,Desarrollo de Software,1,Jueves,19:55,20:40
+3K4,Desarrollo de Software,1,Jueves,20:40,21:25
+3K4,Diseño de Sistemas de Información,,Martes,17:20,18:05
+3K4,Diseño de Sistemas de Información,,Martes,18:15,19:00
+3K4,Diseño de Sistemas de Información,,Martes,19:00,19:45
+3K4,Diseño de Sistemas de Información,,Viernes,17:20,18:05
+3K4,Diseño de Sistemas de Información,,Viernes,18:15,19:00
+3K4,Diseño de Sistemas de Información,,Viernes,19:00,19:45
+3K4,Economía,2,Lunes,19:55,20:40
+3K4,Economía,2,Lunes,20:40,21:25
+3K4,Economía,2,Lunes,21:35,22:20
+3K4,Economía,2,Jueves,19:55,20:40
+3K4,Economía,2,Jueves,20:40,21:25
+3K4,Economía,2,Jueves,21:35,22:20
+3K4,Inglés II,,Miércoles,18:15,19:00
+3K4,Inglés II,,Miércoles,19:00,19:45
+3K4,Seminario Integrador,2,Martes,9:40,10:25
+3K4,Seminario Integrador,2,Martes,10:25,11:10
+3K4,Seminario Integrador,2,Martes,11:20,12:05
+3K4,Seminario Integrador,2,Martes,12:05,12:50
+3K4,Seminario Integrador,2,Miércoles,9:40,10:25
+3K4,Seminario Integrador,2,Miércoles,10:25,11:10
+3K4,Seminario Integrador,2,Miércoles,11:20,12:05
+3K4,Seminario Integrador,2,Miércoles,12:05,12:50
+3K5,Análisis Numérico,2,Martes,17:20,18:05
+3K5,Análisis Numérico,2,Martes,18:15,19:00
+3K5,Análisis Numérico,2,Martes,19:00,19:45
+3K5,Análisis Numérico,2,Viernes,17:20,18:05
+3K5,Análisis Numérico,2,Viernes,18:15,19:00
+3K5,Análisis Numérico,2,Viernes,19:00,19:45
+3K5,Backend de Aplicaciones,1,Miércoles,19:55,20:40
+3K5,Backend de Aplicaciones,1,Miércoles,20:40,21:25
+3K5,Backend de Aplicaciones,1,Miércoles,21:35,22:20
+3K5,Backend de Aplicaciones,1,Miércoles,22:20,23:05
+3K5,Backend de Aplicaciones,1,Viernes,19:55,20:40
+3K5,Backend de Aplicaciones,1,Viernes,20:40,21:25
+3K5,Backend de Aplicaciones,1,Viernes,21:35,22:20
+3K5,Backend de Aplicaciones,1,Viernes,22:20,23:05
+3K5,Base de Datos,1,Martes,19:55,20:40
+3K5,Base de Datos,1,Martes,20:40,21:25
+3K5,Base de Datos,1,Martes,21:35,22:20
+3K5,Base de Datos,1,Martes,22:20,23:05
+3K5,Base de Datos,1,Jueves,19:55,20:40
+3K5,Base de Datos,1,Jueves,20:40,21:25
+3K5,Base de Datos,1,Jueves,21:35,22:20
+3K5,Base de Datos,1,Jueves,22:20,23:05
+3K5,Comunicación de Datos,,Lunes,19:55,20:40
+3K5,Comunicación de Datos,,Lunes,20:40,21:25
+3K5,Comunicación de Datos,,Lunes,21:35,22:20
+3K5,Comunicación de Datos,,Lunes,22:20,23:05
+3K5,Desarrollo de Software,1,Miércoles,19:55,20:40
+3K5,Desarrollo de Software,1,Miércoles,20:40,21:25
+3K5,Desarrollo de Software,1,Miércoles,21:35,22:20
+3K5,Desarrollo de Software,1,Miércoles,22:20,23:05
+3K5,Desarrollo de Software,1,Viernes,19:55,20:40
+3K5,Desarrollo de Software,1,Viernes,20:40,21:25
+3K5,Desarrollo de Software,1,Viernes,21:35,22:20
+3K5,Desarrollo de Software,1,Viernes,22:20,23:05
+3K5,Diseño de Sistemas de Información,,Lunes,17:20,18:05
+3K5,Diseño de Sistemas de Información,,Lunes,18:15,19:00
+3K5,Diseño de Sistemas de Información,,Lunes,19:00,19:45
+3K5,Diseño de Sistemas de Información,,Miércoles,17:20,18:05
+3K5,Diseño de Sistemas de Información,,Miércoles,18:15,19:00
+3K5,Diseño de Sistemas de Información,,Miércoles,19:00,19:45
+3K5,Economía,2,Jueves,19:55,20:40
+3K5,Economía,2,Jueves,20:40,21:25
+3K5,Economía,2,Jueves,21:35,22:20
+3K5,Economía,2,Viernes,19:55,20:40
+3K5,Economía,2,Viernes,20:40,21:25
+3K5,Economía,2,Viernes,21:35,22:20
+3K5,Inglés II,,Jueves,18:15,19:00
+3K5,Inglés II,,Jueves,19:00,19:45
+3K6,Análisis Numérico,1,Martes,17:20,18:05
+3K6,Análisis Numérico,1,Martes,18:15,19:00
+3K6,Análisis Numérico,1,Martes,19:00,19:45
+3K6,Análisis Numérico,1,Jueves,18:15,19:00
+3K6,Análisis Numérico,1,Jueves,19:00,19:45
+3K6,Análisis Numérico,1,Jueves,19:55,20:40
+3K6,Base de Datos,2,Lunes,19:55,20:40
+3K6,Base de Datos,2,Lunes,20:40,21:25
+3K6,Base de Datos,2,Lunes,21:35,22:20
+3K6,Base de Datos,2,Lunes,22:20,23:05
+3K6,Base de Datos,2,Miércoles,19:55,20:40
+3K6,Base de Datos,2,Miércoles,20:40,21:25
+3K6,Base de Datos,2,Miércoles,21:35,22:20
+3K6,Base de Datos,2,Miércoles,22:20,23:05
+3K6,Comunicación de Datos,,Miércoles,17:20,18:05
+3K6,Comunicación de Datos,,Miércoles,18:15,19:00
+3K6,Comunicación de Datos,,Viernes,21:35,22:20
+3K6,Comunicación de Datos,,Viernes,22:20,23:05
+3K6,Desarrollo de Software,1,Martes,19:55,20:40
+3K6,Desarrollo de Software,1,Martes,20:40,21:25
+3K6,Desarrollo de Software,1,Martes,21:35,22:20
+3K6,Desarrollo de Software,1,Martes,22:20,23:05
+3K6,Desarrollo de Software,1,Miércoles,19:55,20:40
+3K6,Desarrollo de Software,1,Miércoles,20:40,21:25
+3K6,Desarrollo de Software,1,Miércoles,21:35,22:20
+3K6,Desarrollo de Software,1,Miércoles,22:20,23:05
+3K6,Desarrollo de Software,2,Martes,19:55,20:40
+3K6,Desarrollo de Software,2,Martes,20:40,21:25
+3K6,Desarrollo de Software,2,Martes,21:35,22:20
+3K6,Desarrollo de Software,2,Martes,22:20,23:05
+3K6,Desarrollo de Software,2,Viernes,18:15,19:00
+3K6,Desarrollo de Software,2,Viernes,19:00,19:45
+3K6,Desarrollo de Software,2,Viernes,19:55,20:40
+3K6,Desarrollo de Software,2,Viernes,20:40,21:25
+3K6,Diseño de Sistemas de Información,,Lunes,17:20,18:05
+3K6,Diseño de Sistemas de Información,,Lunes,18:15,19:00
+3K6,Diseño de Sistemas de Información,,Lunes,19:00,19:45
+3K6,Diseño de Sistemas de Información,,Jueves,20:40,21:25
+3K6,Diseño de Sistemas de Información,,Jueves,21:35,22:20
+3K6,Diseño de Sistemas de Información,,Jueves,22:20,23:05
+3K6,Economía,1,Lunes,19:55,20:40
+3K6,Economía,1,Lunes,20:40,21:25
+3K6,Economía,1,Lunes,21:35,22:20
+3K6,Economía,1,Viernes,19:00,19:45
+3K6,Economía,1,Viernes,19:55,20:40
+3K6,Economía,1,Viernes,20:40,21:25
+3K6,Inglés II,,Lunes,13:15,14:00
+3K6,Inglés II,,Lunes,14:00,14:45
+3K7,Análisis Numérico,1,Miércoles,12:05,12:50
+3K7,Análisis Numérico,1,Miércoles,13:15,14:00
+3K7,Análisis Numérico,1,Miércoles,14:00,14:45
+3K7,Análisis Numérico,1,Jueves,13:15,14:00
+3K7,Análisis Numérico,1,Jueves,14:00,14:45
+3K7,Análisis Numérico,1,Jueves,14:55,15:40
+3K7,Backend de Aplicaciones,2,Martes,14:55,15:40
+3K7,Backend de Aplicaciones,2,Martes,15:40,16:25
+3K7,Backend de Aplicaciones,2,Martes,16:35,17:20
+3K7,Backend de Aplicaciones,2,Martes,17:20,18:05
+3K7,Backend de Aplicaciones,2,Viernes,13:15,14:00
+3K7,Backend de Aplicaciones,2,Viernes,14:00,14:45
+3K7,Backend de Aplicaciones,2,Viernes,14:55,15:40
+3K7,Backend de Aplicaciones,2,Viernes,15:40,16:25
+3K7,Base de Datos,2,Lunes,14:55,15:40
+3K7,Base de Datos,2,Lunes,15:40,16:25
+3K7,Base de Datos,2,Lunes,16:35,17:20
+3K7,Base de Datos,2,Lunes,17:20,18:05
+3K7,Base de Datos,2,Miércoles,14:55,15:40
+3K7,Base de Datos,2,Miércoles,15:40,16:25
+3K7,Base de Datos,2,Miércoles,16:35,17:20
+3K7,Base de Datos,2,Miércoles,17:20,18:05
+3K7,Comunicación de Datos,,Martes,13:15,14:00
+3K7,Comunicación de Datos,,Martes,14:00,14:45
+3K7,Comunicación de Datos,,Viernes,16:35,17:20
+3K7,Comunicación de Datos,,Viernes,17:20,18:05
+3K7,Desarrollo de Software,1,Martes,14:55,15:40
+3K7,Desarrollo de Software,1,Martes,15:40,16:25
+3K7,Desarrollo de Software,1,Martes,16:35,17:20
+3K7,Desarrollo de Software,1,Martes,17:20,18:05
+3K7,Desarrollo de Software,1,Miércoles,14:55,15:40
+3K7,Desarrollo de Software,1,Miércoles,15:40,16:25
+3K7,Desarrollo de Software,1,Miércoles,16:35,17:20
+3K7,Desarrollo de Software,1,Miércoles,17:20,18:05
+3K7,Diseño de Sistemas de Información,,Lunes,12:05,12:50
+3K7,Diseño de Sistemas de Información,,Lunes,13:15,14:00
+3K7,Diseño de Sistemas de Información,,Lunes,14:00,14:45
+3K7,Diseño de Sistemas de Información,,Jueves,15:40,16:25
+3K7,Diseño de Sistemas de Información,,Jueves,16:35,17:20
+3K7,Diseño de Sistemas de Información,,Jueves,17:20,18:05
+3K7,Economía,1,Lunes,14:55,15:40
+3K7,Economía,1,Lunes,15:40,16:25
+3K7,Economía,1,Lunes,16:35,17:20
+3K7,Economía,1,Viernes,14:00,14:45
+3K7,Economía,1,Viernes,14:55,15:40
+3K7,Economía,1,Viernes,15:40,16:25
+3K7,Inglés II,1,Martes,11:20,12:05
+3K7,Inglés II,1,Martes,12:05,12:50
+3K7,Inglés II,2,Martes,12:05,12:50
+4K1,Administración de Sistemas de Información,,Lunes,8:00,8:45
+4K1,Administración de Sistemas de Información,,Lunes,8:45,9:30
+4K1,Administración de Sistemas de Información,,Lunes,9:40,10:25
+4K1,Administración de Sistemas de Información,,Jueves,8:00,8:45
+4K1,Administración de Sistemas de Información,,Jueves,8:45,9:30
+4K1,Administración de Sistemas de Información,,Jueves,9:40,10:25
+4K1,Desarrollo de Aplicaciones con Objetos,2,Viernes,10:25,11:10
+4K1,Desarrollo de Aplicaciones con Objetos,2,Viernes,11:20,12:05
+4K1,Desarrollo de Aplicaciones con Objetos,2,Viernes,12:05,12:50
+4K1,Desarrollo de Aplicaciones con Objetos,2,Viernes,13:15,14:00
+4K1,Experiencia e Interfaces de Usuario,1,Martes,10:25,11:10
+4K1,Experiencia e Interfaces de Usuario,1,Martes,11:20,12:05
+4K1,Experiencia e Interfaces de Usuario,1,Martes,12:05,12:50
+4K1,Experiencia e Interfaces de Usuario,1,Miércoles,10:25,11:10
+4K1,Experiencia e Interfaces de Usuario,1,Miércoles,11:20,12:05
+4K1,Experiencia e Interfaces de Usuario,1,Miércoles,12:05,12:50
+4K1,Experiencia e Interfaces de Usuario,2,Martes,10:25,11:10
+4K1,Experiencia e Interfaces de Usuario,2,Martes,11:20,12:05
+4K1,Experiencia e Interfaces de Usuario,2,Martes,12:05,12:50
+4K1,Experiencia e Interfaces de Usuario,2,Miércoles,10:25,11:10
+4K1,Experiencia e Interfaces de Usuario,2,Miércoles,11:20,12:05
+4K1,Experiencia e Interfaces de Usuario,2,Miércoles,12:05,12:50
+4K1,Gestión Industrial de la Producción,1,Martes,11:20,12:05
+4K1,Gestión Industrial de la Producción,1,Martes,12:05,12:50
+4K1,Gestión Industrial de la Producción,1,Martes,13:15,14:00
+4K1,Gestión Industrial de la Producción,1,Viernes,8:00,8:45
+4K1,Gestión Industrial de la Producción,1,Viernes,8:45,9:30
+4K1,Gestión Industrial de la Producción,1,Viernes,9:40,10:25
+4K1,Gestión de la Mejora de Procesos,1,Martes,11:20,12:05
+4K1,Gestión de la Mejora de Procesos,1,Martes,12:05,12:50
+4K1,Gestión de la Mejora de Procesos,1,Martes,13:15,14:00
+4K1,Gestión de la Mejora de Procesos,1,Viernes,8:00,8:45
+4K1,Gestión de la Mejora de Procesos,1,Viernes,8:45,9:30
+4K1,Gestión de la Mejora de Procesos,1,Viernes,9:40,10:25
+4K1,Green Software,1,Miércoles,10:25,11:10
+4K1,Green Software,1,Miércoles,11:20,12:05
+4K1,Green Software,1,Miércoles,12:05,12:50
+4K1,Green Software,1,Viernes,10:25,11:10
+4K1,Green Software,1,Viernes,11:20,12:05
+4K1,Green Software,1,Viernes,12:05,12:50
+4K1,Ingeniería y Calidad de Software,2,Martes,11:20,12:05
+4K1,Ingeniería y Calidad de Software,2,Martes,12:05,12:50
+4K1,Ingeniería y Calidad de Software,2,Martes,13:15,14:00
+4K1,Ingeniería y Calidad de Software,2,Jueves,10:25,11:10
+4K1,Ingeniería y Calidad de Software,2,Jueves,11:20,12:05
+4K1,Ingeniería y Calidad de Software,2,Jueves,12:05,12:50
+4K1,Investigación Operativa,,Lunes,10:25,11:10
+4K1,Investigación Operativa,,Lunes,11:20,12:05
+4K1,Investigación Operativa,,Martes,9:40,10:25
+4K1,Investigación Operativa,,Martes,10:25,11:10
+4K1,Legislación,2,Miércoles,8:00,8:45
+4K1,Legislación,2,Miércoles,8:45,9:30
+4K1,Legislación,2,Miércoles,9:40,10:25
+4K1,Legislación,2,Miércoles,10:25,11:10
+4K1,Redes de Datos,,Lunes,12:05,12:50
+4K1,Redes de Datos,,Lunes,13:15,14:00
+4K1,Redes de Datos,,Martes,8:00,8:45
+4K1,Redes de Datos,,Martes,8:45,9:30
+4K1,Simulación,1,Miércoles,8:00,8:45
+4K1,Simulación,1,Miércoles,8:45,9:30
+4K1,Simulación,1,Miércoles,9:40,10:25
+4K1,Simulación,1,Jueves,10:25,11:10
+4K1,Simulación,1,Jueves,11:20,12:05
+4K1,Simulación,1,Jueves,12:05,12:50
+4K1,Tecnologías para la Automatización,2,Miércoles,11:20,12:05
+4K1,Tecnologías para la Automatización,2,Miércoles,12:05,12:50
+4K1,Tecnologías para la Automatización,2,Miércoles,13:15,14:00
+4K1,Tecnologías para la Automatización,2,Viernes,8:00,8:45
+4K1,Tecnologías para la Automatización,2,Viernes,8:45,9:30
+4K1,Tecnologías para la Automatización,2,Viernes,9:40,10:25
+4K2,Administración de Sistemas de Información,,Lunes,15:40,16:25
+4K2,Administración de Sistemas de Información,,Lunes,16:35,17:20
+4K2,Administración de Sistemas de Información,,Lunes,17:20,18:05
+4K2,Administración de Sistemas de Información,,Miércoles,13:15,14:00
+4K2,Administración de Sistemas de Información,,Miércoles,14:00,14:45
+4K2,Administración de Sistemas de Información,,Miércoles,14:55,15:40
+4K2,Desarrollo de Aplicaciones con Objetos,2,Miércoles,18:15,19:00
+4K2,Desarrollo de Aplicaciones con Objetos,2,Miércoles,19:00,19:45
+4K2,Desarrollo de Aplicaciones con Objetos,2,Jueves,18:15,19:00
+4K2,Desarrollo de Aplicaciones con Objetos,2,Jueves,19:00,19:45
+4K2,Gestión Industrial de la Producción,1,Jueves,13:15,14:00
+4K2,Gestión Industrial de la Producción,1,Jueves,14:00,14:45
+4K2,Gestión Industrial de la Producción,1,Jueves,14:55,15:40
+4K2,Gestión Industrial de la Producción,1,Viernes,13:15,14:00
+4K2,Gestión Industrial de la Producción,1,Viernes,14:00,14:45
+4K2,Gestión Industrial de la Producción,1,Viernes,14:55,15:40
+4K2,Gestión de la Mejora de Procesos,1,Miércoles,15:40,16:25
+4K2,Gestión de la Mejora de Procesos,1,Miércoles,16:35,17:20
+4K2,Gestión de la Mejora de Procesos,1,Miércoles,17:20,18:05
+4K2,Gestión de la Mejora de Procesos,1,Jueves,15:40,16:25
+4K2,Gestión de la Mejora de Procesos,1,Jueves,16:35,17:20
+4K2,Gestión de la Mejora de Procesos,1,Jueves,17:20,18:05
+4K2,Green Software,1,Miércoles,15:40,16:25
+4K2,Green Software,1,Miércoles,16:35,17:20
+4K2,Green Software,1,Miércoles,17:20,18:05
+4K2,Green Software,1,Jueves,15:40,16:25
+4K2,Green Software,1,Jueves,16:35,17:20
+4K2,Green Software,1,Jueves,17:20,18:05
+4K2,Ingeniería y Calidad de Software,2,Martes,12:05,12:50
+4K2,Ingeniería y Calidad de Software,2,Martes,13:15,14:00
+4K2,Ingeniería y Calidad de Software,2,Martes,14:00,14:45
+4K2,Ingeniería y Calidad de Software,2,Viernes,15:40,16:25
+4K2,Ingeniería y Calidad de Software,2,Viernes,16:35,17:20
+4K2,Ingeniería y Calidad de Software,2,Viernes,17:20,18:05
+4K2,Investigación Operativa,,Lunes,12:05,12:50
+4K2,Investigación Operativa,,Lunes,13:15,14:00
+4K2,Investigación Operativa,,Martes,16:35,17:20
+4K2,Investigación Operativa,,Martes,17:20,18:05
+4K2,Legislación,2,Jueves,14:55,15:40
+4K2,Legislación,2,Jueves,15:40,16:25
+4K2,Legislación,2,Jueves,16:35,17:20
+4K2,Legislación,2,Jueves,17:20,18:05
+4K2,Redes de Datos,,Lunes,14:00,14:45
+4K2,Redes de Datos,,Lunes,14:55,15:40
+4K2,Redes de Datos,,Martes,14:55,15:40
+4K2,Redes de Datos,,Martes,15:40,16:25
+4K2,Seguridad en el Desarrollo de Software,2,Miércoles,15:40,16:25
+4K2,Seguridad en el Desarrollo de Software,2,Miércoles,16:35,17:20
+4K2,Seguridad en el Desarrollo de Software,2,Miércoles,17:20,18:05
+4K2,Seguridad en el Desarrollo de Software,2,Viernes,13:15,14:00
+4K2,Seguridad en el Desarrollo de Software,2,Viernes,14:00,14:45
+4K2,Seguridad en el Desarrollo de Software,2,Viernes,14:55,15:40
+4K2,Simulación,1,Martes,12:05,12:50
+4K2,Simulación,1,Martes,13:15,14:00
+4K2,Simulación,1,Martes,14:00,14:45
+4K2,Simulación,1,Viernes,15:40,16:25
+4K2,Simulación,1,Viernes,16:35,17:20
+4K2,Simulación,1,Viernes,17:20,18:05
+4K2,Tecnologías para la Automatización,2,Miércoles,15:40,16:25
+4K2,Tecnologías para la Automatización,2,Miércoles,16:35,17:20
+4K2,Tecnologías para la Automatización,2,Miércoles,17:20,18:05
+4K2,Tecnologías para la Automatización,2,Viernes,13:15,14:00
+4K2,Tecnologías para la Automatización,2,Viernes,14:00,14:45
+4K2,Tecnologías para la Automatización,2,Viernes,14:55,15:40
+4K3,Administración de Sistemas de Información,,Lunes,17:20,18:05
+4K3,Administración de Sistemas de Información,,Lunes,18:15,19:00
+4K3,Administración de Sistemas de Información,,Lunes,19:00,19:45
+4K3,Administración de Sistemas de Información,,Jueves,18:15,19:00
+4K3,Administración de Sistemas de Información,,Jueves,19:00,19:45
+4K3,Administración de Sistemas de Información,,Jueves,19:55,20:40
+4K3,Desarrollo de Aplicaciones con Objetos,2,Martes,17:20,18:05
+4K3,Desarrollo de Aplicaciones con Objetos,2,Martes,18:15,19:00
+4K3,Desarrollo de Aplicaciones con Objetos,2,Martes,19:00,19:45
+4K3,Desarrollo de Aplicaciones con Objetos,2,Martes,19:55,20:40
+4K3,Gestión Industrial de la Producción,1,Martes,18:15,19:00
+4K3,Gestión Industrial de la Producción,1,Martes,19:00,19:45
+4K3,Gestión Industrial de la Producción,1,Martes,19:55,20:40
+4K3,Gestión Industrial de la Producción,1,Jueves,20:40,21:25
+4K3,Gestión Industrial de la Producción,1,Jueves,21:35,22:20
+4K3,Gestión Industrial de la Producción,1,Jueves,22:20,23:05
+4K3,Gestión de la Mejora de Procesos,1,Martes,18:15,19:00
+4K3,Gestión de la Mejora de Procesos,1,Martes,19:00,19:45
+4K3,Gestión de la Mejora de Procesos,1,Martes,19:55,20:40
+4K3,Gestión de la Mejora de Procesos,1,Jueves,20:40,21:25
+4K3,Gestión de la Mejora de Procesos,1,Jueves,21:35,22:20
+4K3,Gestión de la Mejora de Procesos,1,Jueves,22:20,23:05
+4K3,Ingeniería y Calidad de Software,2,Miércoles,20:40,21:25
+4K3,Ingeniería y Calidad de Software,2,Miércoles,21:35,22:20
+4K3,Ingeniería y Calidad de Software,2,Miércoles,22:20,23:05
+4K3,Ingeniería y Calidad de Software,2,Viernes,20:40,21:25
+4K3,Ingeniería y Calidad de Software,2,Viernes,21:35,22:20
+4K3,Ingeniería y Calidad de Software,2,Viernes,22:20,23:05
+4K3,Investigación Operativa,,Miércoles,17:20,18:05
+4K3,Investigación Operativa,,Miércoles,18:15,19:00
+4K3,Investigación Operativa,,Viernes,19:00,19:45
+4K3,Investigación Operativa,,Viernes,19:55,20:40
+4K3,Legislación,2,Lunes,19:55,20:40
+4K3,Legislación,2,Lunes,20:40,21:25
+4K3,Legislación,2,Lunes,21:35,22:20
+4K3,Legislación,2,Lunes,22:20,23:05
+4K3,Redes de Datos,,Miércoles,19:00,19:45
+4K3,Redes de Datos,,Miércoles,19:55,20:40
+4K3,Redes de Datos,,Viernes,17:20,18:05
+4K3,Redes de Datos,,Viernes,18:15,19:00
+4K3,Seguridad en el Desarrollo de Software,2,Lunes,20:40,21:25
+4K3,Seguridad en el Desarrollo de Software,2,Lunes,21:35,22:20
+4K3,Seguridad en el Desarrollo de Software,2,Lunes,22:20,23:05
+4K3,Seguridad en el Desarrollo de Software,2,Jueves,17:20,18:05
+4K3,Seguridad en el Desarrollo de Software,2,Jueves,18:15,19:00
+4K3,Seguridad en el Desarrollo de Software,2,Jueves,19:00,19:45
+4K3,Simulación,1,Martes,20:40,21:25
+4K3,Simulación,1,Martes,21:35,22:20
+4K3,Simulación,1,Martes,22:20,23:05
+4K3,Simulación,1,Viernes,20:40,21:25
+4K3,Simulación,1,Viernes,21:35,22:20
+4K3,Simulación,1,Viernes,22:20,23:05
+4K3,Tecnologías para la Automatización,2,Martes,20:40,21:25
+4K3,Tecnologías para la Automatización,2,Martes,21:35,22:20
+4K3,Tecnologías para la Automatización,2,Martes,22:20,23:05
+4K3,Tecnologías para la Automatización,2,Jueves,20:40,21:25
+4K3,Tecnologías para la Automatización,2,Jueves,21:35,22:20
+4K3,Tecnologías para la Automatización,2,Jueves,22:20,23:05
+4K4,Administración de Sistemas de Información,,Lunes,20:40,21:25
+4K4,Administración de Sistemas de Información,,Lunes,21:35,22:20
+4K4,Administración de Sistemas de Información,,Lunes,22:20,23:05
+4K4,Administración de Sistemas de Información,,Miércoles,17:20,18:05
+4K4,Administración de Sistemas de Información,,Miércoles,18:15,19:00
+4K4,Administración de Sistemas de Información,,Miércoles,19:00,19:45
+4K4,Comunicación Multimedial en el Desarrollo de Sistemas de Información,2,Martes,18:15,19:00
+4K4,Comunicación Multimedial en el Desarrollo de Sistemas de Información,2,Martes,19:00,19:45
+4K4,Comunicación Multimedial en el Desarrollo de Sistemas de Información,2,Martes,19:55,20:40
+4K4,Comunicación Multimedial en el Desarrollo de Sistemas de Información,2,Viernes,18:15,19:00
+4K4,Comunicación Multimedial en el Desarrollo de Sistemas de Información,2,Viernes,19:00,19:45
+4K4,Comunicación Multimedial en el Desarrollo de Sistemas de Información,2,Viernes,19:55,20:40
+4K4,Desarrollo y Operaciones DevOps,2,Jueves,20:40,21:25
+4K4,Desarrollo y Operaciones DevOps,2,Jueves,21:35,22:20
+4K4,Desarrollo y Operaciones DevOps,2,Jueves,22:20,23:05
+4K4,Desarrollo y Operaciones DevOps,2,Viernes,20:40,21:25
+4K4,Desarrollo y Operaciones DevOps,2,Viernes,21:35,22:20
+4K4,Desarrollo y Operaciones DevOps,2,Viernes,22:20,23:05
+4K4,Gestión de la Mejora de Procesos,2,Jueves,20:40,21:25
+4K4,Gestión de la Mejora de Procesos,2,Jueves,21:35,22:20
+4K4,Gestión de la Mejora de Procesos,2,Jueves,22:20,23:05
+4K4,Gestión de la Mejora de Procesos,2,Viernes,20:40,21:25
+4K4,Gestión de la Mejora de Procesos,2,Viernes,21:35,22:20
+4K4,Gestión de la Mejora de Procesos,2,Viernes,22:20,23:05
+4K4,Green Software,2,Martes,18:15,19:00
+4K4,Green Software,2,Martes,19:00,19:45
+4K4,Green Software,2,Martes,19:55,20:40
+4K4,Green Software,2,Viernes,18:15,19:00
+4K4,Green Software,2,Viernes,19:00,19:45
+4K4,Green Software,2,Viernes,19:55,20:40
+4K4,Ingeniería y Calidad de Software,1,Martes,20:40,21:25
+4K4,Ingeniería y Calidad de Software,1,Martes,21:35,22:20
+4K4,Ingeniería y Calidad de Software,1,Martes,22:20,23:05
+4K4,Ingeniería y Calidad de Software,1,Viernes,18:15,19:00
+4K4,Ingeniería y Calidad de Software,1,Viernes,19:00,19:45
+4K4,Ingeniería y Calidad de Software,1,Viernes,19:55,20:40
+4K4,Investigación Operativa,,Lunes,19:00,19:45
+4K4,Investigación Operativa,,Lunes,19:55,20:40
+4K4,Investigación Operativa,,Jueves,19:00,19:45
+4K4,Investigación Operativa,,Jueves,19:55,20:40
+4K4,Legislación,1,Miércoles,19:55,20:40
+4K4,Legislación,1,Miércoles,20:40,21:25
+4K4,Legislación,1,Miércoles,21:35,22:20
+4K4,Legislación,1,Miércoles,22:20,23:05
+4K4,Redes de Datos,,Lunes,17:20,18:05
+4K4,Redes de Datos,,Lunes,18:15,19:00
+4K4,Redes de Datos,,Jueves,17:20,18:05
+4K4,Redes de Datos,,Jueves,18:15,19:00
+4K4,Seguridad en el Desarrollo de Software,2,Jueves,20:40,21:25
+4K4,Seguridad en el Desarrollo de Software,2,Jueves,21:35,22:20
+4K4,Seguridad en el Desarrollo de Software,2,Jueves,22:20,23:05
+4K4,Simulación,2,Martes,20:40,21:25
+4K4,Simulación,2,Martes,21:35,22:20
+4K4,Simulación,2,Martes,22:20,23:05
+4K4,Simulación,2,Miércoles,19:55,20:40
+4K4,Simulación,2,Miércoles,20:40,21:25
+4K4,Simulación,2,Miércoles,21:35,22:20
+4K4,Tecnologías para la Automatización,1,Jueves,20:40,21:25
+4K4,Tecnologías para la Automatización,1,Jueves,21:35,22:20
+4K4,Tecnologías para la Automatización,1,Jueves,22:20,23:05
+4K4,Tecnologías para la Automatización,1,Viernes,20:40,21:25
+4K4,Tecnologías para la Automatización,1,Viernes,21:35,22:20
+4K4,Tecnologías para la Automatización,1,Viernes,22:20,23:05
+5K1,Ciencia de Datos,2,Jueves,8:00,8:45
+5K1,Ciencia de Datos,2,Jueves,8:45,9:30
+5K1,Ciencia de Datos,2,Jueves,9:40,10:25
+5K1,Ciencia de Datos,2,Viernes,8:00,8:45
+5K1,Ciencia de Datos,2,Viernes,8:45,9:30
+5K1,Ciencia de Datos,2,Viernes,9:40,10:25
+5K1,Consultoría en Negocios Digitales,2,Jueves,10:25,11:10
+5K1,Consultoría en Negocios Digitales,2,Jueves,11:20,12:05
+5K1,Consultoría en Negocios Digitales,2,Jueves,12:05,12:50
+5K1,Consultoría en Negocios Digitales,2,Viernes,10:25,11:10
+5K1,Consultoría en Negocios Digitales,2,Viernes,11:20,12:05
+5K1,Consultoría en Negocios Digitales,2,Viernes,12:05,12:50
+5K1,Creatividad y Desarrollo de Entornos Virtuales,2,Jueves,10:25,11:10
+5K1,Creatividad y Desarrollo de Entornos Virtuales,2,Jueves,11:20,12:05
+5K1,Creatividad y Desarrollo de Entornos Virtuales,2,Jueves,12:05,12:50
+5K1,Creatividad y Desarrollo de Entornos Virtuales,2,Viernes,10:25,11:10
+5K1,Creatividad y Desarrollo de Entornos Virtuales,2,Viernes,11:20,12:05
+5K1,Creatividad y Desarrollo de Entornos Virtuales,2,Viernes,12:05,12:50
+5K1,Decisiones en Escenarios Complejos,1,Jueves,11:20,12:05
+5K1,Decisiones en Escenarios Complejos,1,Jueves,12:50,13:15
+5K1,Decisiones en Escenarios Complejos,1,Jueves,13:15,14:00
+5K1,Decisiones en Escenarios Complejos,1,Viernes,10:25,11:10
+5K1,Decisiones en Escenarios Complejos,1,Viernes,11:20,12:05
+5K1,Decisiones en Escenarios Complejos,1,Viernes,12:05,12:50
+5K1,Gerenciamiento Estratégico,1,Jueves,11:20,12:05
+5K1,Gerenciamiento Estratégico,1,Jueves,12:50,13:15
+5K1,Gerenciamiento Estratégico,1,Jueves,13:15,14:00
+5K1,Gerenciamiento Estratégico,1,Viernes,10:25,11:10
+5K1,Gerenciamiento Estratégico,1,Viernes,11:20,12:05
+5K1,Gerenciamiento Estratégico,1,Viernes,12:05,12:50
+5K1,Gestión Gerencial,1,Lunes,10:25,11:10
+5K1,Gestión Gerencial,1,Lunes,11:10,11:20
+5K1,Gestión Gerencial,1,Lunes,12:05,12:50
+5K1,Gestión Gerencial,1,Miércoles,8:00,8:45
+5K1,Gestión Gerencial,1,Miércoles,8:45,9:30
+5K1,Gestión Gerencial,1,Miércoles,9:40,10:25
+5K1,Habilidades Blandas,2,Lunes,10:25,11:10
+5K1,Habilidades Blandas,2,Lunes,11:20,12:05
+5K1,Habilidades Blandas,2,Lunes,12:05,12:50
+5K1,Habilidades Blandas,2,Miércoles,8:00,8:45
+5K1,Habilidades Blandas,2,Miércoles,8:45,9:30
+5K1,Habilidades Blandas,2,Miércoles,9:40,10:25
+5K1,Ingeniería de Software de Fuentes Abiertas/Libres,1,Sábado,8:00,8:45
+5K1,Ingeniería de Software de Fuentes Abiertas/Libres,1,Sábado,8:45,9:30
+5K1,Ingeniería de Software de Fuentes Abiertas/Libres,1,Sábado,9:40,10:25
+5K1,Inteligencia Artificial,2,Lunes,8:00,8:45
+5K1,Inteligencia Artificial,2,Lunes,8:45,9:30
+5K1,Inteligencia Artificial,2,Lunes,9:40,10:25
+5K1,Inteligencia Artificial,2,Miércoles,10:25,11:10
+5K1,Inteligencia Artificial,2,Miércoles,11:20,12:05
+5K1,Inteligencia Artificial,2,Miércoles,12:05,12:50
+5K1,Proyecto Final,,Martes,8:00,8:45
+5K1,Proyecto Final,,Martes,8:45,9:30
+5K1,Proyecto Final,,Martes,9:40,10:25
+5K1,Proyecto Final,,Martes,10:25,11:10
+5K1,Proyecto Final,,Martes,11:20,12:05
+5K1,Proyecto Final,,Martes,12:05,12:50
+5K1,Seguridad en los Sistemas de Información,1,Lunes,8:00,8:45
+5K1,Seguridad en los Sistemas de Información,1,Lunes,8:45,9:30
+5K1,Seguridad en los Sistemas de Información,1,Lunes,9:40,10:25
+5K1,Seguridad en los Sistemas de Información,1,Viernes,8:00,8:45
+5K1,Seguridad en los Sistemas de Información,1,Viernes,8:45,9:30
+5K1,Seguridad en los Sistemas de Información,1,Viernes,9:40,10:25
+5K1,Sistemas de Gestión,1,Miércoles,10:25,11:10
+5K1,Sistemas de Gestión,1,Miércoles,11:20,12:05
+5K1,Sistemas de Gestión,1,Miércoles,12:05,12:50
+5K1,Sistemas de Gestión,1,Miércoles,13:15,14:00
+5K1,Sistemas de Gestión,1,Jueves,8:00,8:45
+5K1,Sistemas de Gestión,1,Jueves,8:45,9:30
+5K1,Sistemas de Gestión,1,Jueves,9:40,10:25
+5K1,Sistemas de Gestión,1,Jueves,10:25,11:10
+5K2,Ciencia de Datos,2,Lunes,13:15,14:00
+5K2,Ciencia de Datos,2,Lunes,14:00,14:45
+5K2,Ciencia de Datos,2,Lunes,14:55,15:40
+5K2,Ciencia de Datos,2,Miércoles,15:40,16:25
+5K2,Ciencia de Datos,2,Miércoles,16:35,17:20
+5K2,Ciencia de Datos,2,Miércoles,17:20,18:05
+5K2,Consultoría en Negocios Digitales,2,Miércoles,13:15,14:00
+5K2,Consultoría en Negocios Digitales,2,Miércoles,14:00,14:45
+5K2,Consultoría en Negocios Digitales,2,Miércoles,14:55,15:40
+5K2,Consultoría en Negocios Digitales,2,Viernes,13:15,14:00
+5K2,Consultoría en Negocios Digitales,2,Viernes,14:00,14:45
+5K2,Consultoría en Negocios Digitales,2,Viernes,14:55,15:40
+5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Miércoles,15:40,16:25
+5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Miércoles,16:35,17:20
+5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Miércoles,17:20,18:05
+5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Viernes,15:40,16:25
+5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Viernes,16:35,17:20
+5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Viernes,17:20,18:05
+5K2,Decisiones en Escenarios Complejos,2,Miércoles,13:15,14:00
+5K2,Decisiones en Escenarios Complejos,2,Miércoles,14:00,14:45
+5K2,Decisiones en Escenarios Complejos,2,Miércoles,14:55,15:40
+5K2,Decisiones en Escenarios Complejos,2,Viernes,13:15,14:00
+5K2,Decisiones en Escenarios Complejos,2,Viernes,14:00,14:45
+5K2,Decisiones en Escenarios Complejos,2,Viernes,14:55,15:40
+5K2,Gerenciamiento Estratégico,1,Miércoles,15:40,16:25
+5K2,Gerenciamiento Estratégico,1,Miércoles,16:35,17:20
+5K2,Gerenciamiento Estratégico,1,Miércoles,17:20,18:05
+5K2,Gerenciamiento Estratégico,1,Viernes,15:40,16:25
+5K2,Gerenciamiento Estratégico,1,Viernes,16:35,17:20
+5K2,Gerenciamiento Estratégico,1,Viernes,17:20,18:05
+5K2,Gestión Gerencial,1,Miércoles,13:15,14:00
+5K2,Gestión Gerencial,1,Miércoles,14:00,14:45
+5K2,Gestión Gerencial,1,Miércoles,14:55,15:40
+5K2,Gestión Gerencial,1,Jueves,15:40,16:25
+5K2,Gestión Gerencial,1,Jueves,16:35,17:20
+5K2,Gestión Gerencial,1,Jueves,17:20,18:05
+5K2,Habilidades Blandas,2,Jueves,15:40,16:25
+5K2,Habilidades Blandas,2,Jueves,16:35,17:20
+5K2,Habilidades Blandas,2,Jueves,17:20,18:05
+5K2,Habilidades Blandas,2,Viernes,15:40,16:25
+5K2,Habilidades Blandas,2,Viernes,16:35,17:20
+5K2,Habilidades Blandas,2,Viernes,17:20,18:05
+5K2,Inteligencia Artificial,2,Lunes,15:40,16:25
+5K2,Inteligencia Artificial,2,Lunes,16:35,17:20
+5K2,Inteligencia Artificial,2,Lunes,17:20,18:05
+5K2,Inteligencia Artificial,2,Jueves,13:15,14:00
+5K2,Inteligencia Artificial,2,Jueves,14:00,14:45
+5K2,Inteligencia Artificial,2,Jueves,14:55,15:40
+5K2,Proyecto Final,,Martes,13:15,14:00
+5K2,Proyecto Final,,Martes,14:00,14:45
+5K2,Proyecto Final,,Martes,14:55,15:40
+5K2,Proyecto Final,,Martes,15:40,16:25
+5K2,Proyecto Final,,Martes,16:35,17:20
+5K2,Proyecto Final,,Martes,17:20,18:05
+5K2,Seguridad en los Sistemas de Información,1,Lunes,12:05,12:50
+5K2,Seguridad en los Sistemas de Información,1,Lunes,13:15,14:00
+5K2,Seguridad en los Sistemas de Información,1,Lunes,14:00,14:45
+5K2,Seguridad en los Sistemas de Información,1,Viernes,13:15,14:00
+5K2,Seguridad en los Sistemas de Información,1,Viernes,14:00,14:45
+5K2,Seguridad en los Sistemas de Información,1,Viernes,14:55,15:40
+5K2,Sistemas de Gestión,1,Lunes,14:55,15:40
+5K2,Sistemas de Gestión,1,Lunes,15:40,16:25
+5K2,Sistemas de Gestión,1,Lunes,16:35,17:20
+5K2,Sistemas de Gestión,1,Lunes,17:20,18:05
+5K2,Sistemas de Gestión,1,Jueves,12:05,12:50
+5K2,Sistemas de Gestión,1,Jueves,13:15,14:00
+5K2,Sistemas de Gestión,1,Jueves,14:00,14:45
+5K2,Sistemas de Gestión,1,Jueves,14:55,15:40
+5K3,Ciencia de Datos,2,Miércoles,18:15,19:00
+5K3,Ciencia de Datos,2,Miércoles,19:00,19:45
+5K3,Ciencia de Datos,2,Miércoles,19:55,20:40
+5K3,Ciencia de Datos,2,Viernes,20:40,21:25
+5K3,Ciencia de Datos,2,Viernes,21:35,22:20
+5K3,Ciencia de Datos,2,Viernes,22:20,23:05
+5K3,Decisiones en Escenarios Complejos,1,Lunes,18:15,19:00
+5K3,Decisiones en Escenarios Complejos,1,Lunes,19:00,19:45
+5K3,Decisiones en Escenarios Complejos,1,Lunes,19:55,20:40
+5K3,Decisiones en Escenarios Complejos,1,Jueves,18:15,19:00
+5K3,Decisiones en Escenarios Complejos,1,Jueves,19:00,19:45
+5K3,Decisiones en Escenarios Complejos,1,Jueves,19:55,20:40
+5K3,Desarrollo con Tecnologías Blockchain,2,Lunes,20:40,21:25
+5K3,Desarrollo con Tecnologías Blockchain,2,Lunes,21:35,22:20
+5K3,Desarrollo con Tecnologías Blockchain,2,Lunes,22:20,23:05
+5K3,Desarrollo con Tecnologías Blockchain,2,Jueves,18:15,19:00
+5K3,Desarrollo con Tecnologías Blockchain,2,Jueves,19:00,19:45
+5K3,Desarrollo con Tecnologías Blockchain,2,Jueves,19:55,20:40
+5K3,Emprendimientos Tecnológicos,2,Lunes,20:40,21:25
+5K3,Emprendimientos Tecnológicos,2,Lunes,21:35,22:20
+5K3,Emprendimientos Tecnológicos,2,Lunes,22:20,23:05
+5K3,Emprendimientos Tecnológicos,2,Viernes,18:15,19:00
+5K3,Emprendimientos Tecnológicos,2,Viernes,19:00,19:45
+5K3,Emprendimientos Tecnológicos,2,Viernes,19:55,20:40
+5K3,Gerenciamiento Estratégico,1,Lunes,20:40,21:25
+5K3,Gerenciamiento Estratégico,1,Lunes,21:35,22:20
+5K3,Gerenciamiento Estratégico,1,Lunes,22:20,23:05
+5K3,Gerenciamiento Estratégico,1,Viernes,20:40,21:25
+5K3,Gerenciamiento Estratégico,1,Viernes,21:35,22:20
+5K3,Gerenciamiento Estratégico,1,Viernes,22:20,23:05
+5K3,Gestión Gerencial,1,Lunes,18:15,19:00
+5K3,Gestión Gerencial,1,Lunes,19:00,19:45
+5K3,Gestión Gerencial,1,Lunes,19:55,20:40
+5K3,Gestión Gerencial,1,Jueves,18:15,19:00
+5K3,Gestión Gerencial,1,Jueves,19:00,19:45
+5K3,Gestión Gerencial,1,Jueves,19:55,20:40
+5K3,Inteligencia Artificial,,Miércoles,20:40,21:25
+5K3,Inteligencia Artificial,,Miércoles,21:35,22:20
+5K3,Inteligencia Artificial,,Miércoles,22:20,23:05
+5K3,Inteligencia Artificial,,Jueves,20:40,21:25
+5K3,Inteligencia Artificial,,Jueves,21:35,22:20
+5K3,Inteligencia Artificial,,Jueves,22:20,23:05
+5K3,Proyecto Final,,Martes,18:15,19:00
+5K3,Proyecto Final,,Martes,19:00,19:45
+5K3,Proyecto Final,,Martes,19:55,20:40
+5K3,Proyecto Final,,Martes,20:40,21:25
+5K3,Proyecto Final,,Martes,21:35,22:20
+5K3,Proyecto Final,,Martes,22:20,23:05
+5K3,Seguridad en los Sistemas de Información,1,Miércoles,18:15,19:00
+5K3,Seguridad en los Sistemas de Información,1,Miércoles,19:00,19:45
+5K3,Seguridad en los Sistemas de Información,1,Miércoles,19:55,20:40
+5K3,Seguridad en los Sistemas de Información,1,Viernes,18:15,19:00
+5K3,Seguridad en los Sistemas de Información,1,Viernes,19:00,19:45
+5K3,Seguridad en los Sistemas de Información,1,Viernes,19:55,20:40
+5K3,Testing de Software,2,Lunes,18:15,19:00
+5K3,Testing de Software,2,Lunes,19:00,19:45
+5K3,Testing de Software,2,Lunes,19:55,20:40
+5K3,Testing de Software,2,Jueves,18:15,19:00
+5K3,Testing de Software,2,Jueves,19:00,19:45
+5K3,Testing de Software,2,Jueves,19:55,20:40
+5K4,Ciencia de Datos,1,Miércoles,18:15,19:00
+5K4,Ciencia de Datos,1,Miércoles,19:00,19:45
+5K4,Ciencia de Datos,1,Miércoles,19:55,20:40
+5K4,Ciencia de Datos,1,Viernes,18:15,19:00
+5K4,Ciencia de Datos,1,Viernes,19:00,19:45
+5K4,Ciencia de Datos,1,Viernes,19:55,20:40
+5K4,Consultoría en Negocios Digitales,2,Lunes,20:40,21:25
+5K4,Consultoría en Negocios Digitales,2,Lunes,21:35,22:20
+5K4,Consultoría en Negocios Digitales,2,Lunes,22:20,23:05
+5K4,Consultoría en Negocios Digitales,2,Viernes,20:40,21:25
+5K4,Consultoría en Negocios Digitales,2,Viernes,21:35,22:20
+5K4,Consultoría en Negocios Digitales,2,Viernes,22:20,23:05
+5K4,Creatividad y Desarrollo de Entornos Virtuales,2,Lunes,18:15,19:00
+5K4,Creatividad y Desarrollo de Entornos Virtuales,2,Lunes,19:00,19:45
+5K4,Creatividad y Desarrollo de Entornos Virtuales,2,Lunes,19:55,20:40
+5K4,Creatividad y Desarrollo de Entornos Virtuales,2,Jueves,17:20,18:05
+5K4,Creatividad y Desarrollo de Entornos Virtuales,2,Jueves,18:15,19:00
+5K4,Creatividad y Desarrollo de Entornos Virtuales,2,Jueves,19:00,19:45
+5K4,Emprendimientos Tecnológicos,1,Miércoles,20:40,21:25
+5K4,Emprendimientos Tecnológicos,1,Miércoles,21:35,22:20
+5K4,Emprendimientos Tecnológicos,1,Miércoles,22:20,23:05
+5K4,Emprendimientos Tecnológicos,1,Viernes,20:40,21:25
+5K4,Emprendimientos Tecnológicos,1,Viernes,21:35,22:20
+5K4,Emprendimientos Tecnológicos,1,Viernes,22:20,23:05
+5K4,Gestión Gerencial,1,Lunes,17:20,18:05
+5K4,Gestión Gerencial,1,Lunes,18:15,19:00
+5K4,Gestión Gerencial,1,Lunes,19:00,19:45
+5K4,Gestión Gerencial,1,Jueves,17:20,18:05
+5K4,Gestión Gerencial,1,Jueves,18:15,19:00
+5K4,Gestión Gerencial,1,Jueves,19:00,19:45
+5K4,Integración de Aplicaciones en Entorno Web,2,Lunes,18:15,19:00
+5K4,Integración de Aplicaciones en Entorno Web,2,Lunes,19:00,19:45
+5K4,Integración de Aplicaciones en Entorno Web,2,Lunes,19:55,20:40
+5K4,Integración de Aplicaciones en Entorno Web,2,Jueves,17:20,18:05
+5K4,Integración de Aplicaciones en Entorno Web,2,Jueves,18:15,19:00
+5K4,Integración de Aplicaciones en Entorno Web,2,Jueves,19:00,19:45
+5K4,Proyecto Final,,Martes,18:15,19:00
+5K4,Proyecto Final,,Martes,19:00,19:45
+5K4,Proyecto Final,,Martes,19:55,20:40
+5K4,Proyecto Final,,Martes,20:40,21:25
+5K4,Proyecto Final,,Martes,21:35,22:20
+5K4,Proyecto Final,,Martes,22:20,23:05
+5K4,Seguridad en los Sistemas de Información,2,Miércoles,17:20,18:05
+5K4,Seguridad en los Sistemas de Información,2,Miércoles,18:15,19:00
+5K4,Seguridad en los Sistemas de Información,2,Miércoles,19:00,19:45
+5K4,Seguridad en los Sistemas de Información,2,Viernes,18:15,19:00
+5K4,Seguridad en los Sistemas de Información,2,Viernes,19:00,19:45
+5K4,Seguridad en los Sistemas de Información,2,Viernes,19:55,20:40
+5K4,Sistemas de Gestión,1,Lunes,19:55,20:40
+5K4,Sistemas de Gestión,1,Lunes,20:40,21:25
+5K4,Sistemas de Gestión,1,Lunes,21:35,22:20
+5K4,Sistemas de Gestión,1,Lunes,22:20,23:05
+5K4,Sistemas de Gestión,1,Jueves,19:55,20:40
+5K4,Sistemas de Gestión,1,Jueves,20:40,21:25
+5K4,Sistemas de Gestión,1,Jueves,21:35,22:20
+5K4,Sistemas de Gestión,1,Jueves,22:20,23:05
+5K4,Sistemas de Gestión,2,Miércoles,19:55,20:40
+5K4,Sistemas de Gestión,2,Miércoles,20:40,21:25
+5K4,Sistemas de Gestión,2,Miércoles,21:35,22:20
+5K4,Sistemas de Gestión,2,Miércoles,22:20,23:05
+5K4,Sistemas de Gestión,2,Jueves,19:55,20:40
+5K4,Sistemas de Gestión,2,Jueves,20:40,21:25
+5K4,Sistemas de Gestión,2,Jueves,21:35,22:20
+5K4,Sistemas de Gestión,2,Jueves,22:20,23:05
+5K5,Gestión Gerencial,2,Lunes,18:15,19:00
+5K5,Gestión Gerencial,2,Lunes,19:00,19:45
+5K5,Gestión Gerencial,2,Lunes,19:55,20:40
+5K5,Gestión Gerencial,2,Jueves,18:15,19:00
+5K5,Gestión Gerencial,2,Jueves,19:00,19:45
