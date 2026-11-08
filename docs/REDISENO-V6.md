@@ -25,7 +25,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F10 | Notas de moderación en una reseña | Hecho (migración 4) | Curso, Finales, admin | Junta con F12 en "Respuesta del moderador": una por reseña o final, pública y sin nombre de quién la escribió. Se escribe desde Reportes o Reseñas del admin. |
 | F11 | Seguir una materia y aviso por mail | Parcial (migración 6) | Materia, curso y Mi cuenta | Panel "Seguir esta materia" (desde el curso se sigue su materia) y la lista en Mi cuenta con interruptor de mail y "Dejar de seguir", como la V6. Avisos en el sitio: hechos (migración 7). Falta el envío por mail (necesita un servicio de mail). |
 | F12 | Respuestas a una reseña | Hecho como F10 | — | Solo responde el moderador (decisión de Pato). |
-| F13 | Contador "Hay X estudiantes en línea" | Falta (etapa 3) | — | Necesita registrar actividad reciente. |
+| F13 | Contador "Hay X estudiantes en línea" | Hecho (migración 10) | Inicio, arriba de "Así viene el cuatri" | Punto verde que late, sin nombres. Solo desde 5 personas. Cada pestaña visible avisa una vez por minuto. |
 | F14 | Visitas | Falta (etapa 3) | — | Vercel Analytics las cuenta, pero no se pueden mostrar en la página sin un contador propio. |
 | F15 | Ficha de usuario ocultable | Hecho (migración 8) | Nombre en cada reseña, "por X" en Última reseña (inicio y año) y en la destacada | `Quien.astro`. La arma el servidor con `src/lib/fichas.ts` (el user_id no llega al navegador). Rango, reseñas, finales, "Me sirvió", desde qué año y logros. Se oculta en Mi cuenta. |
 | F16 | Easter egg de Anónimo | Hecho | Igual que F15 | Máscara y una teoría; cada vez que se abre sale otra (`TEORIAS_ANONIMO`). El logro secreto "Detective" (L9) espera tu voto. |

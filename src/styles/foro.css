@@ -958,4 +958,13 @@ html[data-theme="dark"] { --wa-bg: #14301f; }
 .ln-bar .x { border: 0; background: none; font-size: 18px; line-height: 1; color: var(--muted); cursor: pointer; padding: 2px 6px; }
 @container (max-width: 600px) { .de-wrap { padding: 10px 10px 0; } }
 
+
+/* En línea (migración 10, copiado de la V6) */
+:root { --live: #2e9e45; --live-glow: rgba(46,158,69,.55); }
+.live { display: inline-flex; align-items: center; gap: 6px; font-weight: bold; color: var(--ink); }
+.live i { width: 9px; height: 9px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 0 var(--live-glow); animation: livepulse 1.8s ease-out infinite; flex: none; }
+@keyframes livepulse { 0% { box-shadow: 0 0 0 0 var(--live-glow); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .live i { animation: none; } }
+.pulse-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 11.5px; padding-bottom: 6px; border-bottom: 1px dotted var(--line); }
+
 }

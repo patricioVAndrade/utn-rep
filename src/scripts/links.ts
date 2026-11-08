@@ -35,7 +35,7 @@ export function conCodigo(url: string): string {
   return u.href;
 }
 
-function visitante(): string {
+export function visitante(): string {
   let v = leer(CLAVE_VISITANTE);
   if (!v || !/^[a-zA-Z0-9-]{8,64}$/.test(v)) {
     v = (crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36)).replace(/[^a-zA-Z0-9-]/g, '');

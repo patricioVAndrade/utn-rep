@@ -207,6 +207,10 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
   import { iniciarLinks } from '../scripts/links';
   iniciarLinks();
 
+  // ========== EN LÍNEA (contador, sin nombres) ==========
+  import { iniciarEnLinea } from '../scripts/en-linea';
+  iniciarEnLinea();
+
   // ========== ÚLTIMA VISITA ==========
   import { visitaAnterior, textoVisita } from '../scripts/visitas';
   const anteriorVisita = visitaAnterior();

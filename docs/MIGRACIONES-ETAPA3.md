@@ -100,9 +100,13 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Usuarios:** marca de bloqueado en `perfiles` y la lista en el admin con reseñas y reportes recibidos.
 - **Links compartidos:** tabla `links_compartidos` con un código corto (`?de=k7p2`) y cuántas personas distintas lo abrieron. Sirve para "Links compartidos esta semana" en el admin y el logro "Pasalo al grupo" (L8).
 
-### 10. Contador "Hay X estudiantes en línea" (F13)
+### 10. Contador "Hay X estudiantes en línea" (F13) — **lista para correr en prueba, código subido**
 
-- Tabla chica con la última actividad de los últimos 5 minutos, sin guardar quién es. Se muestra solo desde 5 personas.
+- Tabla `presencia`: un número al azar por navegador y la última vez que dio señales (sin quién es, sin IP, sin página). Lo de más de 10 minutos se borra solo.
+- `latido(visitante)` y `en_linea()`, solo para el servidor. `/api/en-linea` limita a 300 pedidos por minuto por IP (en la facultad mucha gente comparte IP).
+- Se muestra solo desde 5 personas, arriba de "Así viene el cuatri".
+- **Archivo:** `supabase/migrations/20261108090000_en_linea.sql`. Vuelta atrás: `supabase/rollback/20261108090000_en_linea.sql`.
+- **Verificación esperada:** `tabla = 1`, `funciones = 2`, `anon_lee = false`, `anon_puede_latir = false`, `prueba = true`.
 
 ### 11. Historial de profesores y rol (3.13)
 
