@@ -92,8 +92,8 @@ WITH pruebas(migracion, prueba, esperado, resultado) AS (VALUES
   ('10 en línea', 'función latido', 'está', pg_temp.func('latido(text)')),
   ('10 en línea', 'el público NO puede llamar a latido', 'false', pg_temp.ejecuta('anon', 'latido(text)')),
   ('10 en línea', 'el público NO lee presencia', 'false', pg_temp.priv('anon', 'presencia', 'SELECT')),
-  -- 11. Historial de profesores y rol
-  ('11 profesores', 'columna rol', 'está', pg_temp.col('dictado_profesores', 'rol')),
+  -- 11. Historial de profesores (sin rol)
+  ('11 profesores', 'sin columna rol', 'falta', pg_temp.col('dictado_profesores', 'rol')),
   ('11 profesores', 'tabla profesores_historial', 'está', pg_temp.tabla('profesores_historial')),
   ('11 profesores', 'trigger que anota el historial', '1', pg_temp.trig(ARRAY['trg_profesores_historial'])),
   ('11 profesores', 'el público lee el historial', 'true', pg_temp.priv('anon', 'profesores_historial', 'SELECT')),

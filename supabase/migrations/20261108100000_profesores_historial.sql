@@ -1,36 +1,35 @@
 -- =====================================================================
--- Etapa 3, migración 11: rol de cada profe e historial (3.13)
+-- Etapa 3, migración 11: historial de profesores de cada curso (3.13)
 -- Correr en la BASE DE PRUEBA. Idempotente y en una transacción.
 -- Vuelta atrás: supabase/rollback/20261108100000_profesores_historial.sql
 -- Prueba con datos (se deshace sola): supabase/pruebas/migracion-11.sql
 --
 -- Qué hace:
---  1. dictado_profesores.rol: Titular, Adjunto, JTP o Ayudante (o vacío).
---     Lo pone el admin; las planillas no lo traen.
---  2. Tabla profesores_historial: cada vez que un profe entra a un curso se
+--  1. Tabla profesores_historial: cada vez que un profe entra a un curso se
 --     abre un período (desde año y cuatrimestre) y cuando sale se cierra
 --     (hasta). Lo llevan triggers, así que el importador y el admin no
 --     cambian: siguen agregando y sacando como hoy, y la base anota.
 --     Si el profe vuelve, se abre otro período.
---  3. Los profes de hoy arrancan con su período abierto desde el año en que
+--  2. Los profes de hoy arrancan con su período abierto desde el año en que
 --     se cargaron (2026).
 -- Cuatrimestre: de enero a julio el 1.º, de agosto a diciembre el 2.º
 -- (hora de Córdoba). Lo que ve el público no cambia hasta 2027 (F22 a F27).
+-- Sin rol (Titular, JTP…): Pato prefirió no mostrarlo. Si una versión
+-- anterior de esta migración lo agregó, acá se saca.
 -- No cambia ninguna reseña.
 -- =====================================================================
 
 BEGIN;
 
-ALTER TABLE public.dictado_profesores ADD COLUMN IF NOT EXISTS rol text;
+-- Por si se corrió la versión con rol
+DROP TRIGGER IF EXISTS trg_profesores_historial ON public.dictado_profesores;
 ALTER TABLE public.dictado_profesores DROP CONSTRAINT IF EXISTS dictado_profesores_rol_check;
-ALTER TABLE public.dictado_profesores ADD CONSTRAINT dictado_profesores_rol_check
-  CHECK (rol IS NULL OR rol IN ('TITULAR', 'ADJUNTO', 'JTP', 'AYUDANTE'));
+ALTER TABLE public.dictado_profesores DROP COLUMN IF EXISTS rol;
 
 CREATE TABLE IF NOT EXISTS public.profesores_historial (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   dictado_id bigint NOT NULL,
   profesor_id bigint NOT NULL,
-  rol text CHECK (rol IS NULL OR rol IN ('TITULAR', 'ADJUNTO', 'JTP', 'AYUDANTE')),
   desde_anio smallint NOT NULL CHECK (desde_anio BETWEEN 2000 AND 2100),
   desde_cuatri smallint CHECK (desde_cuatri IN (1, 2)),
   hasta_anio smallint CHECK (hasta_anio BETWEEN 2000 AND 2100),
@@ -41,6 +40,7 @@ CREATE TABLE IF NOT EXISTS public.profesores_historial (
 CREATE UNIQUE INDEX IF NOT EXISTS profesores_historial_abierto
   ON public.profesores_historial (dictado_id, profesor_id) WHERE hasta_anio IS NULL;
 CREATE INDEX IF NOT EXISTS profesores_historial_profe ON public.profesores_historial (profesor_id);
+ALTER TABLE public.profesores_historial DROP COLUMN IF EXISTS rol;
 
 ALTER TABLE public.profesores_historial ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Historial: lo lee cualquiera" ON public.profesores_historial;
@@ -68,13 +68,9 @@ DECLARE
 BEGIN
   SELECT * INTO c FROM public.cuatri_actual();
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO public.profesores_historial (dictado_id, profesor_id, rol, desde_anio, desde_cuatri)
-    VALUES (NEW.dictado_id, NEW.profesor_id, NEW.rol, c.anio, c.cuatri)
-    ON CONFLICT (dictado_id, profesor_id) WHERE hasta_anio IS NULL DO UPDATE SET rol = EXCLUDED.rol;
-    RETURN NULL;
-  ELSIF TG_OP = 'UPDATE' THEN
-    UPDATE public.profesores_historial SET rol = NEW.rol
-    WHERE dictado_id = NEW.dictado_id AND profesor_id = NEW.profesor_id AND hasta_anio IS NULL;
+    INSERT INTO public.profesores_historial (dictado_id, profesor_id, desde_anio, desde_cuatri)
+    VALUES (NEW.dictado_id, NEW.profesor_id, c.anio, c.cuatri)
+    ON CONFLICT (dictado_id, profesor_id) WHERE hasta_anio IS NULL DO NOTHING;
     RETURN NULL;
   ELSE
     UPDATE public.profesores_historial SET hasta_anio = c.anio, hasta_cuatri = c.cuatri
@@ -86,12 +82,12 @@ $fn$;
 
 DROP TRIGGER IF EXISTS trg_profesores_historial ON public.dictado_profesores;
 CREATE TRIGGER trg_profesores_historial
-  AFTER INSERT OR DELETE OR UPDATE OF rol ON public.dictado_profesores
+  AFTER INSERT OR DELETE ON public.dictado_profesores
   FOR EACH ROW EXECUTE FUNCTION public.profesores_historial_anotar();
 
 -- Los de hoy: período abierto desde el año en que se cargaron
-INSERT INTO public.profesores_historial (dictado_id, profesor_id, rol, desde_anio)
-SELECT dp.dictado_id, dp.profesor_id, dp.rol,
+INSERT INTO public.profesores_historial (dictado_id, profesor_id, desde_anio)
+SELECT dp.dictado_id, dp.profesor_id,
        COALESCE(extract(year FROM dp.created_at AT TIME ZONE 'America/Argentina/Cordoba')::smallint, 2026)
 FROM public.dictado_profesores dp
 WHERE NOT EXISTS (
@@ -101,7 +97,7 @@ WHERE NOT EXISTS (
 
 COMMIT;
 
--- Verificación: columna_rol = 1, tabla = 1, trigger = 1,
+-- Verificación: columna_rol = 0 (no hay rol), tabla = 1, trigger = 1,
 -- sin_periodo = 0 (todos los profes de hoy tienen su período abierto),
 -- publico_cambia = false.
 SELECT

@@ -968,9 +968,7 @@ html[data-theme="dark"] { --wa-bg: #14301f; }
 .pulse-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 11.5px; padding-bottom: 6px; border-bottom: 1px dotted var(--line); }
 
 
-/* Rol de cada profe (migración 11) */
-.pchips select.rol { min-height: 22px; padding: 1px 4px; font-size: 11px; }
+/* Profes que estaban antes (migración 11) */
 .pasados { margin: 4px 0 0; font-size: 11px; }
-.prol { color: var(--muted); font-size: .92em; }
 
 }

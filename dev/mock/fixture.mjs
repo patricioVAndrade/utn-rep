@@ -41,7 +41,7 @@ for (const n of [1, 2, 3, 4, 5]) {
       dictados.push(d);
       const np = 1 + Math.floor(rnd() * 3);
       const usados = new Set();
-      for (let j = 0; j < np; j++) { const pid = 1 + Math.floor(rnd() * 60); if (usados.has(pid)) continue; usados.add(pid); dictado_profesores.push({ dictado_id: d.id, profesor_id: pid, rol: j === 0 ? 'TITULAR' : j === 1 ? 'JTP' : null, created_at: '2026-02-20T10:00:00Z', updated_at: null }); }
+      for (let j = 0; j < np; j++) { const pid = 1 + Math.floor(rnd() * 60); if (usados.has(pid)) continue; usados.add(pid); dictado_profesores.push({ dictado_id: d.id, profesor_id: pid, created_at: '2026-02-20T10:00:00Z', updated_at: null }); }
       const nres = (i === 3 && n === 4) ? 0 : Math.floor(rnd() * (n === 5 ? 3 : 9));
       for (let r = 0; r < nres; r++) {
         const anon = rnd() < .3; const autor = pick(ALUMNOS);
@@ -123,6 +123,6 @@ export const aperturas_link = [
 
 // Historial de profesores (migración 11): los de hoy desde 2026 y uno que ya no está
 export const profesores_historial = [
-  ...dictado_profesores.map((dp, i) => ({ id: i + 1, dictado_id: dp.dictado_id, profesor_id: dp.profesor_id, rol: dp.rol, desde_anio: 2026, desde_cuatri: null, hasta_anio: null, hasta_cuatri: null })),
-  { id: 9999, dictado_id: 1, profesor_id: 60, rol: 'ADJUNTO', desde_anio: 2025, desde_cuatri: 1, hasta_anio: 2026, hasta_cuatri: 1 },
+  ...dictado_profesores.map((dp, i) => ({ id: i + 1, dictado_id: dp.dictado_id, profesor_id: dp.profesor_id, desde_anio: 2026, desde_cuatri: null, hasta_anio: null, hasta_cuatri: null })),
+  { id: 9999, dictado_id: 1, profesor_id: 60, desde_anio: 2025, desde_cuatri: 1, hasta_anio: 2026, hasta_cuatri: 1 },
 ];

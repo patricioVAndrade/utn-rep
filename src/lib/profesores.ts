@@ -1,34 +1,5 @@
-// Rol de cada profe en el curso e historial (migración 11).
-
-export type Rol = 'TITULAR' | 'ADJUNTO' | 'JTP' | 'AYUDANTE';
-
-export const ROLES: { valor: Rol; texto: string }[] = [
-  { valor: 'TITULAR', texto: 'Titular' },
-  { valor: 'ADJUNTO', texto: 'Adjunto' },
-  { valor: 'JTP', texto: 'JTP' },
-  { valor: 'AYUDANTE', texto: 'Ayudante' },
-];
-
-/** "Titular", "JTP"… o vacío si no tiene rol (o no es uno conocido). */
-export const rolTexto = (rol: string | null | undefined) => ROLES.find((r) => r.valor === rol)?.texto || '';
-
-const sinAcentos = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
-
-/**
- * Pasa lo que escribe una persona al valor de la base.
- * null = sin rol (vacío). undefined = no es un rol válido.
- */
-export function normalizarRol(valor: unknown): Rol | null | undefined {
-  if (valor === null || valor === undefined) return null;
-  if (typeof valor !== 'string') return undefined;
-  const t = sinAcentos(valor).trim().toLowerCase().replace(/\s+/g, ' ');
-  if (!t) return null;
-  if (t === 'titular') return 'TITULAR';
-  if (t === 'adjunto' || t === 'adjunta' || t === 'profesor adjunto') return 'ADJUNTO';
-  if (t === 'jtp' || t === 'jefe de trabajos practicos' || t === 'jefa de trabajos practicos') return 'JTP';
-  if (t === 'ayudante' || t === 'ayudante de trabajos practicos' || t === 'atp') return 'AYUDANTE';
-  return undefined;
-}
+// Historial de profesores en cada curso (migración 11).
+// No se guarda el rol (Titular, JTP...): solo desde y hasta cuándo estuvo.
 
 /** Año y cuatrimestre de una fecha, en hora de Córdoba (enero a julio = 1.º). */
 export function cuatriDe(fecha = new Date()): { anio: number; cuatri: 1 | 2 } {

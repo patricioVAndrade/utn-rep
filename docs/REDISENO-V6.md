@@ -65,7 +65,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Un año | Hecho | `/nivel/2` |
 | Una materia | Hecho | `/materia/ID` |
 | Un curso | Hecho | `/dictado/ID` |
-| Profesor | Hecho | `/profesor/ID`. "Promedio de sus cursos" (lo elegiste el 7/11; la V6 no tenía puntaje). El rol (Titular, JTP) va con la etapa 3. |
+| Profesor | Hecho | `/profesor/ID`. "Promedio de sus cursos" (lo elegiste el 7/11; la V6 no tenía puntaje). Sin rol (Titular, JTP): lo descartaste el 8/11; queda el historial en el admin. |
 | Búsqueda | Hecho | `/buscar?q=` |
 | Comparar cursos | Hecho | `/materia/ID/comparar` |
 | Experiencias de finales | Hecho | `/finales` |

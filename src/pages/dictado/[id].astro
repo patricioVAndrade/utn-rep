@@ -11,8 +11,6 @@ import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 import { supabaseAdmin } from '../../lib/supabase-admin';
 import { isAdmin } from '../../lib/admin';
 import { autoresDeResenas } from '../../lib/fichas';
-import { ROLES, rolTexto } from '../../lib/profesores';
-const ORDEN_ROL = (r: string | null) => { const i = ROLES.findIndex((x) => x.valor === r); return i < 0 ? ROLES.length : i; };
 import { anioLabel, compararCursos, nota, tiempoRelativo } from '../../lib/format';
 
 const user = Astro.locals.user;
@@ -20,8 +18,8 @@ const userIsAdmin = isAdmin(user?.id);
 
 const { id } = Astro.params;
 
-// Curso con materia y profesores (con su rol, migración 11)
-const leerDictado = (conRol: boolean) => supabase
+// Curso con materia y profesores
+const { data: dictado, error } = await supabase
   .from('dictados')
   .select(`
     id, curso_id, materia_id,
@@ -33,7 +31,6 @@ const leerDictado = (conRol: boolean) => supabase
     cursos ( identificador, anio_carrera, turno ),
     materias ( id, nombre, nivel, es_electiva, puntos_electiva ),
     dictado_profesores (
-      ${conRol ? 'rol,' : ''}
       updated_at,
       created_at,
       profesores ( id, nombre_completo )
@@ -41,9 +38,6 @@ const leerDictado = (conRol: boolean) => supabase
   `)
   .eq('id', id)
   .single();
-let { data: dictado, error } = await leerDictado(true);
-// Sin la migración 11 todavía no existe "rol"
-if (error && /rol/.test(error.message)) ({ data: dictado, error } = await leerDictado(false));
 
 if (error || !dictado) {
   if (error) console.error('[dictado] Error de Supabase:', error.message);
@@ -63,10 +57,7 @@ const fechaActualizacion = fechas.length > 0
 const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 const curso = one((dictado as any).cursos);
 const materia = one((dictado as any).materias);
-const profesores = ((dictado as any).dictado_profesores || [])
-  .map((dp: any) => { const p = one(dp.profesores); return p ? { ...p, rol: dp.rol || null } : null; })
-  .filter(Boolean)
-  .sort((a: any, b: any) => ORDEN_ROL(a.rol) - ORDEN_ROL(b.rol) || a.nombre_completo.localeCompare(b.nombre_completo));
+const profesores = ((dictado as any).dictado_profesores || []).map((dp: any) => one(dp.profesores)).filter(Boolean);
 
 // Reseñas (vista pública: sin user_id y sin nombre en las anónimas)
 const { data: resenas } = await supabase
@@ -270,7 +261,7 @@ const totalCursos = (otrosRaw || []).length;
         <h3>Profesores de este curso</h3>
         <div class="in feed">
           {profesores.length > 0
-            ? profesores.map((p: any) => <div><a href={`/profesor/${p.id}`}>{p.nombre_completo}</a>{p.rol && <span class="prol"> · {rolTexto(p.rol)}</span>}</div>)
+            ? profesores.map((p: any) => <div><a href={`/profesor/${p.id}`}>{p.nombre_completo}</a></div>)
             : <span class="sub">Sin profesores cargados.</span>}
           {fechaActualizacion && (
             <span class="sub"><Icon name="clock" class="ico" /> Información actualizada {tiempoRelativo(fechaActualizacion).toLowerCase()}.</span>
