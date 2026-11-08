@@ -1,8 +1,8 @@
 # Pasa las celdas de extraer.py a un CSV de horarios para /admin/importar:
 # curso, materia, cuatrimestre (1, 2 o vacío si es anual), dia, desde, hasta.
-# - Las siglas salen de las leyendas de cada página (SIG). CDD y COM son las
-#   dos Comunicación de Datos (Pato). "IS" aparece una vez en 4K4 y se toma
-#   como ICS: confirmar con Pato.
+# - Las siglas salen de las leyendas de cada página (SIG). En 3.º año CDD y
+#   COM son Comunicación de Datos; en 5.º, CDD es Ciencia de Datos. IS, ISW e
+#   ICS son Ingeniería y Calidad de Software (Pato, 8/11/2026).
 # - Si una materia tiene el mismo horario en los dos cuatrimestres, va como anual.
 # - Subgrupos (1K1B, 4K1A...): ver el comentario más abajo.
 import sys, json, re, unicodedata, collections, csv
@@ -18,7 +18,7 @@ SIG = {
  'COM': 'Comunicación de Datos', 'Ingles II': 'Inglés II', 'ECO': 'Economía', 'AN': 'Análisis Numérico', 'BDA': 'Backend de Aplicaciones',
  'Seminario': 'Seminario Integrador', 'ADSI': 'Administración de Sistemas de Información', 'RED': 'Redes de Datos',
  'IOP': 'Investigación Operativa', 'SIM': 'Simulación', 'TPA': 'Tecnologías para la Automatización', 'TA': 'Tecnologías para la Automatización',
- 'DAO': 'Desarrollo de Aplicaciones con Objetos', 'ICS': 'Ingeniería y Calidad de Software', 'IS': 'Ingeniería y Calidad de Software',
+ 'DAO': 'Desarrollo de Aplicaciones con Objetos', 'ICS': 'Ingeniería y Calidad de Software', 'IS': 'Ingeniería y Calidad de Software', 'ISW': 'Ingeniería y Calidad de Software',
  'LEG': 'Legislación', 'GMP': 'Gestión de la Mejora de Procesos', 'GIP': 'Gestión Industrial de la Producción', 'GREEN': 'Green Software',
  'UIX': 'Experiencia e Interfaces de Usuario', 'SDS': 'Seguridad en el Desarrollo de Software',
  'CMD': 'Comunicación Multimedial en el Desarrollo de Sistemas de Información', 'DevOps': 'Desarrollo y Operaciones DevOps',
@@ -38,7 +38,7 @@ for c in d['celdas']:
         for parte in re.split(r'\s*/\s*', t):
             parte = parte.strip()
             if not parte: continue
-            m = SK.get(k(parte))
+            m = 'Ciencia de Datos' if k(parte) == 'cdd' and c['curso'].startswith('5') else SK.get(k(parte))
             if not m:
                 ws = parte.split()
                 for i in range(len(ws)):

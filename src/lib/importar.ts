@@ -83,6 +83,9 @@ const palabras = (s: string) =>
 
 /** Busca la materia de la base que corresponde a un nombre de la planilla. */
 export function buscarMateria(nombre: string, materias: BaseMateria[], nivel: number) {
+  // Primero el nombre tal cual (puede haber "X" y "X (electiva)" en la base)
+  const tal = materias.filter((m) => norm(m.nombre) === norm(nombre));
+  if (tal.length === 1) return { materia: tal[0], sugerencias: [] };
   const n = norm(nombre).replace(/\s*electiva\s*$/, '').trim();
   const exacta = materias.filter((m) => norm(m.nombre) === n);
   if (exacta.length === 1) return { materia: exacta[0], sugerencias: [] };

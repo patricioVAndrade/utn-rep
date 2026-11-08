@@ -86,6 +86,12 @@ describe('coincidencias con la base', () => {
     expect(buscarMateria('GREEN SOFTWARE - Electiva', conElectivas, 4).materia?.id).toBe(9);
   });
 
+  it('si la base tiene la misma materia con y sin "(electiva)", respeta el nombre exacto', () => {
+    const dos = [...MATERIAS, { id: 10, nombre: 'Seguridad en el Desarrollo de Software', nivel: 5 }, { id: 11, nombre: 'Seguridad en el Desarrollo de Software (electiva)', nivel: 4 }];
+    expect(buscarMateria('Seguridad en el Desarrollo de Software (electiva)', dos, 4).materia?.id).toBe(11);
+    expect(buscarMateria('Seguridad en el Desarrollo de Software', dos, 5).materia?.id).toBe(10);
+  });
+
   it('encuentra al profesor con otro orden, sin acentos o con iniciales', () => {
     const indice = [
       { id: 1, nombre_completo: 'Vazquez De Novoa, Santiago Roberto' },
