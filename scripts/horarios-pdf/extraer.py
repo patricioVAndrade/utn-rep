@@ -4,7 +4,7 @@
 #
 #   python3 -I scripts/horarios-pdf/extraer.py anio1.pdf ... > celdas.json
 #   python3 -I scripts/horarios-pdf/armar.py celdas.json resumen.json horarios.csv
-#   npx tsx scripts/horarios-pdf/nombres.ts horarios.csv final.csv sistemas1.xlsx ... sistemas5.xlsx basicas.xlsx
+#   npx tsx scripts/horarios-pdf/cruzar.ts horarios.csv sistemas1.xlsx ... sistemas5.xlsx basicas.xlsx  (solo avisa)
 #
 # El CSV que sale se sube en /admin/importar ("Subir .xlsx o .csv"), que muestra
 # qué cambia antes de guardar. Necesita pdfplumber (pip install pdfplumber).

@@ -1,13 +1,16 @@
-// Cambia los nombres de materia del CSV de los PDF por los que ya están
-// cargados (los de las planillas del centro de estudiantes, que son los de la
-// base), buscando solo entre las materias de ese curso. Avisa lo que no cruza.
+// Cruza el CSV de los PDF con lo que ya está cargado (las planillas del centro
+// de estudiantes), curso por curso, y avisa qué materias del PDF no están en
+// ese curso y qué materias cargadas no tienen horario. No cambia el CSV: los
+// nombres de la base pueden no ser los de las planillas (Pato los limpió, por
+// ejemplo "Elec Backend" es "Backend de Aplicaciones"), y el importador ya
+// busca la materia aunque el nombre no sea igual.
 //
-//   npx tsx scripts/horarios-pdf/nombres.ts horarios.csv salida.csv sistemas1.xlsx ... basicas.xlsx
+//   npx tsx scripts/horarios-pdf/cruzar.ts horarios.csv sistemas1.xlsx ... basicas.xlsx
 //
-// Las planillas de Sistemas van antes que la de Básicas (sus nombres ganan).
-import { readFileSync, writeFileSync } from 'node:fs';
+// Las planillas de Sistemas van antes que la de Básicas.
+import { readFileSync } from 'node:fs';
 import { leerXlsx } from '../../src/lib/xlsx';
-import { leerCsv, leerPlanilla, partirCsv } from '../../src/lib/planilla';
+import { leerCsv, leerPlanilla } from '../../src/lib/planilla';
 import { buscarMateria } from '../../src/lib/importar';
 
 // Lo que el buscador no puede adivinar (Pato, 8/11/2026)
@@ -18,7 +21,7 @@ const MISMA: Record<string, string[]> = {
   'Sistemas y Procesos de Negocio': ['Sistemas y Procesos de Negocios', 'Sitemas y Procesos de Negocios'],
 };
 
-const [entrada, salida, ...planillas] = process.argv.slice(2);
+const [entrada, ...planillas] = process.argv.slice(2);
 // curso -> nombres de cada planilla, en el orden en que se pasaron
 const porPlanilla = new Map<string, string[][]>();
 planillas.forEach((f, i) => {
@@ -50,7 +53,6 @@ function enListas(listas: string[][], materia: string): string | null {
   }
   return null;
 }
-const filas = partirCsv(readFileSync(entrada, 'utf8')).filter((f) => f.some(Boolean));
 const leidos = leerCsv(readFileSync(entrada, 'utf8'));
 const nuevo = new Map<string, string>(); // curso|materia -> nombre cargado
 const sinCruce: string[] = [];
@@ -71,11 +73,9 @@ for (const [curso, l] of porPlanilla) {
   const principal = l.find((x) => x.length) || [];
   for (const m of principal) if (!usadas.has(`${curso}|${m}`)) faltan.push(`${curso}: ${m}`);
 }
-const out = [filas[0], ...filas.slice(1).map((f) => [f[0], nuevo.get(`${f[0].toUpperCase()}|${f[1]}`) ?? f[1], ...f.slice(2)])];
-writeFileSync(salida, out.map((f) => f.map((x) => (/[",;\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x)).join(',')).join('\n') + '\n');
 console.log(`Cruzadas ${nuevo.size} de ${leidos.horarios.length}.`);
 console.log('--- del PDF sin cruce:\n' + sinCruce.join('\n'));
 console.log('--- cargadas sin horario en el PDF:\n' + faltan.join('\n'));
 const cambios = new Map<string, Set<string>>();
 for (const [k, v] of nuevo) { const m = k.split('|')[1]; if (m !== v) cambios.set(`${m} -> ${v}`, (cambios.get(`${m} -> ${v}`) || new Set()).add(k.split('|')[0])); }
-console.log('--- nombres cambiados:'); for (const [k, v] of cambios) console.log(k, `(${v.size})`);
+console.log('--- nombre en las planillas:'); for (const [k, v] of cambios) console.log(k, `(${v.size})`);
