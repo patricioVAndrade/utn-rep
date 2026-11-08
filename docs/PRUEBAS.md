@@ -28,13 +28,25 @@ Resultados de cada migración en la base de prueba (los que pegó Pato):
 | 8. Logros | 7/11 | `1 · 2 · false · false · 0` (falta volver a correrla por el nombre de L4) |
 | 9. Usuarios y links | 8/11 | `2 · 2 · 8 · false · false · false` |
 | 10. En línea | 8/11 | `1 · 2 · false · false · true` |
+| 11. Historial de profesores y rol | — | Pendiente de correr. Esperado: `1 · 1 · 1 · 0 · false` |
 
-## 2. Pruebas automáticas: `npm test`
+### Pruebas con datos (se deshacen solas)
 
-Corren sin base (la base se simula con `vi.mock`). Hoy: 84 pruebas en 9 archivos.
+Algunas migraciones tienen además una prueba que hace cambios de verdad y al
+final los deshace. Se corren después de la migración y tienen que terminar
+con "TODO OK".
 
 | Archivo | Qué prueba |
 |---|---|
+| `supabase/pruebas/migracion-11.sql` | Asignar un profe abre su período; el rol pasa al historial; un rol inventado no entra; sacarlo cierra el período (no lo borra); si vuelve se abre otro; todos los profes de hoy tienen período abierto; el público lee pero no cambia. |
+
+## 2. Pruebas automáticas: `npm test`
+
+Corren sin base (la base se simula con `vi.mock`). Hoy: 94 pruebas en 10 archivos.
+
+| Archivo | Qué prueba |
+|---|---|
+| `tests/profesores-historial.test.ts` | Migración 11: roles, cómo se escribe cada uno, cuatrimestre según la fecha (hora de Córdoba), texto del período y `set_rol` del admin (sin admin, datos que faltan, rol inválido, vacío lo borra, error de la base). |
 | `tests/en-linea.test.ts` | Migración 10: regla de 5 personas, texto, `POST /api/en-linea` (visitante inválido, body roto, límite por IP, respuesta). |
 | `tests/logros.test.ts` | Migración 8: rango según reseñas y cuánto falta para el próximo. |
 | `tests/palabras.test.ts` | Migración 4: palabras marcadas (acentos, mayúsculas, palabras parecidas). |
@@ -61,6 +73,7 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 84 pruebas en 9 archivos
 
 | Migración | Método y ruta | Necesita | Casos a probar | Prueba automática |
 |---|---|---|---|---|
+| 11 | `POST /api/admin/dictados` `{ action: set_rol, dictado_id, profesor_id, rol }` | Admin + CSRF | Rol inválido → 400. "Jefe de trabajos prácticos" → guarda `JTP`. Vacío → lo borra. Después, el rol se ve en el curso y en el profe. Sacar al profe del curso deja "Antes: …" en Materias y cursos. | `tests/profesores-historial.test.ts` |
 | 10 | `POST /api/en-linea` `{ visitante }` | Nada | Visitante inválido → 400. Válido → 200 `{ n, texto, corto }`. Con menos de 5 personas, `n`, `texto` y `corto` vienen en `null`. Muchos pedidos de una IP (más de 300 por minuto) → 429. | `tests/en-linea.test.ts` |
 | 9 | `GET /api/links/mio` | Sesión | Con sesión → `{ codigo }` (siempre el mismo). Sin sesión → `{ codigo: null }`. | Falta |
 | 9 | `POST /api/links/abrir` `{ codigo, visitante, ruta }` | Nada | Código o visitante inválidos → 400. Código ajeno → `{ ok: true }` y suma 1 en Admin. El mismo visitante otra vez no suma. El código propio → `{ ok: false }`. | Falta |
@@ -90,4 +103,5 @@ Lo que no se puede probar con Postman porque es de pantalla:
 - Franja verde al abrir un link con `?de=` en otro navegador; que la dirección quede sin `?de=`.
 - "Hay X estudiantes en línea" con 5 pestañas o más (en navegadores distintos o en incógnito).
 - Cuenta bloqueada: aviso en Escribir una reseña y en Compartir mi experiencia.
+- Rol al lado del nombre del profe en el curso y en la página del profe; elegir el rol en Admin > Materias y cursos.
 - Cada página a 390 px y en modo noche.

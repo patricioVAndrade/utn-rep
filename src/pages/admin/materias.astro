@@ -1,4 +1,5 @@
 ---
+import { ROLES, periodoTexto } from '../../lib/profesores';
 import Layout from '../../layouts/Layout.astro';
 import AdminNav from '../../components/AdminNav.astro';
 import Icon from '../../components/Icon.astro';
@@ -12,13 +13,18 @@ const user = Astro.locals.user;
 if (!user || !isAdmin(user.id)) return Astro.redirect('/');
 const csrfToken = tokenCsrf(Astro.cookies);
 
-const [{ data: materiasRaw }, { data: cursosRaw }, { data: dictadosRaw }, { data: dpRaw }, { data: profesRaw }] = await Promise.all([
+const [{ data: materiasRaw }, { data: cursosRaw }, { data: dictadosRaw }, { data: dpRawConRol, error: dpError }, { data: profesRaw }] = await Promise.all([
   supabaseAdmin.from('materias').select('id, nombre, nivel, es_electiva, puntos_electiva').order('nivel').order('nombre'),
   supabaseAdmin.from('cursos').select('id, identificador, anio_carrera, turno').order('anio_carrera').order('identificador'),
   supabaseAdmin.from('dictados').select('id, curso_id, materia_id, periodo_dictado, es_contracuatrimestral, es_intensivo').range(0, 19999),
-  supabaseAdmin.from('dictado_profesores').select('dictado_id, profesor_id').range(0, 49999),
+  supabaseAdmin.from('dictado_profesores').select('dictado_id, profesor_id, rol').range(0, 49999),
   supabaseAdmin.from('profesores').select('id, nombre_completo').order('nombre_completo').range(0, 19999),
 ]);
+// Sin la migración 11 todavía no existe "rol": se lee sin él
+let dpRaw: any[] | null = dpRawConRol;
+if (dpError) dpRaw = (await supabaseAdmin.from('dictado_profesores').select('dictado_id, profesor_id').range(0, 49999)).data;
+// Profes que ya no están en el curso (migración 11)
+const { data: pasadosRaw } = await supabaseAdmin.from('profesores_historial').select('dictado_id, profesor_id, desde_anio, desde_cuatri, hasta_anio, hasta_cuatri').not('hasta_anio', 'is', null).range(0, 49999);
 const { data: statsRaw } = await supabaseAdmin.from('stats_dictados').select('dictado_id, cantidad').range(0, 19999);
 const resenasDe = new Map((statsRaw || []).map((s: any) => [s.dictado_id, s.cantidad || 0]));
 const cursos = cursosRaw || [];
@@ -29,12 +35,18 @@ const profesDe = new Map<number, any[]>();
 (dpRaw || []).forEach((dp: any) => {
   const p = profePorId.get(dp.profesor_id);
   if (!p) return;
-  profesDe.set(dp.dictado_id, [...(profesDe.get(dp.dictado_id) || []), p]);
+  profesDe.set(dp.dictado_id, [...(profesDe.get(dp.dictado_id) || []), { ...p, rol: dp.rol || '' }]);
+});
+const pasadosDe = new Map<number, { nombre: string; periodo: string }[]>();
+(pasadosRaw || []).forEach((h: any) => {
+  const p = profePorId.get(h.profesor_id);
+  if (!p) return;
+  pasadosDe.set(h.dictado_id, [...(pasadosDe.get(h.dictado_id) || []), { nombre: p.nombre_completo, periodo: periodoTexto(h) }]);
 });
 const materias = (materiasRaw || []).map((m: any) => {
   const dictados = (dictadosRaw || [])
     .filter((d: any) => d.materia_id === m.id)
-    .map((d: any) => ({ ...d, resenas: resenasDe.get(d.id) || 0, curso: cursoPorId.get(d.curso_id), profes: (profesDe.get(d.id) || []).sort((a: any, b: any) => a.nombre_completo.localeCompare(b.nombre_completo)) }))
+    .map((d: any) => ({ ...d, resenas: resenasDe.get(d.id) || 0, curso: cursoPorId.get(d.curso_id), pasados: pasadosDe.get(d.id) || [], profes: (profesDe.get(d.id) || []).sort((a: any, b: any) => a.nombre_completo.localeCompare(b.nombre_completo)) }))
     .sort((a: any, b: any) => compararCursos(a.curso?.identificador, b.curso?.identificador));
   return { ...m, dictados, sinProfes: dictados.filter((d: any) => !d.profes.length).length };
 });
@@ -133,8 +145,18 @@ const totalDictados = (dictadosRaw || []).length;
                         </td>
                         <td>
                           <ul class="pchips">
-                            {d.profes.map((p: any) => <li data-profe={p.id}><a href={`/profesor/${p.id}`} target="_blank">{p.nombre_completo}</a> <button type="button" class="x" data-quitar={p.id} aria-label={`Sacar a ${p.nombre_completo}`}>×</button></li>)}
+                            {d.profes.map((p: any) => (
+                              <li data-profe={p.id}>
+                                <a href={`/profesor/${p.id}`} target="_blank">{p.nombre_completo}</a>
+                                <select class="mini rol" data-rol={p.id} aria-label={`Rol de ${p.nombre_completo}`}>
+                                  <option value="" selected={!p.rol}>Rol</option>
+                                  {ROLES.map((r) => <option value={r.valor} selected={p.rol === r.valor}>{r.texto}</option>)}
+                                </select>
+                                <button type="button" class="x" data-quitar={p.id} aria-label={`Sacar a ${p.nombre_completo}`}>×</button>
+                              </li>
+                            ))}
                           </ul>
+                          {d.pasados.length > 0 && <p class="sub pasados">Antes: {d.pasados.map((h: any) => `${h.nombre} (${h.periodo})`).join('; ')}</p>}
                           <div class="padd">
                             <input type="text" class="ainput sm" list="dl-profes" placeholder="Agregar profe" aria-label={`Agregar profesor a ${d.curso?.identificador}`} />
                             <button type="button" class="btn quiet" data-agregar>Agregar</button>
@@ -216,6 +238,11 @@ const totalDictados = (dictadosRaw || []).length;
         aviso('Profesor sacado del curso.');
       } catch (err) { error(err); }
     };
+    lista.addEventListener('change', async (e) => {
+      const sel = (e.target as HTMLElement).closest<HTMLSelectElement>('select[data-rol]');
+      if (!sel) return;
+      try { await adminFetch('/api/admin/dictados', { action: 'set_rol', dictado_id: id, profesor_id: Number(sel.dataset.rol), rol: sel.value }); aviso('Rol guardado.'); } catch (err) { error(err); }
+    });
     lista.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-quitar]');
       if (b) quitar(b);

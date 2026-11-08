@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { requireAdmin } from '../../../lib/admin-guards';
 import { json } from '../../../lib/http';
+import { normalizarRol } from '../../../lib/profesores';
 
 
 const ALLOWED_PERIODOS = new Set(['PRIMER_CUATRIMESTRE', 'SEGUNDO_CUATRIMESTRE', 'ANUAL']);
@@ -74,6 +75,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   const { action } = body;
+
+  // ── SET_ROL: rol del profe en el curso (migración 11). La base lo pasa al historial ──
+  if (action === 'set_rol') {
+    const dictadoId = Number(body.dictado_id);
+    const profesorId = Number(body.profesor_id);
+    if (!Number.isInteger(dictadoId) || dictadoId <= 0 || !Number.isInteger(profesorId) || profesorId <= 0) {
+      return json({ error: 'Se requiere dictado_id y profesor_id.' }, 400);
+    }
+    const rol = normalizarRol(body.rol);
+    if (rol === undefined) return json({ error: 'El rol tiene que ser Titular, Adjunto, JTP o Ayudante.' }, 400);
+    const { error } = await supabaseAdmin
+      .from('dictado_profesores')
+      .update({ rol })
+      .eq('dictado_id', dictadoId)
+      .eq('profesor_id', profesorId);
+    if (error) {
+      console.error('Error guardando rol:', error);
+      return json({ error: 'No se pudo guardar el rol. ¿Ya corriste la migración 11?' }, 500);
+    }
+    return json({ success: true, rol });
+  }
 
   // ── ASSIGN: add a professor to a dictado ──
   if (action === 'assign_profesor') {

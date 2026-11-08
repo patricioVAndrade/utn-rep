@@ -108,9 +108,13 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108090000_en_linea.sql`. Vuelta atrás: `supabase/rollback/20261108090000_en_linea.sql`.
 - **Verificación esperada:** `tabla = 1`, `funciones = 2`, `anon_lee = false`, `anon_puede_latir = false`, `prueba = true`.
 
-### 11. Historial de profesores y rol (3.13)
+### 11. Historial de profesores y rol (3.13) — **lista para correr en prueba, código subido**
 
-- En `dictado_profesores`: desde y hasta (año y cuatrimestre) y `rol` (Titular, Adjunto, JTP, Ayudante). El importador pasa a ponerle fecha de fin al profe que sale, en vez de borrarlo.
+- `dictado_profesores.rol` (Titular, Adjunto, JTP, Ayudante o vacío). Lo pone el admin en Materias y cursos; las planillas no lo traen.
+- Tabla `profesores_historial` con desde y hasta (año y cuatrimestre). La llevan triggers: al asignar un profe se abre un período, al sacarlo se cierra. Así el importador y el admin no cambian (siguen agregando y sacando) y `dictado_profesores` sigue siendo "los de hoy", sin tocar las pantallas que la leen.
+- Los profes de hoy arrancan con su período abierto desde 2026.
+- **Archivo:** `supabase/migrations/20261108100000_profesores_historial.sql`. Vuelta atrás: `supabase/rollback/20261108100000_profesores_historial.sql`. Prueba con datos: `supabase/pruebas/migracion-11.sql`.
+- **Verificación esperada:** `columna_rol = 1`, `tabla = 1`, `trigger = 1`, `sin_periodo = 0`, `publico_cambia = false`.
 
 ### 12. Horarios de cada curso y superposiciones (F29) — **la última**
 

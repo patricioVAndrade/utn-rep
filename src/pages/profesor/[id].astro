@@ -1,4 +1,5 @@
 ---
+import { rolTexto } from '../../lib/profesores';
 import Layout from '../../layouts/Layout.astro';
 import Stars from '../../components/Stars.astro';
 import CursoChips from '../../components/CursoChips.astro';
@@ -21,9 +22,11 @@ if (!profesor) {
 }
 
 // Todos los cursos donde da clases, con materia, turno y compañeros
-const { data: dictadoProfesores } = await supabase
+// (con su rol en cada curso, migración 11)
+const leerCursos = (conRol: boolean) => supabase
   .from('dictado_profesores')
   .select(`
+    ${conRol ? 'rol,' : ''}
     dictados (
       id,
       materia_id,
@@ -35,6 +38,8 @@ const { data: dictadoProfesores } = await supabase
     )
   `)
   .eq('profesor_id', id);
+let { data: dictadoProfesores, error: errorCursos } = await leerCursos(true);
+if (errorCursos && /rol/.test(errorCursos.message)) ({ data: dictadoProfesores } = await leerCursos(false));
 
 const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 
@@ -45,7 +50,7 @@ const dictadosPorMateria: Record<number, { materia: any; dictados: any[] }> = {}
   const m = one(d?.materias);
   if (!d || !m) return;
   if (!dictadosPorMateria[m.id]) dictadosPorMateria[m.id] = { materia: m, dictados: [] };
-  dictadosPorMateria[m.id].dictados.push({ ...d, cursos: one(d.cursos) });
+  dictadosPorMateria[m.id].dictados.push({ ...d, cursos: one(d.cursos), rol: dp.rol || null });
 });
 Object.values(dictadosPorMateria).forEach((g) => {
   g.dictados.sort((a, b) => compararCursos(a.cursos?.identificador, b.cursos?.identificador));
@@ -155,7 +160,7 @@ const reportar = `mailto:patriciovandrade@gmail.com?subject=${encodeURIComponent
             <tbody>
               {filas.map(({ materia, d, st }) => (
                 <tr>
-                  <td><a class="curso" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a></td>
+                  <td><a class="curso" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a>{d.rol && <span class="prol"> · {rolTexto(d.rol)}</span>}</td>
                   <td><a class:list={['yr', `y${materia.nivel}`]} href={`/nivel/${materia.nivel}`}>{materia.nivel}.º</a> <a href={`/materia/${materia.id}`}>{materia.nombre}</a></td>
                   <td><CursoChips mini turno={d.cursos?.turno} /></td>
                   <td style="white-space:nowrap">{st ? <><Stars value={st.promedio} /> {nota(st.promedio)}</> : <span class="sub">Sin reseñas</span>}</td>
@@ -167,7 +172,7 @@ const reportar = `mailto:patriciovandrade@gmail.com?subject=${encodeURIComponent
           <div class="cards-sm">
             {filas.map(({ materia, d, st }) => (
               <div class="ccard">
-                <div class="top"><a class="curso stretch" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a> <CursoChips mini turno={d.cursos?.turno} /></div>
+                <div class="top"><a class="curso stretch" href={`/dictado/${d.id}`}>{d.cursos?.identificador || 'Curso'}</a>{d.rol && <span class="prol">{rolTexto(d.rol)}</span>} <CursoChips mini turno={d.cursos?.turno} /></div>
                 <span><span class:list={['yr', `y${materia.nivel}`]}>{materia.nivel}.º</span> {materia.nombre}</span>
                 <span>{st ? <><Stars value={st.promedio} /> <b>{nota(st.promedio)}</b> <span class="sub">· {st.count} reseña{st.count !== 1 ? 's' : ''}</span></> : <span class="sub">Sin reseñas todavía</span>}</span>
               </div>

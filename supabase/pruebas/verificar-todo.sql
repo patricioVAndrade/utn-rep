@@ -21,6 +21,16 @@ CREATE OR REPLACE FUNCTION pg_temp.func(firma text) RETURNS text LANGUAGE sql AS
 $$ SELECT CASE WHEN to_regprocedure('public.' || firma) IS NULL THEN 'falta' ELSE 'está' END $$;
 CREATE OR REPLACE FUNCTION pg_temp.ejecuta(rol text, firma text) RETURNS text LANGUAGE sql AS
 $$ SELECT CASE WHEN to_regprocedure('public.' || firma) IS NULL THEN 'falta' ELSE has_function_privilege(rol, 'public.' || firma, 'EXECUTE')::text END $$;
+CREATE OR REPLACE FUNCTION pg_temp.contar(t text, consulta text) RETURNS text LANGUAGE plpgsql AS
+$$ DECLARE n bigint; BEGIN
+  IF to_regclass('public.' || t) IS NULL THEN RETURN 'falta'; END IF;
+  EXECUTE consulta INTO n; RETURN n::text;
+END $$;
+CREATE OR REPLACE FUNCTION pg_temp.contiene(firma text, texto text) RETURNS text LANGUAGE plpgsql AS
+$$ BEGIN
+  IF to_regprocedure('public.' || firma) IS NULL THEN RETURN 'falta'; END IF;
+  RETURN (strpos(pg_get_functiondef(to_regprocedure('public.' || firma)), texto) > 0)::text;
+END $$;
 
 WITH pruebas(migracion, prueba, esperado, resultado) AS (VALUES
   -- 1. Autor y anonimato en finales
@@ -68,7 +78,7 @@ WITH pruebas(migracion, prueba, esperado, resultado) AS (VALUES
   ('08 logros', 'triggers que dan logros', '2', pg_temp.trig(ARRAY['trg_logros_resena', 'trg_logros_final'])),
   ('08 logros', 'el público NO lee logros', 'false', pg_temp.priv('anon', 'logros_usuario', 'SELECT')),
   ('08 logros', 'un usuario NO puede escribir foto_url', 'false', pg_temp.colpriv('authenticated', 'perfiles', 'foto_url', 'UPDATE')),
-  ('08 logros', 'aviso de L4 con el nombre nuevo', 'true', (SELECT (strpos(pg_get_functiondef('public.revisar_logros(uuid,boolean)'::regprocedure), 'Rendí y compartí mi experiencia') > 0)::text WHERE to_regprocedure('public.revisar_logros(uuid,boolean)') IS NOT NULL)),
+  ('08 logros', 'aviso de L4 con el nombre nuevo', 'true', pg_temp.contiene('revisar_logros(uuid,boolean)', 'Rendí y compartí mi experiencia')),
   -- 9. Bloqueo y links
   ('09 usuarios y links', 'columna bloqueado_at', 'está', pg_temp.col('perfiles', 'bloqueado_at')),
   ('09 usuarios y links', 'triggers de bloqueo', '3', pg_temp.trig(ARRAY['trg_bloqueo', 'trg_bloqueo_editar', 'trg_bloqueo_perfil'])),
@@ -81,7 +91,14 @@ WITH pruebas(migracion, prueba, esperado, resultado) AS (VALUES
   ('10 en línea', 'tabla presencia', 'está', pg_temp.tabla('presencia')),
   ('10 en línea', 'función latido', 'está', pg_temp.func('latido(text)')),
   ('10 en línea', 'el público NO puede llamar a latido', 'false', pg_temp.ejecuta('anon', 'latido(text)')),
-  ('10 en línea', 'el público NO lee presencia', 'false', pg_temp.priv('anon', 'presencia', 'SELECT'))
+  ('10 en línea', 'el público NO lee presencia', 'false', pg_temp.priv('anon', 'presencia', 'SELECT')),
+  -- 11. Historial de profesores y rol
+  ('11 profesores', 'columna rol', 'está', pg_temp.col('dictado_profesores', 'rol')),
+  ('11 profesores', 'tabla profesores_historial', 'está', pg_temp.tabla('profesores_historial')),
+  ('11 profesores', 'trigger que anota el historial', '1', pg_temp.trig(ARRAY['trg_profesores_historial'])),
+  ('11 profesores', 'el público lee el historial', 'true', pg_temp.priv('anon', 'profesores_historial', 'SELECT')),
+  ('11 profesores', 'el público NO cambia el historial', 'false', pg_temp.priv('anon', 'profesores_historial', 'INSERT')),
+  ('11 profesores', 'profes de hoy sin período abierto', '0', pg_temp.contar('profesores_historial', 'SELECT count(*) FROM public.dictado_profesores dp WHERE NOT EXISTS (SELECT 1 FROM public.profesores_historial h WHERE h.dictado_id = dp.dictado_id AND h.profesor_id = dp.profesor_id AND h.hasta_anio IS NULL)'))
 )
 SELECT migracion, prueba, esperado, COALESCE(resultado, 'falta') AS resultado, COALESCE(resultado, 'falta') = esperado AS ok
 FROM pruebas
