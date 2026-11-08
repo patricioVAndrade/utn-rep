@@ -98,7 +98,16 @@ WITH pruebas(migracion, prueba, esperado, resultado) AS (VALUES
   ('11 profesores', 'trigger que anota el historial', '1', pg_temp.trig(ARRAY['trg_profesores_historial'])),
   ('11 profesores', 'el público lee el historial', 'true', pg_temp.priv('anon', 'profesores_historial', 'SELECT')),
   ('11 profesores', 'el público NO cambia el historial', 'false', pg_temp.priv('anon', 'profesores_historial', 'INSERT')),
-  ('11 profesores', 'profes de hoy sin período abierto', '0', pg_temp.contar('profesores_historial', 'SELECT count(*) FROM public.dictado_profesores dp WHERE NOT EXISTS (SELECT 1 FROM public.profesores_historial h WHERE h.dictado_id = dp.dictado_id AND h.profesor_id = dp.profesor_id AND h.hasta_anio IS NULL)'))
+  ('11 profesores', 'profes de hoy sin período abierto', '0', pg_temp.contar('profesores_historial', 'SELECT count(*) FROM public.dictado_profesores dp WHERE NOT EXISTS (SELECT 1 FROM public.profesores_historial h WHERE h.dictado_id = dp.dictado_id AND h.profesor_id = dp.profesor_id AND h.hasta_anio IS NULL)')),
+  -- 12. Horarios y Mi inscripción
+  ('12 horarios', 'tabla horarios', 'está', pg_temp.tabla('horarios')),
+  ('12 horarios', 'el público lee los horarios', 'true', pg_temp.priv('anon', 'horarios', 'SELECT')),
+  ('12 horarios', 'el público NO cambia los horarios', 'false', pg_temp.priv('authenticated', 'horarios', 'INSERT')),
+  ('12 horarios', 'tabla inscripcion_cursos', 'está', pg_temp.tabla('inscripcion_cursos')),
+  ('12 horarios', 'sin sesión NO se ven las listas', 'false', pg_temp.priv('anon', 'inscripcion_cursos', 'SELECT')),
+  ('12 horarios', 'la materia la completa la base (no se elige)', 'false', pg_temp.colpriv('authenticated', 'inscripcion_cursos', 'materia_id', 'INSERT')),
+  ('12 horarios', 'trigger que completa la materia', '1', pg_temp.trig(ARRAY['trg_inscripcion_completar'])),
+  ('12 horarios', 'horarios que terminan antes de empezar', '0', pg_temp.contar('horarios', 'SELECT count(*) FROM public.horarios WHERE hasta <= desde'))
 )
 SELECT migracion, prueba, esperado, COALESCE(resultado, 'falta') AS resultado, COALESCE(resultado, 'falta') = esperado AS ok
 FROM pruebas
