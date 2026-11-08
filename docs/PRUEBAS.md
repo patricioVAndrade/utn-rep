@@ -29,6 +29,7 @@ Resultados de cada migración en la base de prueba (los que pegó Pato):
 | 9. Usuarios y links | 8/11 | `2 · 2 · 8 · false · false · false` |
 | 10. En línea | 8/11 | `1 · 2 · false · false · true` |
 | 11. Historial de profesores | 8/11 | `0 · 1 · 1 · 0 · false` (ok) |
+| 12. Horarios y Mi inscripción | — | Pendiente de correr. Esperado: `2 · 5 · true · false · false` |
 
 ### Pruebas con datos (se deshacen solas)
 
@@ -38,14 +39,17 @@ con "TODO OK".
 
 | Archivo | Qué prueba |
 |---|---|
+| `supabase/pruebas/migracion-12.sql` | Un horario se guarda; uno que termina antes de empezar, un domingo o repetido, no. Como una persona con sesión: agrega un curso y la materia la completa la base (no la puede elegir); no agrega en la lista de otro; un solo elegido por materia; lee horarios pero no los cambia; otra persona no ve su lista; sin sesión no se ve ninguna. |
 | `supabase/pruebas/migracion-11.sql` | Asignar un profe abre su período; no queda la columna `rol`; sacarlo cierra el período (no lo borra); si vuelve se abre otro; todos los profes de hoy tienen período abierto; el público lee pero no cambia. |
 
 ## 2. Pruebas automáticas: `npm test`
 
-Corren sin base (la base se simula con `vi.mock`). Hoy: 94 pruebas en 10 archivos.
+Corren sin base (la base se simula con `vi.mock`). Hoy: 117 pruebas en 12 archivos.
 
 | Archivo | Qué prueba |
 |---|---|
+| `tests/horarios.test.ts` | Migración 12: horas ("8:00" y la fracción del día de Google), siglas (ADSI, IOP, ICS, TPA…), juntar módulos, texto del horario, superposiciones (también por cuatrimestre), grilla de Sistemas con celdas combinadas y dos cuatrimestres, "Electiva 1", horarios de Básicas y qué horarios cambian al importar. |
+| `tests/inscripcion.test.ts` | Migración 12: `POST /api/inscripcion` (sin sesión, acción inválida, agregar, repetido, curso inexistente, tope de 80, quitar, quitar materia, elegir, no elegir, traer la lista del navegador, error de la base), el link `?c=`, el texto de la combinación de turnos y la nota promedio. |
 | `tests/profesores-historial.test.ts` | Migración 11: cuatrimestre según la fecha (hora de Córdoba) y texto del período. |
 | `tests/en-linea.test.ts` | Migración 10: regla de 5 personas, texto, `POST /api/en-linea` (visitante inválido, body roto, límite por IP, respuesta). |
 | `tests/logros.test.ts` | Migración 8: rango según reseñas y cuánto falta para el próximo. |
@@ -73,6 +77,8 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 94 pruebas en 10 archivo
 
 | Migración | Método y ruta | Necesita | Casos a probar | Prueba automática |
 |---|---|---|---|---|
+| 12 | `POST /api/inscripcion` `{ accion: agregar \| quitar \| elegir \| no_elegir, dictado_id }`, `{ accion: quitar_materia, materia_id }`, `{ accion: traer, dictados, elegidos }` | Sesión | Sin sesión → 401. Acción o curso inválido → 400. Agregar dos veces → 200. Curso inexistente → 404. Más de 80 → 400. Elegir otro curso de la misma materia desmarca el anterior. Traer suma la lista sin repetir y solo elige cursos de la lista. | `tests/inscripcion.test.ts` |
+| 12 | `POST /api/admin/importar` (vista previa con links o archivo) y `{ accion: aplicar, horarios: [{ curso_id, materia_id, dictado_id, bloques }] }` | Admin + CSRF | La vista previa trae `previa.horarios` (solo los nuevos o distintos) y `horariosIguales`. Guardar reemplaza el horario de cada curso marcado; bloques inválidos → error en `errores`. Volver a leer → 0 horarios distintos. | `tests/horarios.test.ts` (lectura y comparación) |
 | 11 | `POST /api/admin/dictados` `{ action: remove_profesor, dictado_id, profesor_id }` y después `assign_profesor` | Admin + CSRF | Sacar al profe del curso deja "Antes: …" en Materias y cursos (el período se cierra). Volver a asignarlo abre otro. Se comprueba en la base con `migracion-11.sql`. | `supabase/pruebas/migracion-11.sql` |
 | 10 | `POST /api/en-linea` `{ visitante }` | Nada | Visitante inválido → 400. Válido → 200 `{ n, texto, corto }`. Con menos de 5 personas, `n`, `texto` y `corto` vienen en `null`. Muchos pedidos de una IP (más de 300 por minuto) → 429. | `tests/en-linea.test.ts` |
 | 9 | `GET /api/links/mio` | Sesión | Con sesión → `{ codigo }` (siempre el mismo). Sin sesión → `{ codigo: null }`. | Falta |
@@ -103,5 +109,8 @@ Lo que no se puede probar con Postman porque es de pantalla:
 - Franja verde al abrir un link con `?de=` en otro navegador; que la dirección quede sin `?de=`.
 - "Hay X estudiantes en línea" con 5 pestañas o más (en navegadores distintos o en incógnito).
 - Cuenta bloqueada: aviso en Escribir una reseña y en Compartir mi experiencia.
+- Importar las planillas de Sistemas y Básicas: ver los horarios en la vista previa, guardarlos y ver el panel "Horario" en cada curso.
+- "Lo estoy pensando" en un curso, sin sesión (queda en el navegador) y con sesión; al iniciar sesión, lo del navegador pasa a la cuenta.
+- Mi inscripción: elegir uno por materia, "Tu combinación", aviso de horarios que se pisan, Sacar, Quitar materia, "Mandársela a un amigo" y abrir ese link en otro navegador ("La inscripción que te pasaron" y "Sumar a mi lista").
 - Sacar un profe de un curso en Admin > Materias y cursos y ver "Antes: nombre (período)" debajo.
 - Cada página a 390 px y en modo noche.

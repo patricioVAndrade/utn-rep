@@ -1,6 +1,7 @@
 // Compara lo que dice la planilla con lo que hay en la base y arma la
 // vista previa de "Importar cuatrimestre". No escribe nada.
-import { limpiar, sinAcentos, type Asignacion, type Turno } from './planilla';
+import { limpiar, sinAcentos, type Asignacion, type HorarioLeido, type Turno } from './planilla';
+import { bloquesDeBase, mismoHorario, textoBloques, type Bloque } from './horarios';
 
 export type BaseMateria = { id: number; nombre: string; nivel: number; es_electiva?: boolean | null };
 export type BaseCurso = { id: number; identificador: string; turno: string | null; anio_carrera: number | null };
@@ -12,6 +13,22 @@ export type Base = {
   cursos: BaseCurso[];
   profesores: BaseProfesor[];
   dictados: BaseDictado[];
+  /** Horarios cargados (migración 12); vacío si todavía no existe la tabla */
+  horarios?: { dictado_id: number; cuatri: number | null; dia: number; desde: string; hasta: string }[];
+};
+
+/** Un curso cuyo horario es nuevo o cambió (migración 12). */
+export type CambioHorario = {
+  clave: string;
+  curso: string;
+  curso_id: number | null;
+  materia: string;
+  materia_id: number;
+  dictado_id: number | null;
+  antes: string;
+  ahora: string;
+  bloques: Bloque[];
+  hoja: string;
 };
 
 export type Entra = {
@@ -46,6 +63,8 @@ export type Previa = {
   cambiosDeEquipo: Cambio[];
   profesoresNuevos: string[];
   sinCambios: number;
+  horarios: CambioHorario[];
+  horariosIguales: number;
   leidos: { cursos: number; materias: number };
 };
 
@@ -130,8 +149,8 @@ export function buscarProfesor(nombre: string, indice: Indice[]): Entra {
   return { nombre, profesor_id: null, sugerido };
 }
 
-export function compararConBase(asignaciones: Asignacion[], base: Base): Previa {
-  const previa: Previa = { cursosNuevos: [], turnoDistinto: [], materiasSinCoincidencia: [], dictadosNuevos: [], cambiosDeEquipo: [], profesoresNuevos: [], sinCambios: 0, leidos: { cursos: 0, materias: 0 } };
+export function compararConBase(asignaciones: Asignacion[], base: Base, horarios: HorarioLeido[] = []): Previa {
+  const previa: Previa = { cursosNuevos: [], turnoDistinto: [], materiasSinCoincidencia: [], dictadosNuevos: [], cambiosDeEquipo: [], profesoresNuevos: [], sinCambios: 0, horarios: [], horariosIguales: 0, leidos: { cursos: 0, materias: 0 } };
   const cursoPorIdent = new Map(base.cursos.map((c) => [c.identificador.toUpperCase(), c]));
   const profPorId = new Map(base.profesores.map((p) => [p.id, p]));
   const dictadoPor = new Map(base.dictados.map((d) => [`${d.curso_id}-${d.materia_id}`, d]));
@@ -212,5 +231,42 @@ export function compararConBase(asignaciones: Asignacion[], base: Base): Previa 
   previa.materiasSinCoincidencia = [...sinMateria.values()].map((s) => ({ nombre: s.nombre, cursos: [...s.cursos].sort(), sugerencias: s.sugerencias }));
   previa.profesoresNuevos = [...nuevosProf.values()].sort((a, b) => a.localeCompare(b, 'es'));
   previa.leidos = { cursos: cursosVistos.size, materias: elegidas.size };
+  compararHorarios(horarios, base, previa);
   return previa;
+}
+
+/** Horarios de la planilla contra los de la base: solo los nuevos o distintos. */
+function compararHorarios(horarios: HorarioLeido[], base: Base, previa: Previa) {
+  const cursoPorIdent = new Map(base.cursos.map((c) => [c.identificador.toUpperCase(), c]));
+  const dictadoPor = new Map(base.dictados.map((d) => [`${d.curso_id}-${d.materia_id}`, d]));
+  const deBase = new Map<number, Base['horarios']>();
+  (base.horarios || []).forEach((h) => deBase.set(h.dictado_id, [...(deBase.get(h.dictado_id) || []), h]));
+  // Si una materia está en las dos planillas, gana la de Sistemas
+  const elegidos = new Map<string, { h: HorarioLeido; materia: BaseMateria }>();
+  for (const h of horarios) {
+    const { materia } = buscarMateria(h.materia, base.materias, parseInt(h.curso, 10) || 0);
+    if (!materia) continue;
+    const k = `${h.curso}|${materia.id}`;
+    const prev = elegidos.get(k);
+    if (!prev || (prev.h.formato === 'basicas' && h.formato === 'sistemas')) elegidos.set(k, { h, materia });
+  }
+  for (const [k, { h, materia }] of elegidos) {
+    const curso = cursoPorIdent.get(h.curso);
+    const dictado = curso ? dictadoPor.get(`${curso.id}-${materia.id}`) : undefined;
+    const antes = dictado ? bloquesDeBase(deBase.get(dictado.id) || []) : [];
+    if (antes.length && mismoHorario(antes, h.bloques)) { previa.horariosIguales++; continue; }
+    previa.horarios.push({
+      clave: k,
+      curso: h.curso,
+      curso_id: curso?.id ?? null,
+      materia: materia.nombre,
+      materia_id: materia.id,
+      dictado_id: dictado?.id ?? null,
+      antes: textoBloques(antes),
+      ahora: textoBloques(h.bloques),
+      bloques: h.bloques,
+      hoja: h.hoja,
+    });
+  }
+  previa.horarios.sort((a, b) => a.curso.localeCompare(b.curso, 'es', { numeric: true }) || a.materia.localeCompare(b.materia, 'es'));
 }

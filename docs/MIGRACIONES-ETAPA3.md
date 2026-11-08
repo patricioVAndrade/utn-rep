@@ -116,9 +116,13 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108100000_profesores_historial.sql`. Vuelta atrás: `supabase/rollback/20261108100000_profesores_historial.sql`. Prueba con datos: `supabase/pruebas/migracion-11.sql`.
 - **Verificación esperada:** `columna_rol = 0`, `tabla = 1`, `trigger = 1`, `sin_periodo = 0`, `publico_cambia = false`.
 
-### 12. Horarios de cada curso y superposiciones (F29) — **la última**
+### 12. Horarios de cada curso y Mi inscripción (F29) — **lista para correr en prueba, código subido**
 
-- Tabla `horarios` (curso, día, hora de inicio y fin), cargada desde la planilla con el importador. "Lo estoy pensando" en cada curso y la pantalla que avisa si dos cursos se pisan. Como dijiste, va al final.
+- Tabla `horarios`: los bloques de clase de cada curso de una materia (día, desde, hasta y, si la planilla lo dice, el cuatrimestre). Los carga el importador desde la grilla de las planillas: en las de Sistemas entiende las siglas (ADSI, IOP, SIM, ICS, TPA…), las celdas combinadas, los dos cuatrimestres y "Electiva 1 GMP / GIP"; en la de Básicas lee el "08:00 a 09:30" de cada día. Probado con las planillas reales de 4.º año y de Básicas: solo quedó sin reconocer "DAO" en 4K3 (en esa pestaña la materia se llama "Desarrollo de Aplicaciones", sin "con Objetos"), y lo avisa. Los lee cualquiera; solo los cambia el admin.
+- Tabla `inscripcion_cursos`: "Lo estoy pensando". Cada persona guarda los cursos que está pensando y marca uno elegido por materia. Nadie más la ve, salvo que la comparta con el link. La materia la completa la base y hay un tope de 80. Sin sesión la lista queda en el navegador y al iniciar sesión pasa a la cuenta.
+- El aviso de que dos elegidos se pisan lo calcula el sitio con los horarios (`src/lib/horarios.ts`).
+- **Archivo:** `supabase/migrations/20261108110000_horarios_inscripcion.sql`. Vuelta atrás: `supabase/rollback/20261108110000_horarios_inscripcion.sql`. Prueba con datos: `supabase/pruebas/migracion-12.sql`.
+- **Verificación esperada:** `tablas = 2`, `politicas = 5`, `publico_lee_horarios = true`, `publico_cambia_horarios = false`, `anon_lee_inscripcion = false`.
 
 ---
 

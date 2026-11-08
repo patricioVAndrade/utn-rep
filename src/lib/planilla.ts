@@ -5,7 +5,8 @@
 //    "Materia | Docentes" al costado de la grilla de horarios.
 //  - Básicas: una pestaña por materia (Álgebra Anual, Física 1...) con una
 //    fila por curso de todas las carreras. De esas solo se leen las de K.
-import type { Hoja } from './xlsx';
+import { rellenarCombinadas, type Hoja } from './xlsx';
+import { diaDe, hora, juntarBloques, materiaDeCelda, type Bloque } from './horarios';
 
 export type Turno = 'MAÑANA' | 'TARDE' | 'NOCHE';
 
@@ -18,8 +19,18 @@ export type Asignacion = {
   hoja: string;
 };
 
+/** Horario de una materia en un curso (migración 12). */
+export type HorarioLeido = {
+  curso: string;
+  materia: string; // como está en la tabla de materias de la pestaña
+  bloques: Bloque[];
+  formato: 'sistemas' | 'basicas';
+  hoja: string;
+};
+
 export type LecturaPlanilla = {
   asignaciones: Asignacion[];
+  horarios: HorarioLeido[];
   /** Pestañas o cursos que no se leyeron, con el motivo. */
   omitidas: { hoja: string; motivo: string }[];
 };
@@ -62,6 +73,71 @@ export function separarDocentesBasicas(celda: string): string[] {
     .filter((l) => l && !ES_HORA.test(l) && !/^(teoric[oa]|practic[oa]|teoria|practica|aula|virtual|laboratorio)\b/i.test(sinAcentos(l)));
 }
 
+const CUATRI_DE = (texto: string): 1 | 2 | null => {
+  const t = clave(texto);
+  if (!/cuatrimestre/.test(t)) return null;
+  if (/\b(1|1er|1ro|primer|primero)\b/.test(t)) return 1;
+  if (/\b(2|2do|segundo)\b/.test(t)) return 2;
+  return null;
+};
+
+/** Guarda los bloques de cada materia, ya juntos, y avisa lo que no reconoció. */
+function guardarHorarios(curso: string, porMateria: Map<string, Bloque[]>, formato: HorarioLeido['formato'], hoja: string, out: LecturaPlanilla) {
+  for (const [materia, bloques] of porMateria) {
+    if (bloques.length) out.horarios.push({ curso, materia, bloques: juntarBloques(bloques), formato, hoja });
+  }
+}
+
+/**
+ * Grilla de horarios de una pestaña de Sistemas: uno o más bloques
+ * ("1er Cuatrimestre - Turno Tarde"), cada uno con su fila de días y una
+ * fila por módulo (desde, hasta y la materia de cada día, con el nombre
+ * completo o la sigla). Los recreos son filas vacías.
+ */
+function leerGrillaSistemas(h: Hoja, curso: string, materias: string[], etiquetas: Map<string, string[]>, out: LecturaPlanilla) {
+  const g = rellenarCombinadas(h);
+  const porMateria = new Map<string, Bloque[]>();
+  const raras = new Set<string>();
+  let cuatri: 1 | 2 | null = null;
+  let dias: Map<number, number> | null = null;
+  for (const fila of g) {
+    if (!fila) continue;
+    const titulo = fila.find((c) => CUATRI_DE(c || '') !== null);
+    if (titulo) { cuatri = CUATRI_DE(titulo); dias = null; continue; }
+    const enc = new Map<number, number>();
+    fila.forEach((c, i) => { const d = diaDe(c || ''); if (d) enc.set(i, d); });
+    if (enc.size >= 3) { dias = enc; continue; }
+    if (!dias) continue;
+    const primera = Math.min(...dias.keys());
+    const horas = fila.slice(0, primera).map((c) => hora(c)).filter((x): x is number => x !== null);
+    if (horas.length < 2 || horas[1] <= horas[0]) continue;
+    const [desde, hasta] = horas;
+    const vistas = new Set<string>();
+    for (const [col, dia] of dias) {
+      const celda = limpiar(fila[col] || '');
+      if (!celda) continue;
+      let nombres: string[] = [];
+      // "Electiva 1" (la de la etiqueta) o "Electiva 1 GMP / GIP" (las que dice)
+      const elec = /^electiva\s*(\d)\s*(.*)$/i.exec(celda);
+      const partes = elec ? elec[2].split(/\s*[/,|]\s*/).filter(Boolean) : [celda];
+      if (elec && !partes.length) nombres = etiquetas.get(`electiva ${elec[1]}`) || [];
+      else {
+        nombres = partes.map((p) => materiaDeCelda(p, materias)).filter((m): m is string => !!m);
+        if (nombres.length < partes.length) nombres = [];
+      }
+      if (!nombres.length) { raras.add(celda); continue; }
+      for (const m of nombres) {
+        const k = `${m}|${dia}`;
+        if (vistas.has(k)) continue;
+        vistas.add(k);
+        porMateria.set(m, [...(porMateria.get(m) || []), { cuatri, dia, desde, hasta }]);
+      }
+    }
+  }
+  guardarHorarios(curso, porMateria, 'sistemas', h.nombre, out);
+  if (raras.size) out.omitidas.push({ hoja: h.nombre, motivo: `Horarios sin materia reconocida: ${[...raras].map((r) => `"${r}"`).join(', ')}` });
+}
+
 function leerHojaSistemas(h: Hoja, out: LecturaPlanilla): boolean {
   // Buscamos la fila de encabezado con "Materia" y "Docentes"
   for (let f = 0; f < h.filas.length; f++) {
@@ -79,6 +155,8 @@ function leerHojaSistemas(h: Hoja, out: LecturaPlanilla): boolean {
     for (const r of h.filas) for (const c of r || []) if (!turno && /turno/i.test(c)) turno = turnoDe(c);
 
     const vistas = new Set<string>();
+    const materias: string[] = [];
+    const etiquetas = new Map<string, string[]>();
     for (let r = f + 1; r < h.filas.length; r++) {
       const materia = limpiar(h.filas[r]?.[colMat] || '');
       if (!materia || ES_HORA.test(materia) || /^(materia|asignatura)s?$/i.test(materia)) continue;
@@ -86,7 +164,13 @@ function leerHojaSistemas(h: Hoja, out: LecturaPlanilla): boolean {
       if (vistas.has(k)) continue;
       vistas.add(k);
       out.asignaciones.push({ curso, turno, materia, docentes: separarDocentesSistemas(h.filas[r]?.[colDoc] || ''), formato: 'sistemas', hoja: h.nombre });
+      // "Electiva 1" al costado de los docentes: esa materia va en ese lugar de la grilla
+      const etiqueta = limpiar(h.filas[r]?.[colDoc + 1] || '');
+      const m = /^electiva\s*(\d)/i.exec(etiqueta);
+      if (m) etiquetas.set(`electiva ${m[1]}`, [...(etiquetas.get(`electiva ${m[1]}`) || []), materia]);
+      materias.push(materia);
     }
+    leerGrillaSistemas(h, curso, materias, etiquetas, out);
     return true;
   }
   return false;
@@ -101,9 +185,12 @@ function leerHojaBasicas(h: Hoja, out: LecturaPlanilla): boolean {
   const materia = materiaDePestana(h.nombre);
   let encontrada = false;
   let colCurso = -1;
+  let filaDias = -1;
   let dias: number[] = [];
   let turnoBloque: Turno | null = null;
+  let cuatri: 1 | 2 | null = null;
   const porCurso = new Map<string, Asignacion>();
+  const bloquesDe = new Map<string, Bloque[]>();
   const otrosK = new Set<string>();
 
   for (const fila of h.filas) {
@@ -113,20 +200,33 @@ function leerHojaBasicas(h: Hoja, out: LecturaPlanilla): boolean {
       encontrada = true;
       colCurso = iCurso;
       dias = fila.map((c, i) => (/^(lunes|martes|miercoles|jueves|viernes|sabado)$/.test(clave(c)) ? i : -1)).filter((i) => i >= 0);
+      filaDias = h.filas.indexOf(fila);
       continue;
     }
     // Algunas pestañas separan bloques por turno con un título
     const titulo = fila.filter(Boolean);
     if (titulo.length === 1 && /turno/i.test(titulo[0])) turnoBloque = turnoDe(titulo[0]);
+    if (titulo.length === 1 && CUATRI_DE(titulo[0])) cuatri = CUATRI_DE(titulo[0]);
     if (colCurso < 0) continue;
     const celdaCurso = limpiar(fila[colCurso] || '');
     if (!celdaCurso) continue;
     const cursos = celdaCurso.split(/[|/,;\s]+/).map((c) => c.trim().toUpperCase()).filter(Boolean);
     const docentes = new Set<string>();
     for (const i of dias) for (const d of separarDocentesBasicas(fila[i] || '')) docentes.add(d);
+    const bloques: Bloque[] = [];
+    for (const i of dias) {
+      const dia = diaDe(h.filas[filaDias]?.[i] || '');
+      if (!dia) continue;
+      for (const m of (fila[i] || '').matchAll(/(\d{1,2}[:.]\d{2})\s*a\s*(\d{1,2}[:.]\d{2})/g)) {
+        const desde = hora(m[1]);
+        const hasta = hora(m[2]);
+        if (desde !== null && hasta !== null && hasta > desde) bloques.push({ cuatri, dia, desde, hasta });
+      }
+    }
     for (const c of cursos) {
       if (!/^\d+K\d+/.test(c)) continue;
       if (!CURSO_K.test(c)) { otrosK.add(c); continue; }
+      if (bloques.length) bloquesDe.set(c, [...(bloquesDe.get(c) || []), ...bloques]);
       const prev = porCurso.get(c);
       if (prev) docentes.forEach((d) => { if (!prev.docentes.includes(d)) prev.docentes.push(d); });
       else porCurso.set(c, { curso: c, turno: turnoBloque, materia, docentes: [...docentes], formato: 'basicas', hoja: h.nombre });
@@ -134,12 +234,13 @@ function leerHojaBasicas(h: Hoja, out: LecturaPlanilla): boolean {
   }
   if (!encontrada) return false;
   out.asignaciones.push(...porCurso.values());
+  for (const [c, bloques] of bloquesDe) guardarHorarios(c, new Map([[materia, bloques]]), 'basicas', h.nombre, out);
   if (otrosK.size) out.omitidas.push({ hoja: h.nombre, motivo: `Subgrupos que no se leen: ${[...otrosK].join(', ')}` });
   return true;
 }
 
 export function leerPlanilla(hojas: Hoja[]): LecturaPlanilla {
-  const out: LecturaPlanilla = { asignaciones: [], omitidas: [] };
+  const out: LecturaPlanilla = { asignaciones: [], horarios: [], omitidas: [] };
   for (const h of hojas) {
     if (leerHojaSistemas(h, out)) continue;
     if (leerHojaBasicas(h, out)) continue;
@@ -177,7 +278,7 @@ export function partirCsv(texto: string): string[][] {
  * Los docentes van separados por " | " o por ";" dentro de la celda.
  */
 export function leerCsv(texto: string): LecturaPlanilla {
-  const out: LecturaPlanilla = { asignaciones: [], omitidas: [] };
+  const out: LecturaPlanilla = { asignaciones: [], horarios: [], omitidas: [] };
   const filas = partirCsv(texto.replace(/^﻿/, ''));
   const enc = (filas[0] || []).map(clave);
   const iC = enc.findIndex((c) => c === 'curso');

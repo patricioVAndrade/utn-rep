@@ -26,6 +26,7 @@ const sinLeer = user ? await avisosSinLeer(createSupabaseServerClient({ headers:
         <Icon name="bell" /><span class="hide-sm">Avisos</span>{sinLeer > 0 && <span class="cnt" aria-label={`${sinLeer} sin leer`}>{sinLeer > 99 ? '99+' : sinLeer}</span>}
       </a>
       <a class="hide-sm" href="/mis-resenas">Mis reseñas</a>
+      <a class="hide-sm" href="/mi-inscripcion">Mi inscripción</a>
       {userIsAdmin && <a class="hide-sm" href="/admin">Panel de admin</a>}
       <form method="post" action="/api/auth/logout">
         <button type="submit" class="linklike" data-logout>Cerrar sesión</button>

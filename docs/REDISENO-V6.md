@@ -74,7 +74,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Reseña publicada | Hecho | `/resena-publicada?curso=ID`. Con el cartel de rango ("Subiste a…") y los logros, y los nuevos de los últimos 15 minutos. |
 | Mis reseñas | Parcial | `/mis-resenas` con Reseñas, Finales contados y Borradores, sin turno. "Te faltan reseñar" sale de los años que elegiste en el inicio (hasta que exista Mi inscripción). Sin rango ni logros. |
 | Mi cuenta | Casi completa | `/mi-cuenta` (tocando tu nombre arriba), como la V6: nombre a mostrar (cambia también en lo ya publicado), foto, mostrar u ocultar la ficha, años de cursada, "¿Cómo te fue?" y borrar la cuenta (dejando lo publicado como anónimo o borrándolo). Todo se guarda en la cuenta (migración 5). Materias que seguís: hecho (migración 6). Rango y logros: hecho (migración 8). |
-| Mi inscripción (F29) | Falta | Espera tu voto |
+| Mi inscripción (F29) | Hecho (migración 12) | `/mi-inscripcion` como la V6: cursos por materia con turno, nota, reseñas y % de promoción, uno elegido por materia, "Tu combinación" y nota promedio. Suma el aviso de horarios que se pisan y el horario de cada tarjeta. "Lo estoy pensando" en cada curso y panel "Horario" en el curso. Sin la etiqueta "idea F29" ni el recuadro de F32 (el recordatorio todavía no existe). El "Mi elegido" va como texto con tilde, sin recuadro de color. |
 | Ingresar | Hecho | Ventana de ingreso con mail, Google y GitHub |
 | ¿Cómo funciona? | Hecho | `/sobre` |
 | Términos | Hecho | `/terminos`, con el texto que aprobaste (mail, anonimato y qué datos se guardan). |
@@ -92,7 +92,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 ## Ideas votadas
 
 - F30, F36 y F37: descartadas.
-- F33, F34: etapa 3. F29 (con horarios): lo último.
+- F33, F34: etapa 3. F29 (con horarios): hecho con la migración 12.
 - F35, **Reseña destacada** (sin "del mes", como pediste): hecha. Es la más votada de todo el sitio, desde 3 votos; si otra la pasa, toma su lugar. Columna del inicio.
 - F12, respuestas: solo responde el moderador. Se junta con las notas de moderación (F10) en "Respuesta del moderador" (etapa 3).
 - Logros L8 a L19: esperan tu voto.

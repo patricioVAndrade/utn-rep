@@ -126,3 +126,25 @@ export const profesores_historial = [
   ...dictado_profesores.map((dp, i) => ({ id: i + 1, dictado_id: dp.dictado_id, profesor_id: dp.profesor_id, desde_anio: 2026, desde_cuatri: null, hasta_anio: null, hasta_cuatri: null })),
   { id: 9999, dictado_id: 1, profesor_id: 60, desde_anio: 2025, desde_cuatri: 1, hasta_anio: 2026, hasta_cuatri: 1 },
 ];
+
+// Horarios (migración 12): dos días por curso, según el turno del curso
+const INICIO = { MAÑANA: '08:00', TARDE: '13:15', NOCHE: '18:15' };
+const sumar = (h, min) => { const [a, b] = h.split(':').map(Number); const t = a * 60 + b + min; return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}:00`; };
+export const horarios = [];
+dictados.forEach((d) => {
+  const c = cursos.find((x) => x.id === d.curso_id);
+  const ini = INICIO[c?.turno] || '08:00';
+  const corrido = (d.materia_id % 2) * 145;
+  [1 + (d.materia_id % 5), 1 + ((d.materia_id + 2) % 5)].forEach((dia) => {
+    horarios.push({ id: horarios.length + 1, dictado_id: d.id, cuatri: null, dia, desde: sumar(ini, corrido), hasta: sumar(ini, corrido + 145) });
+  });
+});
+
+// Mi inscripción de la cuenta de prueba: tres materias de 2.º año
+export const inscripcion_cursos = [];
+['Paradigmas de Programación', 'Sistemas Operativos', 'Análisis Matemático II'].forEach((nombre, i) => {
+  const m = materias.find((x) => x.nombre === nombre);
+  dictados.filter((d) => d.materia_id === m.id).slice(0, 3).forEach((d, j) => {
+    inscripcion_cursos.push({ user_id: 'u-demo', dictado_id: d.id, materia_id: m.id, elegido: j === (i === 2 ? 1 : 0), created_at: `2026-11-0${i + 1}T12:00:00Z` });
+  });
+});

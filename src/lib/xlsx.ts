@@ -7,6 +7,8 @@ export type Hoja = {
   nombre: string;
   /** filas[fila][columna], empezando en 0. Las celdas vacías quedan como ''. */
   filas: string[][];
+  /** Celdas combinadas ("E6:E7"). El valor está solo en la primera. */
+  combinadas?: string[];
 };
 
 const MAX_ARCHIVO = 20 * 1024 * 1024;
@@ -109,7 +111,32 @@ export function leerXlsx(buf: Uint8Array): Hoja[] {
       while (fila.length <= col) fila.push('');
       fila[col] = texto;
     }
-    hojas.push({ nombre, filas });
+    const combinadas = [...xml.matchAll(/<mergeCell\b[^>]*ref="([A-Z]+\d+:[A-Z]+\d+)"/g)].map((x) => x[1]).slice(0, 5000);
+    hojas.push({ nombre, filas, combinadas });
   }
   return hojas;
+}
+
+/**
+ * Copia de las filas con cada celda combinada rellena con el valor de la
+ * primera (así una materia que ocupa dos módulos aparece en los dos).
+ */
+export function rellenarCombinadas(h: Hoja): string[][] {
+  const g = h.filas.map((f) => [...(f || [])]);
+  for (const ref of h.combinadas || []) {
+    const [a, b] = ref.split(':');
+    const [f1, c1] = posicion(a);
+    const [f2, c2] = posicion(b);
+    if (f1 < 0 || f2 < f1 || c2 < c1 || f2 - f1 > 200 || c2 - c1 > 60) continue;
+    const valor = g[f1]?.[c1] || '';
+    if (!valor) continue;
+    for (let f = f1; f <= f2; f++) {
+      while (g.length <= f) g.push([]);
+      for (let c = c1; c <= c2; c++) {
+        while (g[f].length <= c) g[f].push('');
+        if (!g[f][c]) g[f][c] = valor;
+      }
+    }
+  }
+  return g;
 }

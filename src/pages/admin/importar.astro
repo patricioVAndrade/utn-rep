@@ -27,7 +27,7 @@ const csrfToken = tokenCsrf(Astro.cookies);
         <Icon name="info" />
         <div>
           <b>Qué se lee</b>
-          Solo los cursos de Sistemas (los que tienen K, como 4K1). En la planilla de cada año se lee la tabla "Materia / Docentes" de cada pestaña. En la de básicas, cada pestaña es una materia y se leen solo las filas de cursos K. Si una materia aparece en las dos, vale la de Sistemas. Las planillas tienen que estar compartidas como "Cualquier persona con el vínculo".
+          Solo los cursos de Sistemas (los que tienen K, como 4K1). En la planilla de cada año se lee la tabla "Materia / Docentes" y la grilla de horarios de cada pestaña (entiende las siglas, como ADSI o IOP). En la de básicas, cada pestaña es una materia y se leen solo las filas de cursos K, con los horarios de cada día. Si una materia aparece en las dos, vale la de Sistemas. Las planillas tienen que estar compartidas como "Cualquier persona con el vínculo".
         </div>
       </div>
 
@@ -123,7 +123,8 @@ const csrfToken = tokenCsrf(Astro.cookies);
   function mostrar(data: any) {
     const p = data.previa;
     const materias: { id: number; nombre: string; nivel: number }[] = data.materias || [];
-    const total = p.cursosNuevos.length + p.turnoDistinto.length + p.dictadosNuevos.length + p.cambiosDeEquipo.length;
+    const horarios: any[] = p.horarios || [];
+    const total = p.cursosNuevos.length + p.turnoDistinto.length + p.dictadosNuevos.length + p.cambiosDeEquipo.length + horarios.length;
 
     // Resumen como en la V6
     const resumen = el('div', { class: 'diff' });
@@ -139,6 +140,7 @@ const csrfToken = tokenCsrf(Astro.cookies);
     }
     if (p.turnoDistinto.length) fila('chg', `~ ${p.turnoDistinto.length} turno${p.turnoDistinto.length !== 1 ? 's' : ''} distinto${p.turnoDistinto.length !== 1 ? 's' : ''}`, lista(p.turnoDistinto.map((t: any) => `${t.identificador}: ${TURNO_TXT[t.antes] || t.antes || 'sin turno'} → ${TURNO_TXT[t.ahora]}`)));
     if (p.materiasSinCoincidencia.length) fila('del', `! ${p.materiasSinCoincidencia.length} materia${p.materiasSinCoincidencia.length !== 1 ? 's' : ''} que no encontré`, lista(p.materiasSinCoincidencia.map((m: any) => m.nombre)));
+    if (horarios.length) fila('chg', `~ ${horarios.length} horario${horarios.length !== 1 ? 's' : ''} nuevo${horarios.length !== 1 ? 's' : ''} o distinto${horarios.length !== 1 ? 's' : ''}`, lista(horarios.map((h: any) => `${h.materia} ${h.curso}`), 3));
     fila('', `= ${p.sinCambios} sin cambios`, `Leí ${p.leidos.cursos} cursos y ${p.leidos.materias} materias en total.`);
     if (data.omitidas?.length) fila('', `${data.omitidas.length} pestaña${data.omitidas.length !== 1 ? 's' : ''} sin leer`, lista(data.omitidas.map((o: any) => `${o.hoja} (${o.motivo.toLowerCase()})`), 3));
 
@@ -243,6 +245,21 @@ const csrfToken = tokenCsrf(Astro.cookies);
     if (p.cambiosDeEquipo.length) plegable('Cursos que cambian de equipo', 'Las reseñas que ya tiene cada curso se quedan. Guardar desde qué año está cada profesor, para marcar con qué equipo se escribieron, llega con la etapa 3.', p.cambiosDeEquipo, false);
     if (p.dictadosNuevos.length) plegable('Materias en cursos nuevos', null, p.dictadosNuevos, true);
 
+    // Horarios (migración 12): se reemplaza el horario de cada curso marcado
+    const horariosSel: { cb: HTMLInputElement; h: any }[] = [];
+    if (horarios.length) {
+      const cuerpo = el('div', { class: 'imp-det' }, el('p', { class: 'sub' }, `Sirven para avisar en Mi inscripción si dos cursos se pisan. ${p.horariosIguales ? `Otros ${p.horariosIguales} ya están iguales en la base.` : ''}`));
+      for (const h of horarios) {
+        const cb = check();
+        horariosSel.push({ cb, h });
+        cuerpo.append(el('label', { class: 'imp-box' },
+          el('div', { class: 'imp-tit' }, cb, ' ', el('b', {}, `${h.materia}, ${h.curso}`), el('span', { class: 'sub' }, ` · pestaña ${h.hoja}`)),
+          h.antes ? el('div', { class: 'imp-line del' }, el('span', { class: 'imp-k' }, 'Antes'), el('span', {}, h.antes)) : null,
+          el('div', { class: 'imp-line add' }, el('span', { class: 'imp-k' }, h.antes ? 'Ahora' : 'Nuevo'), el('span', {}, h.ahora))));
+      }
+      det.append(el('details', { class: 'imp-sec', open: horarios.length <= 8 }, el('summary', {}, el('b', {}, `Horarios (${horarios.length})`)), cuerpo));
+    }
+
     const guardar = el('button', { type: 'button', class: 'btn approve' }, 'Guardar cambios') as HTMLButtonElement;
     const cancelar = el('button', { type: 'button', class: 'btn quiet' }, 'Cancelar') as HTMLButtonElement;
     cancelar.addEventListener('click', () => { previa.replaceChildren(); estado.replaceChildren(); });
@@ -268,15 +285,16 @@ const csrfToken = tokenCsrf(Astro.cookies);
         cursosNuevos: cursosSel.filter((c) => c.cb.checked).map((c) => ({ identificador: c.ident, turno: c.turno.value })),
         turnos: turnosSel.filter((t) => t.cb.checked).map((t) => ({ curso_id: t.curso_id, turno: t.turno })),
         dictados,
+        horarios: horariosSel.filter((x) => x.cb.checked).map(({ h }) => ({ curso_id: h.curso_id, curso: h.curso, materia_id: h.materia_id, dictado_id: h.dictado_id, bloques: h.bloques })),
       };
-      if (!body.cursosNuevos.length && !body.turnos.length && !dictados.length) return aviso('bad', 'No dejaste nada marcado para guardar.');
+      if (!body.cursosNuevos.length && !body.turnos.length && !dictados.length && !body.horarios.length) return aviso('bad', 'No dejaste nada marcado para guardar.');
       const sinTurno = body.cursosNuevos.filter((c) => !c.turno).map((c) => c.identificador);
       if (sinTurno.length) return aviso('bad', `Elegí el turno de ${sinTurno.join(', ')} (la planilla de básicas no lo dice), o desmarcalo.`);
       guardar.disabled = true;
       aviso('', 'Guardando…');
       try {
         const r = await enviar(JSON.stringify(body), true);
-        const hecho = [r.cursos && `${r.cursos} cursos`, r.profesores && `${r.profesores} profesores nuevos`, r.dictados && `${r.dictados} materias en cursos`, r.asignados && `${r.asignados} profesores sumados`, r.quitados && `${r.quitados} sacados`, r.turnos && `${r.turnos} turnos`].filter(Boolean).join(', ');
+        const hecho = [r.cursos && `${r.cursos} cursos`, r.profesores && `${r.profesores} profesores nuevos`, r.dictados && `${r.dictados} materias en cursos`, r.asignados && `${r.asignados} profesores sumados`, r.quitados && `${r.quitados} sacados`, r.turnos && `${r.turnos} turnos`, r.horarios && `${r.horarios} horarios`].filter(Boolean).join(', ');
         aviso(r.errores?.length ? 'bad' : 'ok', `Listo: ${hecho || 'nada para guardar'}.${r.errores?.length ? ` Hubo ${r.errores.length} problema(s): ${r.errores.slice(0, 3).join(' ')}` : ''} Volvé a leer para confirmar que no queda nada.`);
         previa.replaceChildren();
       } catch (e: any) {

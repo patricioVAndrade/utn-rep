@@ -5,6 +5,7 @@ import { json } from '../../../lib/http';
 import { leerXlsx } from '../../../lib/xlsx';
 import { idDePlanilla, leerCsv, leerPlanilla, limpiar, type LecturaPlanilla } from '../../../lib/planilla';
 import { compararConBase, type Base } from '../../../lib/importar';
+import { bloquesValidos, horaBase } from '../../../lib/horarios';
 
 const TURNOS = new Set(['MAÑANA', 'TARDE', 'NOCHE']);
 const CURSO_K = /^\d+K\d+$/;
@@ -31,16 +32,19 @@ async function traerBase(): Promise<Base> {
   ]);
   const error = e1 || e2 || e3 || e4;
   if (error) throw new Error('No pude leer la base.');
+  // Sin la migración 12 la tabla no existe: se compara sin horarios
+  const { data: horarios } = await supabaseAdmin.from('horarios').select('dictado_id, cuatri, dia, desde, hasta').range(0, 49999);
   return {
     materias: materias || [],
     cursos: cursos || [],
     profesores: profesores || [],
     dictados: (dictados || []).map((d: any) => ({ id: d.id, materia_id: d.materia_id, curso_id: d.curso_id, profesores: (d.dictado_profesores || []).map((dp: any) => dp.profesor_id) })),
+    horarios: horarios || [],
   };
 }
 
 function juntar(lecturas: LecturaPlanilla[]): LecturaPlanilla {
-  return { asignaciones: lecturas.flatMap((l) => l.asignaciones), omitidas: lecturas.flatMap((l) => l.omitidas) };
+  return { asignaciones: lecturas.flatMap((l) => l.asignaciones), horarios: lecturas.flatMap((l) => l.horarios), omitidas: lecturas.flatMap((l) => l.omitidas) };
 }
 
 /** Vista previa: links de Google Sheets (JSON) o archivos .xlsx / .csv (formulario). */
@@ -75,7 +79,7 @@ async function previa(request: Request) {
   const lectura = juntar(lecturas);
   if (!lectura.asignaciones.length) return json({ error: 'No encontré cursos de Sistemas (con K) en lo que mandaste.', omitidas: lectura.omitidas }, 400);
   const base = await traerBase();
-  return json({ previa: compararConBase(lectura.asignaciones, base), omitidas: lectura.omitidas, materias: base.materias.map((m) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel })) });
+  return json({ previa: compararConBase(lectura.asignaciones, base, lectura.horarios), omitidas: lectura.omitidas, materias: base.materias.map((m) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel })) });
 }
 
 const entero = (x: unknown) => (Number.isInteger(x) && (x as number) > 0 ? (x as number) : null);
@@ -83,7 +87,7 @@ const texto = (x: unknown, max = 120) => (typeof x === 'string' && limpiar(x).le
 
 /** Guarda solo lo que el admin dejó marcado en la vista previa. */
 async function aplicar(body: any) {
-  const res = { cursos: 0, turnos: 0, profesores: 0, dictados: 0, asignados: 0, quitados: 0, errores: [] as string[] };
+  const res = { cursos: 0, turnos: 0, profesores: 0, dictados: 0, asignados: 0, quitados: 0, horarios: 0, errores: [] as string[] };
   const cursosNuevos: any[] = Array.isArray(body.cursosNuevos) ? body.cursosNuevos.slice(0, MAX_ITEMS) : [];
   const turnos: any[] = Array.isArray(body.turnos) ? body.turnos.slice(0, MAX_ITEMS) : [];
   const dictados: any[] = Array.isArray(body.dictados) ? body.dictados.slice(0, MAX_ITEMS) : [];
@@ -161,6 +165,25 @@ async function aplicar(body: any) {
       if (error) res.errores.push(`No pude sacar al profesor ${pid} de ${d?.curso}.`);
       else res.quitados++;
     }
+  }
+
+  // 5. Horarios (migración 12): se reemplazan los de cada curso marcado
+  const horarios: any[] = Array.isArray(body.horarios) ? body.horarios.slice(0, MAX_ITEMS) : [];
+  for (const h of horarios) {
+    const materiaId = entero(h?.materia_id);
+    const bloques = bloquesValidos(h?.bloques);
+    const cid = entero(h?.curso_id) || cursoId.get(String(h?.curso || '').toUpperCase()) || null;
+    if (!materiaId || !cid || !bloques || !bloques.length) { res.errores.push(`Horario inválido de ${h?.curso || '?'}.`); continue; }
+    let dictadoId = entero(h?.dictado_id);
+    if (!dictadoId) {
+      const { data } = await supabaseAdmin.from('dictados').select('id').eq('materia_id', materiaId).eq('curso_id', cid).maybeSingle();
+      dictadoId = data?.id ?? null;
+    }
+    if (!dictadoId) { res.errores.push(`${h?.curso || '?'} no tiene esa materia: marcala también arriba para crearla.`); continue; }
+    const { error: e1 } = await supabaseAdmin.from('horarios').delete().eq('dictado_id', dictadoId);
+    const { error: e2 } = e1 ? { error: e1 } : await supabaseAdmin.from('horarios').insert(bloques.map((x) => ({ dictado_id: dictadoId, cuatri: x.cuatri, dia: x.dia, desde: horaBase(x.desde), hasta: horaBase(x.hasta) })));
+    if (e1 || e2) res.errores.push(`No pude guardar el horario de ${h?.curso || '?'}. ¿Ya corriste la migración 12?`);
+    else res.horarios++;
   }
   return json({ ok: true, ...res });
 }
