@@ -28,7 +28,7 @@ Resultados de cada migración en la base de prueba (los que pegó Pato):
 | 8. Logros | 7/11 | `1 · 2 · false · false · 0` (falta volver a correrla por el nombre de L4) |
 | 9. Usuarios y links | 8/11 | `2 · 2 · 8 · false · false · false` |
 | 10. En línea | 8/11 | `1 · 2 · false · false · true` |
-| 11. Historial de profesores | — | Pendiente de correr. Esperado: `0 · 1 · 1 · 0 · false` |
+| 11. Historial de profesores | 8/11 | `0 · 1 · 1 · 0 · false` (ok) |
 
 ### Pruebas con datos (se deshacen solas)
 

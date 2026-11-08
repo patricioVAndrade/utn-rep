@@ -108,7 +108,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108090000_en_linea.sql`. Vuelta atrás: `supabase/rollback/20261108090000_en_linea.sql`.
 - **Verificación esperada:** `tabla = 1`, `funciones = 2`, `anon_lee = false`, `anon_puede_latir = false`, `prueba = true`.
 
-### 11. Historial de profesores (3.13) — **lista para correr en prueba, código subido**
+### 11. Historial de profesores (3.13) — **corrida en prueba el 8/11, código subido**
 
 - Sin rol (Titular, JTP...): lo sacaste el 8/11, alcanza con el historial. Si quedó la columna `rol` de la versión anterior, la migración la borra.
 - Tabla `profesores_historial` con desde y hasta (año y cuatrimestre). La llevan triggers: al asignar un profe se abre un período, al sacarlo se cierra. Así el importador y el admin no cambian (siguen agregando y sacando) y `dictado_profesores` sigue siendo "los de hoy", sin tocar las pantallas que la leen.
