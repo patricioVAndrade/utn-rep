@@ -31,6 +31,8 @@ interface Props {
   curso?: { label: string; href: string };
   /** Foto y ficha de quien la escribió (no se pasa en las anónimas) */
   autor?: Autor;
+  /** La más votada del curso (con 3 votos o más), como el logro L18 */
+  masUtil?: boolean;
 }
 
 const {
@@ -43,6 +45,7 @@ const {
   nombreAnonimo,
   compact = false,
   curso,
+  masUtil = false,
   autor,
 } = Astro.props;
 
@@ -75,6 +78,7 @@ const suRango = ficha ? rango(ficha.resenas) : null;
       <span class="editada">{resena.updated_at ? ` · ${editadaEl(resena.updated_at)}` : ''}</span>
     </span>
     <span class="tags">
+      {masUtil && <span class="tag mas-util" title="La reseña con más &quot;Me sirvió&quot; de este curso"><Icon name="thumb" /> La más útil del curso</span>}
       {resena.anio_cursado && <span class="tag">Cursó en {resena.anio_cursado}</span>}
       {(resena.final_mesa || resena.final_anio) && <span class="tag" title="Sumó a la reseña su experiencia del final">{rindioTexto(resena.final_mesa, resena.final_anio)}</span>}
     </span>

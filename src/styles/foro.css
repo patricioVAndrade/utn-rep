@@ -660,7 +660,9 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
 .imp-row { display: flex; flex-wrap: wrap; gap: 6px 10px; justify-content: space-between; align-items: center; padding: 5px 8px; background: var(--row-a); border: 1px solid var(--line-soft); font-size: 12px; }
 .imp-box { display: grid; gap: 3px; padding: 6px 8px; border: 1px solid var(--line-soft); background: var(--box); font-size: 12px; }
 .imp-tit { margin-bottom: 2px; }
-.panel.pedir .in { display: grid; gap: 10px; }
+.post-head .mas-util { display: inline-flex; align-items: center; gap: 4px; font-weight: bold; }
+  .post-head .mas-util svg { width: 12px; height: 12px; }
+  .panel.pedir .in { display: grid; gap: 10px; }
   .panel.pedir .btn { justify-self: start; }
   .nota-recordatorio { display: flex; gap: 6px; align-items: baseline; margin-top: 14px; color: var(--muted); font-size: 13px; }
   .nota-recordatorio svg { width: 14px; height: 14px; flex: none; position: relative; top: 2px; }
@@ -922,6 +924,10 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
 .logro svg { width: 13px; height: 13px; }
 .logro.l1 { background: linear-gradient(#5b97cf, #275f95); } .logro.l2 { background: linear-gradient(#7fc26b, #3f8a2c); } .logro.l3 { background: linear-gradient(#ffcf5a, #d9961a); color: #3a2600; }
 .logro.l4 { background: linear-gradient(#b48be0, #7a4fbf); } .logro.l5 { background: linear-gradient(#5b6b86, #2e3a50); } .logro.l6 { background: linear-gradient(#ef8a7f, #c0453b); }
+.logro.l8 { background: linear-gradient(#2fc463, #169947); } .logro.l9 { background: linear-gradient(#4a4a4a, #1f1f1f); } .logro.l10 { background: linear-gradient(#ff9f5a, #d0611c); }
+.logro.l12 { background: linear-gradient(#e389b4, #b04a7d); } .logro.l13 { background: linear-gradient(#6fd0c0, #23897a); } .logro.l14 { background: linear-gradient(#d7b37a, #9c7432); }
+.logro.l15 { background: linear-gradient(#6c6cc9, #34348a); } .logro.l17 { background: linear-gradient(#7aa7e0, #2c5ea8); } .logro.l18 { background: linear-gradient(#ffcf5a, #b8740b); color: #3a2600; }
+.logro.l19 { background: linear-gradient(#d8dee6, #8796a8); color: #1f2833; } .logro.l20 { background: linear-gradient(#f2d98c, #a8781c); color: #2e1f00; }
 .logro.off { background: var(--row-b); color: var(--star-off); border-style: dashed; box-shadow: none; }
 .ranks-table { display: grid; gap: 4px; }
 .ranks-table div { display: grid; grid-template-columns: 18px 90px 1fr; gap: 6px; align-items: center; }

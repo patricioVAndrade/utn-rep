@@ -108,7 +108,15 @@ export const logros_usuario = [];
     if (suyas.reduce((a, r) => a + r.votos_utilidad, 0) >= 10) dar(u, 'L3');
     if (suyas.some((r) => { const h = (new Date(r.created_at).getUTCHours() + 21) % 24; return h >= 2 && h <= 4; })) dar(u, 'L5');
     if (new Set(suyas.map((r) => nivelDe.get(r.dictado_id)).filter((n) => n >= 1 && n <= 5)).size === 5) dar(u, 'L6');
+    // Migración 16 (algunos, para ver cómo quedan)
+    const ayudadas = suyas.reduce((a, r) => a + r.votos_utilidad, 0);
+    if (ayudadas >= 50) dar(u, 'L19');
+    if (ayudadas >= 100) dar(u, 'L20');
+    if (suyas.length >= 2) dar(u, 'L12');
+    if (suyas.some((r) => (r.comentario || '').length > 400 && r.votos_utilidad >= 5)) dar(u, 'L17');
   });
+  dar('u-demo', 'L8');
+  dar('u-demo', 'L10');
   experiencias_finales.forEach((f) => dar(f.user_id, 'L4'));
 }
 export const seguimientos = [{ user_id: 'u-demo', materia_id: 1, mail: true, created_at: '2026-11-01T10:00:00Z' }];

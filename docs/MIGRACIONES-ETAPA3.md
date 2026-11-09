@@ -143,7 +143,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261109010000_visitas.sql` (necesita la 10). Vuelta atrás: `supabase/rollback/20261109010000_visitas.sql`. Al correrla hace una prueba rápida (anota un visitante y lo borra) y frena con error si algo no anda.
 - **Verificación esperada:** `tabla = 1`, `funcion = 1`, `anon_lee = false`, `anon_cuenta = false`, `latido_anota = true`.
 
-### 15. Recordatorio de fin de cuatrimestre, en el sitio (F32) — **lista para correr en prueba, código subido**
+### 15. Recordatorio de fin de cuatrimestre, en el sitio (F32) — **corrida en prueba el 9/11, código subido**
 
 - Función `recordar_fin_cuatri()`: crea un aviso "¿Cómo te fue en Paradigmas de Programación, 2K3?" por cada curso que elegiste en Mi inscripción y todavía no reseñaste. El aviso lleva a escribir la reseña de ese curso.
 - Fechas que pediste el 9/11: desde el 1 de agosto (terminaron las mesas de julio, antes de anotarse al 2.º cuatrimestre) avisa por los cursos de 1.er cuatrimestre; desde el 8 de diciembre, por los de 2.º, los anuales y los que no se sabe; y desde el 1 de marzo, antes de que arranque el año, repite el de diciembre a quien todavía no reseñó. El cuatrimestre sale de los horarios y, si no hay, del período del curso.
@@ -152,6 +152,25 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - Se apaga en Mi cuenta ("Al terminar el cuatrimestre, cómo te fue en tus cursos"). El mail viene después, con el servicio de mail.
 - **Archivo:** `supabase/migrations/20261109020000_recordatorio_fin_cuatri.sql` (necesita la 7 y la 12). Vuelta atrás: `supabase/rollback/20261109020000_recordatorio_fin_cuatri.sql`.
 - **Verificación esperada:** `funcion = 1`, `anon_puede = false`, `usuario_puede = true`, `sin_sesion = 0`.
+
+### 16. Logros nuevos (votados el 9/11) — **lista para correr en prueba, código subido**
+
+- Se suman, y los da la base sola con aviso, como L1 a L6:
+  - L8 Pasalo al grupo: tres personas distintas abren un link tuyo.
+  - L10 Estrenaste el curso: la primera reseña de un curso.
+  - L12 Recursante: reseñas de dos cursos de la misma materia.
+  - L13 Buen compañero: votaste "Me sirvió" 20 veces, en reseñas o finales.
+  - L14 Mesa completa: finales de las mesas de diciembre, febrero y julio.
+  - L15 Búho: tres reseñas de cursos del turno noche.
+  - L17 Detallista: una reseña de más de 400 caracteres con 5 votos.
+  - L18 La más útil del curso: tu reseña es la más votada de su curso, con 3 votos o más (si empatan, la más vieja). En el curso, esa reseña dice "La más útil del curso".
+  - L19 Ayudante de cátedra: tus reseñas ayudaron a 50 personas.
+  - L20 Titular de cátedra: a 100 personas.
+- L9 Detective (secreto): tocar "Anónimo" cinco veces seguidas con la sesión iniciada. Lo da `ganar_detective()`, que solo puede dar ese logro y solo a quien lo pide.
+- Quedan afuera L11 Balanza y L16 Al toque (descartados). L7 llega con los cambios de profesores (2027).
+- Triggers nuevos: al votar, al abrir un link compartido y al editar el texto de una reseña. Les da los logros a quienes ya los ganaron, sin avisar.
+- **Archivo:** `supabase/migrations/20261109030000_logros_nuevos.sql` (necesita la 8 y la 9). Vuelta atrás: `supabase/rollback/20261109030000_logros_nuevos.sql` (borra los logros nuevos ganados).
+- **Verificación esperada:** `triggers = 4`, `detective_usuario = true`, `detective_anon = false`, `acepta_l20 = true`, y en `logros_nuevos_dados` cuántos se dieron a quienes ya los tenían ganados (puede ser 0).
 
 ---
 

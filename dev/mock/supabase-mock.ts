@@ -185,6 +185,7 @@ async function rpc(nombre: string, args: any) {
   // En línea (migración 10): número fijo para ver el contador
   if (nombre === 'en_linea' || nombre === 'latido') return { data: Number(process.env.MOCK_EN_LINEA ?? 23), error: null };
   if (nombre === 'recordar_fin_cuatri') return { data: 0, error: null };
+  if (nombre === 'ganar_detective') { const ya = (T.logros_usuario || []).some((l: any) => l.user_id === 'u-demo' && l.logro === 'L9'); if (!ya) (T.logros_usuario ||= []).push({ user_id: 'u-demo', logro: 'L9', ganado_at: new Date().toISOString() }); return { data: !ya, error: null }; }
   if (nombre === 'visitas_semana') return { data: Number(process.env.MOCK_VISITAS ?? 3912), error: null };
   if (nombre === 'anonimizar_usuario') {
     let n = 0;

@@ -30,6 +30,7 @@ const mascara = '<path d="M6 16c6-3 12-3 18 0 6-3 12-3 18 0 0 10-4 18-10 18-4 0-
         <svg class="mask" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" set:html={mascara} />
         <q data-teorias={JSON.stringify(TEORIAS_ANONIMO)}>{TEORIAS_ANONIMO[0]}</q>
         <span class="sub">Tocá de nuevo para otra teoría.</span>
+        <span class="sub detective hidden" data-detective><b>Encontraste un logro secreto: Detective.</b> Lo ves en <a href="/mi-cuenta#logros">Mi cuenta</a>.</span>
       </div>
     </div>
   </details>
@@ -86,5 +87,27 @@ const mascara = '<path d="M6 16c6-3 12-3 18 0 6-3 12-3 18 0 0 10-4 18-10 18-4 0-
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') abiertas().forEach((d) => { d.open = false; });
+  });
+
+  // Logro secreto Detective (L9): tocar "Anónimo" cinco veces seguidas.
+  let toques = 0;
+  let ultimo = 0;
+  let pedido = false;
+  document.addEventListener('click', async (e) => {
+    const s = (e.target as Element).closest('details.egg-d > summary');
+    if (!s) return;
+    const ahora = Date.now();
+    toques = ahora - ultimo < 2500 ? toques + 1 : 1;
+    ultimo = ahora;
+    if (toques < 5 || pedido) return;
+    pedido = true;
+    try {
+      const res = await fetch('/api/logros/detective', { method: 'POST' });
+      const { nuevo } = await res.json();
+      if (!nuevo) return;
+      const d = s.parentElement as HTMLDetailsElement;
+      d.querySelector('[data-detective]')?.classList.remove('hidden');
+      d.open = true;
+    } catch { /* sin red: no pasa nada */ }
   });
 </script>

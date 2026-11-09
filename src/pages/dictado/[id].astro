@@ -106,6 +106,10 @@ if (userIsAdmin && resenasData.some((r) => r.es_anonima)) {
 
 // Estadísticas
 const totalResenas = resenasData.length;
+// La más útil del curso (como el logro L18): la más votada, con 3 votos o más; si empatan, la más vieja
+const masUtilId = [...resenasData]
+  .filter((r: any) => (r.votos_utilidad || 0) >= 3)
+  .sort((a: any, b: any) => b.votos_utilidad - a.votos_utilidad || String(a.created_at).localeCompare(String(b.created_at)) || a.id - b.id)[0]?.id ?? null;
 let promedio = 0;
 const distribucion = [0, 0, 0, 0, 0];
 if (totalResenas > 0) {
@@ -246,6 +250,7 @@ const totalCursos = (otrosRaw || []).length;
                 userIsAdmin={userIsAdmin}
                 nombreAnonimo={nombresAnonimos[resena.id]}
                 autor={autores.get(resena.id)}
+                masUtil={resena.id === masUtilId}
               />
             ))}
           </div>

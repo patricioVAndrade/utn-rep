@@ -84,6 +84,7 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 193 pruebas en 18 archiv
 
 | Migración | Método y ruta | Necesita | Casos a probar | Prueba automática |
 |---|---|---|---|---|
+| 16 | `POST /api/logros/detective` y los logros nuevos | Sesión | Sin sesión → 401. Cinco toques en "Anónimo" → `{ nuevo: true }` la primera vez, después `false`. Cada logro nuevo aparece en Mi cuenta y deja un aviso. La reseña más votada del curso (3 o más) dice "La más útil del curso". | Pendiente (se prueba todo junto al final) |
 | 15 | Cualquier página con sesión (la primera del día) | Sesión | Con un curso de 1.er cuatrimestre elegido en Mi inscripción antes del 1/8 y sin reseña, del 1/8 al 7/12 aparece "¿Cómo te fue en …?" en Avisos; no se repite; con "Al terminar el cuatrimestre" apagado en Mi cuenta no aparece. Desde el 8/12, lo mismo con los de 2.º y anuales; desde el 1/3 se repite a quien no reseñó. Cookie `rec_cuatri` con la fecha del día. | Pendiente (se prueba todo junto al final) |
 | — | Curso con menos de 5 reseñas (F31) | Nada | Aparece "Pedir reseñas en el grupo"; con 5 o más, no. El link lleva `?de=` si hay sesión. | Pendiente (se prueba todo junto al final) |
 | 14 | Inicio | Nada | "Visitas esta semana" sube 1 con un navegador nuevo y no con el mismo el mismo día. Con menos de 100 se ve "esta semana" (reseñas). | Pendiente (se prueba todo junto al final) |
