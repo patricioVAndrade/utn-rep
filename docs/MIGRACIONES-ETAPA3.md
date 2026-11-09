@@ -104,7 +104,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 
 - Tabla `presencia`: un número al azar por navegador y la última vez que dio señales (sin quién es, sin IP, sin página). Lo de más de 10 minutos se borra solo.
 - `latido(visitante)` y `en_linea()`, solo para el servidor. `/api/en-linea` limita a 300 pedidos por minuto por IP (en la facultad mucha gente comparte IP).
-- Se muestra solo desde 5 personas, arriba de "Así viene el cuatri".
+- Se muestra siempre, arriba de "Así viene el cuatri" (desde el 9/11; antes solo desde 5 personas). Con 0 el punto va en gris.
 - **Archivo:** `supabase/migrations/20261108090000_en_linea.sql`. Vuelta atrás: `supabase/rollback/20261108090000_en_linea.sql`.
 - **Verificación esperada:** `tabla = 1`, `funciones = 2`, `anon_lee = false`, `anon_puede_latir = false`, `prueba = true`.
 

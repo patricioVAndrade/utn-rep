@@ -13,12 +13,13 @@ async function avisar() {
       body: JSON.stringify({ visitante: visitante() }),
     });
     if (!res.ok) return;
-    const { texto, corto } = await res.json();
+    const { n, texto, corto } = await res.json();
     document.querySelectorAll<HTMLElement>('[data-en-linea]').forEach((el) => {
       const t = el.dataset.enLinea === 'corto' ? corto : texto;
       const span = el.querySelector<HTMLElement>('[data-texto]');
       if (span && t) span.textContent = t;
-      el.hidden = !t;
+      // Punto verde; gris si no hay nadie
+      el.querySelector('.live')?.classList.toggle('off', !n);
     });
   } catch { /* sin red: queda lo que había */ }
 }

@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Migración 10: contador "Hay X estudiantes en línea" (F13).
-// La base cuenta visitantes de los últimos 5 minutos; el sitio lo muestra solo desde 5.
+// La base cuenta visitantes de los últimos 5 minutos; el sitio lo muestra siempre
+// (desde el 9/11, pedido de Pato), con el punto gris si no hay nadie.
 
 const rpc = vi.fn();
 vi.mock('../src/lib/supabase-admin', () => ({ supabaseAdmin: { rpc } }));
 const permitido = vi.fn(async () => true);
 vi.mock('../src/lib/rate-limit', () => ({ checkRateLimit: permitido }));
 
-const { MINIMO_EN_LINEA, textoEnLinea, enLinea, latido } = await import('../src/lib/en-linea');
+const { textoEnLinea, enLinea, latido } = await import('../src/lib/en-linea');
 const { POST } = await import('../src/pages/api/en-linea');
 
 const pedir = (body: unknown) =>
@@ -18,21 +19,22 @@ const pedir = (body: unknown) =>
   } as any);
 
 describe('textoEnLinea', () => {
-  it('no muestra nada con menos de 5 personas (para no exponer a nadie)', () => {
-    expect(MINIMO_EN_LINEA).toBe(5);
-    for (const n of [0, 1, 4]) expect(textoEnLinea(n)).toBeNull();
+  it('se muestra siempre: nadie, una persona o varias', () => {
+    expect(textoEnLinea(0)).toBe('Nadie en línea ahora');
+    expect(textoEnLinea(1)).toBe('Hay 1 estudiante en línea');
+    expect(textoEnLinea(4)).toBe('Hay 4 estudiantes en línea');
   });
-  it('desde 5 dice cuántas hay, con separador de miles', () => {
+  it('dice cuántas hay, con separador de miles', () => {
     expect(textoEnLinea(5)).toBe('Hay 5 estudiantes en línea');
     expect(textoEnLinea(1284)).toBe('Hay 1.284 estudiantes en línea');
   });
   it('tiene una versión corta para el celular', () => {
     expect(textoEnLinea(23, true)).toBe('23 en línea');
-    expect(textoEnLinea(3, true)).toBeNull();
+    expect(textoEnLinea(3, true)).toBe('3 en línea');
   });
-  it('ignora valores raros', () => {
-    expect(textoEnLinea(Number.NaN)).toBeNull();
-    expect(textoEnLinea(-8)).toBeNull();
+  it('un valor raro cuenta como nadie', () => {
+    expect(textoEnLinea(Number.NaN)).toBe('Nadie en línea ahora');
+    expect(textoEnLinea(-8)).toBe('Nadie en línea ahora');
   });
 });
 
@@ -44,7 +46,7 @@ describe('enLinea y latido', () => {
     await expect(enLinea()).resolves.toBe(7);
     expect(rpc).toHaveBeenCalledWith('en_linea');
   });
-  it('si la base falla, cuenta 0 (y no se muestra)', async () => {
+  it('si la base falla, cuenta 0 (punto gris)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     rpc.mockResolvedValue({ data: null, error: { message: 'no existe' } });
     await expect(enLinea()).resolves.toBe(0);
@@ -74,10 +76,10 @@ describe('POST /api/en-linea', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ n: 9, texto: 'Hay 9 estudiantes en línea', corto: '9 en línea' });
   });
-  it('con pocas personas no manda el número', async () => {
+  it('con pocas personas también manda el número', async () => {
     rpc.mockResolvedValue({ data: 2, error: null });
     const res = await pedir({ visitante: 'v-abcdefgh' });
-    expect(await res.json()).toEqual({ n: null, texto: null, corto: null });
+    expect(await res.json()).toEqual({ n: 2, texto: 'Hay 2 estudiantes en línea', corto: '2 en línea' });
   });
   it('frena a quien manda demasiados latidos', async () => {
     permitido.mockResolvedValue(false);

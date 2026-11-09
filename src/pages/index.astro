@@ -126,8 +126,9 @@ const recortar = (t: string, n = 180) => (t.length > n ? t.slice(0, n).replace(/
 const autor = (r: { es_anonima: boolean; nombre_usuario: string | null }) => (r.es_anonima ? 'Anónimo' : r.nombre_usuario || 'Estudiante');
 // Fichas de quienes aparecen en "Última reseña" y en la destacada
 const autores = await autoresDeResenas([...Object.values(ultima).map((r) => r.id), ...(destacada ? [destacada.id] : [])]);
-// "Hay X estudiantes en línea" (migración 10): solo desde 5 personas
-const [textoLinea, visitas] = await Promise.all([enLinea().then((n) => textoEnLinea(n)), visitasSemana()]);
+// "Hay X estudiantes en línea" (migración 10): siempre (gris con 0)
+const [nLinea, visitas] = await Promise.all([enLinea(), visitasSemana()]);
+const textoLinea = textoEnLinea(nLinea);
 const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
 ---
 
@@ -248,7 +249,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
       <section class="panel">
         <h3>Así viene el cuatri</h3>
         <div class="in">
-          <div class="pulse-head" data-en-linea hidden={!textoLinea}><span class="live"><i></i><span data-texto>{textoLinea || ''}</span></span></div>
+          <div class="pulse-head" data-en-linea><span class:list={['live', { off: nLinea === 0 }]}><i></i><span data-texto>{textoLinea}</span></span></div>
           <div class="kpis">
             <div><b>{fmt(totalResenas)}</b><span>reseñas</span></div>
             {visitas !== null && visitas >= MINIMO_VISITAS

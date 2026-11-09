@@ -1,15 +1,20 @@
 // Contador "Hay X estudiantes en línea" (migración 10, F13).
 // La base cuenta navegadores que dieron señales en los últimos 5 minutos.
+// Se muestra siempre, con el punto verde (gris si no hay nadie).
 import { supabaseAdmin } from './supabase-admin';
 
-/** Con menos gente no se muestra, para no exponer a nadie. */
-export const MINIMO_EN_LINEA = 5;
+/** Cuántos hay, limpio (0 si viene algo raro). */
+export function cuantosEnLinea(n: number): number {
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
 
-/** Texto del contador, o null si no hay que mostrarlo. */
-export function textoEnLinea(n: number, corto = false): string | null {
-  if (!Number.isFinite(n) || n < MINIMO_EN_LINEA) return null;
-  const num = Math.floor(n).toLocaleString('es-AR');
-  return corto ? `${num} en línea` : `Hay ${num} estudiantes en línea`;
+/** Texto del contador. Se muestra siempre (Pato, 9/11): no dice quién, solo cuántos.
+ *  Con 0 el punto va en gris. */
+export function textoEnLinea(n: number, corto = false): string {
+  const c = cuantosEnLinea(n);
+  if (corto) return `${c.toLocaleString('es-AR')} en línea`;
+  if (c === 0) return 'Nadie en línea ahora';
+  return c === 1 ? 'Hay 1 estudiante en línea' : `Hay ${c.toLocaleString('es-AR')} estudiantes en línea`;
 }
 
 /** Cuántos hay ahora (0 si la base no responde). */
