@@ -218,7 +218,8 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Ocurrió un error al guardar.');
       try { localStorage.removeItem(CLAVE); } catch {}
-      window.location.href = `/finales?materia=${materia_id}`;
+      // Si tenés una reseña de esa materia sin final, te ofrece sumarlo (F34)
+      window.location.href = data.sumar ? '/mis-resenas#finales' : `/finales?materia=${materia_id}`;
     } catch (err: any) {
       mostrarError(err.message);
       submitBtn.disabled = false;

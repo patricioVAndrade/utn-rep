@@ -341,6 +341,7 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .post-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 10px; padding: 4px 8px; font-size: 11px; color: #fff; background: linear-gradient(var(--head-a), var(--head-b)); }
 .foro .post-head a { color: #fff; font-weight: bold; }
 .post-head .tag { opacity: .9; }
+.post-head .tags { display: flex; flex-wrap: wrap; gap: 4px 10px; }
 .post-head .mesa { background: var(--amber); color: var(--amber-ink); padding: 0 7px; border-radius: 3px; font-weight: bold; }
 .post-main { display: grid; grid-template-columns: 172px minmax(0, 1fr); }
 .author { display: grid; gap: 5px; align-content: start; justify-items: start; padding: 10px; background: var(--row-b); border-right: 1px solid var(--line-soft); font-size: 11px; min-width: 0; }

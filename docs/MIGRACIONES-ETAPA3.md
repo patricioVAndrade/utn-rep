@@ -124,6 +124,16 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108110000_horarios_inscripcion.sql`. Vuelta atrás: `supabase/rollback/20261108110000_horarios_inscripcion.sql`. Prueba con datos: `supabase/pruebas/migracion-12.sql`.
 - **Verificación esperada:** `tablas = 2`, `politicas = 5`, `publico_lee_horarios = true`, `publico_cambia_horarios = false`, `anon_lee_inscripcion = false`.
 
+### 13. Sumar el final a tu reseña (F34) — **lista para correr en prueba, código subido**
+
+- Columna nueva `final_id` en `resenas`: el final que contaste, si lo sumaste. Si borrás el final, la reseña queda como estaba (sin final).
+- La base controla que el final sea tuyo y de la misma materia de la reseña (si no, error `FN001`), y que un final esté en una sola reseña.
+- Sumarlo no marca la reseña como "Editada".
+- La vista pública de reseñas suma la mesa y el año del final (para el "Rindió en julio 2026" del curso), sin mostrar qué final es.
+- En el sitio: al contar un final de una materia que reseñaste te lleva a Mis reseñas para sumarlo; ahí también podés sumarlo o sacarlo cuando quieras.
+- **Archivo:** `supabase/migrations/20261109000000_resenas_final.sql`. Vuelta atrás: `supabase/rollback/20261109000000_resenas_final.sql`. Prueba con datos: `supabase/pruebas/migracion-13.sql`.
+- **Verificación esperada:** `columna = 1`, `trigger = 1`, `puede_sumar = true`, `vista = 2`, `publico_ve_final_id = 0`.
+
 ---
 
 ## Lo que ya está hecho sin base (7/11, tarde)

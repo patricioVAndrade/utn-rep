@@ -31,14 +31,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .maybeSingle();
   if (!materia) return json({ error: 'La materia no existe.' }, 404);
 
-  const { error: insertError } = await supabaseAdmin
+  const { data: nuevo, error: insertError } = await supabaseAdmin
     .from('experiencias_finales')
     .insert({
       user_id: user.id, materia_id, anio, mesa, profesor_nombre, comentario,
       // Anónima por defecto. El nombre se guarda igual, para la moderación.
       es_anonima: !con_nombre,
       nombre_usuario: displayName(user).slice(0, 120),
-    });
+    })
+    .select('id')
+    .single();
 
   if (insertError) {
     if (esBloqueo(insertError)) return cuentaBloqueada();
@@ -46,5 +48,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return json({ error: 'No se pudo guardar. Intentá de nuevo.' }, 500);
   }
 
-  return json({ success: true });
+  return json({ success: true, id: nuevo?.id ?? null, sumar: await resenaParaSumar(user.id, materia_id) });
+};
+
+/**
+ * F34 (migración 13): una reseña tuya de esa materia que todavía no tiene
+ * final, para ofrecerte sumarlo. null si no hay o si falta la migración.
+ */
+async function resenaParaSumar(userId: string, materiaId: number): Promise<number | null> {
+  const { data: dictados } = await supabaseAdmin.from('dictados').select('id').eq('materia_id', materiaId);
+  const ids = (dictados || []).map((d: any) => d.id);
+  if (!ids.length) return null;
+  const { data, error } = await supabaseAdmin.from('resenas').select('id, final_id').eq('user_id', userId).in('dictado_id', ids);
+  if (error) return null;
+  return (data || []).find((r: any) => r.final_id == null)?.id ?? null;
 };

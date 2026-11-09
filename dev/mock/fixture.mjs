@@ -55,6 +55,15 @@ for (let i = 0; i < 14; i++) {
   const m = pick(materias);
   experiencias_finales.push({ id: i + 1, votos_utilidad: Math.floor(rnd() * 6), user_id: i === 0 ? 'u-demo' : 'otro', es_anonima: i % 3 !== 1, nombre_usuario: i === 0 ? 'Sofía Rivas' : pick(ALUMNOS), materia_id: m.id, anio: 2026 - Math.floor(rnd() * 3), mesa: pick(['Diciembre', 'Febrero', 'Julio', 'Especial']), profesor_nombre: rnd() < .3 ? null : pick(profesores).nombre_completo, comentario: pick(['Tomaron dos ejercicios prácticos y una pregunta de teoría. Duró tres horas, corrigieron en el día.', 'Oral con el titular. Pregunta mucho sobre los TPs, tené todo fresco.', 'Escrito largo, el práctico fue más difícil que en los parciales. Repasen series y límites.']), created_at: new Date(Date.UTC(2026, 10, 6) - i * 5 * 86400000).toISOString() });
 }
+// Final en la reseña (migración 13): el final de u-demo es de la materia de una de sus reseñas (sin sumar todavía)
+// y una reseña de otra persona ya lo tiene sumado.
+{
+  const matDe = (r) => dictados.find((d) => d.id === r.dictado_id)?.materia_id;
+  const mia = resenas.find((r) => r.user_id === 'u-demo');
+  if (mia) experiencias_finales[0].materia_id = matDe(mia);
+  const otra = resenas.find((r) => r.user_id !== 'u-demo' && r.dictado_id === 2) || resenas.find((r) => r.user_id !== 'u-demo');
+  if (otra) { experiencias_finales[1].materia_id = matDe(otra); experiencias_finales[1].user_id = otra.user_id; experiencias_finales[1].mesa = 'Julio'; experiencias_finales[1].anio = 2026; otra.final_id = experiencias_finales[1].id; }
+}
 export const votos_resenas = [{ user_id: 'u-demo', resena_id: 3 }];
 export const votos_finales = [];
 export const reportes_finales = [{ id: 1, final_id: 3, user_id: 'otro', motivo: 'Tiene el nombre de un compañero', created_at: '2026-11-05T12:00:00Z' }];

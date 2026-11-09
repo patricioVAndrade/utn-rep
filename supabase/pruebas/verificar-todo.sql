@@ -107,7 +107,14 @@ WITH pruebas(migracion, prueba, esperado, resultado) AS (VALUES
   ('12 horarios', 'sin sesión NO se ven las listas', 'false', pg_temp.priv('anon', 'inscripcion_cursos', 'SELECT')),
   ('12 horarios', 'la materia la completa la base (no se elige)', 'false', pg_temp.colpriv('authenticated', 'inscripcion_cursos', 'materia_id', 'INSERT')),
   ('12 horarios', 'trigger que completa la materia', '1', pg_temp.trig(ARRAY['trg_inscripcion_completar'])),
-  ('12 horarios', 'horarios que terminan antes de empezar', '0', pg_temp.contar('horarios', 'SELECT count(*) FROM public.horarios WHERE hasta <= desde'))
+  ('12 horarios', 'horarios que terminan antes de empezar', '0', pg_temp.contar('horarios', 'SELECT count(*) FROM public.horarios WHERE hasta <= desde')),
+  -- 13. Sumar el final a tu reseña
+  ('13 final en reseña', 'columna final_id', 'está', pg_temp.col('resenas', 'final_id')),
+  ('13 final en reseña', 'cada uno suma su final', 'true', pg_temp.colpriv('authenticated', 'resenas', 'final_id', 'UPDATE')),
+  ('13 final en reseña', 'trigger que controla el final', '1', pg_temp.trig(ARRAY['trg_resenas_controlar_final'])),
+  ('13 final en reseña', 'la vista dice la mesa', 'está', pg_temp.col('resenas_publicas', 'final_mesa')),
+  ('13 final en reseña', 'la vista NO dice cuál es el final', 'falta', pg_temp.col('resenas_publicas', 'final_id')),
+  ('13 final en reseña', 'finales de otra persona o materia', '0', CASE WHEN pg_temp.col('resenas', 'final_id') = 'falta' THEN 'falta' ELSE pg_temp.contar('resenas', 'SELECT count(*) FROM public.resenas r JOIN public.dictados d ON d.id = r.dictado_id JOIN public.experiencias_finales f ON f.id = r.final_id WHERE f.user_id IS DISTINCT FROM r.user_id OR f.materia_id <> d.materia_id') END)
 )
 SELECT migracion, prueba, esperado, COALESCE(resultado, 'falta') AS resultado, COALESCE(resultado, 'falta') = esperado AS ok
 FROM pruebas

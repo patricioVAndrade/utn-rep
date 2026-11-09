@@ -11,7 +11,7 @@ import ShareButton from './ShareButton.astro';
 import Quien from './Quien.astro';
 import Escudo from './Escudo.astro';
 import LogroIcono from './LogroIcono.astro';
-import { COMO_TE_FUE, editadaEl, tiempoRelativo } from '../lib/format';
+import { COMO_TE_FUE, editadaEl, rindioTexto, tiempoRelativo } from '../lib/format';
 import { DIBUJOS } from '../lib/perfil';
 import { rango } from '../lib/logros';
 import type { Autor } from '../lib/fichas';
@@ -74,7 +74,10 @@ const suRango = ficha ? rango(ficha.resenas) : null;
       {fecha && <> · <time datetime={resena.created_at}>{tiempoRelativo(resena.created_at)}</time></>}
       <span class="editada">{resena.updated_at ? ` · ${editadaEl(resena.updated_at)}` : ''}</span>
     </span>
-    {resena.anio_cursado && <span class="tag">Cursó en {resena.anio_cursado}</span>}
+    <span class="tags">
+      {resena.anio_cursado && <span class="tag">Cursó en {resena.anio_cursado}</span>}
+      {(resena.final_mesa || resena.final_anio) && <span class="tag" title="Sumó a la reseña su experiencia del final">{rindioTexto(resena.final_mesa, resena.final_anio)}</span>}
+    </span>
   </div>
   <div class="post-main">
     <div class="author">

@@ -39,15 +39,18 @@ con "TODO OK".
 
 | Archivo | Qué prueba |
 |---|---|
+| `supabase/pruebas/migracion-13.sql` | Sumar el final propio de la misma materia a la reseña (no la marca como editada); otra materia o el final de otra persona → `FN001`; el mismo final en dos reseñas → no; no toca la reseña de otra persona; la vista pública dice "Julio 2026" y no muestra `final_id`; se puede sacar; si se borra el final la reseña queda sin final. |
 | `supabase/pruebas/migracion-12.sql` | Un horario se guarda; uno que termina antes de empezar, un domingo o repetido, no. Como una persona con sesión: agrega un curso y la materia la completa la base (no la puede elegir); no agrega en la lista de otro; un solo elegido por materia; lee horarios pero no los cambia; otra persona no ve su lista; sin sesión no se ve ninguna. |
 | `supabase/pruebas/migracion-11.sql` | Asignar un profe abre su período; no queda la columna `rol`; sacarlo cierra el período (no lo borra); si vuelve se abre otro; todos los profes de hoy tienen período abierto; el público lee pero no cambia. |
 
 ## 2. Pruebas automáticas: `npm test`
 
-Corren sin base (la base se simula con `vi.mock`). Hoy: 117 pruebas en 12 archivos.
+Corren sin base (la base se simula con `vi.mock`). Hoy: 141 pruebas en 15 archivos.
 
 | Archivo | Qué prueba |
 |---|---|
+| `tests/resena-final.test.ts` | Migración 13: `POST /api/resenas/final` (sin sesión, reseña o final inválidos, sumar, sacar, reseña ajena o inexistente → 404, otra materia → 400, final ya usado → 409, error de la base) y el texto "Rindió en julio 2026". |
+| `tests/finales-crear.test.ts` | `POST /api/finales/crear`: sin sesión, datos inválidos, crear devuelve el id, ofrece sumarlo si tenés una reseña de la materia sin final (`sumar`), y sigue andando si la base todavía no tiene la migración 13. |
 | `tests/horarios.test.ts` | Migración 12: horas ("8:00" y la fracción del día de Google), siglas (ADSI, IOP, ICS, TPA…), juntar módulos, texto del horario, superposiciones (también por cuatrimestre), grilla de Sistemas con celdas combinadas y dos cuatrimestres, "Electiva 1", horarios de Básicas y qué horarios cambian al importar. CSV de horarios (de los PDF oficiales): una fila por módulo, anual o por cuatrimestre, filas que no entiende, le gana a las planillas, materia que no está en la base (se pide en "Materias que no encontré") y curso que no está en la base. |
 | `tests/importar-api.test.ts` | `POST /api/admin/importar`: sin ser admin → 403; un CSV con solo horarios se puede revisar; sin cursos K → 400; guardar el horario de una materia que el curso no tiene: sin `crear` no guarda, con `crear: true` agrega la materia al curso y guarda. |
 | `tests/inscripcion.test.ts` | Migración 12: `POST /api/inscripcion` (sin sesión, acción inválida, agregar, repetido, curso inexistente, tope de 80, quitar, quitar materia, elegir, no elegir, traer la lista del navegador, error de la base), el link `?c=`, el texto de la combinación de turnos y la nota promedio. |
@@ -78,6 +81,8 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 117 pruebas en 12 archiv
 
 | Migración | Método y ruta | Necesita | Casos a probar | Prueba automática |
 |---|---|---|---|---|
+| 13 | `POST /api/resenas/final` `{ resena_id, final_id }` (`final_id: null` lo saca) | Sesión (dueño) | Sin sesión → 401. Datos inválidos → 400. Final de otra materia o de otra persona → 400. El mismo final en otra reseña → 409. Reseña ajena → 404. Sumar → la reseña dice "Rindió en …" en el curso. | `tests/resena-final.test.ts`, `supabase/pruebas/migracion-13.sql` |
+| 13 | `POST /api/finales/crear` | Sesión | Devuelve `{ id, sumar }`: `sumar` es el id de tu reseña de esa materia sin final (o `null`). | `tests/finales-crear.test.ts` |
 | 12 | `POST /api/inscripcion` `{ accion: agregar \| quitar \| elegir \| no_elegir, dictado_id }`, `{ accion: quitar_materia, materia_id }`, `{ accion: traer, dictados, elegidos }` | Sesión | Sin sesión → 401. Acción o curso inválido → 400. Agregar dos veces → 200. Curso inexistente → 404. Más de 80 → 400. Elegir otro curso de la misma materia desmarca el anterior. Traer suma la lista sin repetir y solo elige cursos de la lista. | `tests/inscripcion.test.ts` |
 | 12 | `POST /api/admin/importar` (vista previa con links o archivo) y `{ accion: aplicar, horarios: [{ curso_id, materia_id, dictado_id, crear?, bloques }] }` | Admin + CSRF | La vista previa trae `previa.horarios` (solo los nuevos o distintos), `horariosIguales` y `horariosSinCurso`; acepta un CSV con solo horarios (curso, materia, cuatrimestre, dia, desde, hasta). Guardar reemplaza el horario de cada curso marcado; si el curso no tiene la materia, con `crear: true` se la agrega (cuenta en `dictados`); bloques inválidos → error en `errores`. Volver a leer → 0 horarios distintos. | `tests/horarios.test.ts` (lectura y comparación), `tests/importar-api.test.ts` |
 | 11 | `POST /api/admin/dictados` `{ action: remove_profesor, dictado_id, profesor_id }` y después `assign_profesor` | Admin + CSRF | Sacar al profe del curso deja "Antes: …" en Materias y cursos (el período se cierra). Volver a asignarlo abre otro. Se comprueba en la base con `migracion-11.sql`. | `supabase/pruebas/migracion-11.sql` |

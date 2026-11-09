@@ -92,7 +92,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 ## Ideas votadas
 
 - F30, F36 y F37: descartadas.
-- F33, F34: etapa 3. F29 (con horarios): hecho con la migración 12.
+- F33 ("Tu reseña le sirvió a N personas"): hecho con los avisos (migración 7). F34 ("Rindió en julio 2026" en la reseña): hecho con la migración 13; se ofrece al contar el final y desde Mis reseñas. F29 (con horarios): hecho con la migración 12.
 - F35, **Reseña destacada** (sin "del mes", como pediste): hecha. Es la más votada de todo el sitio, desde 3 votos; si otra la pasa, toma su lugar. Columna del inicio.
 - F12, respuestas: solo responde el moderador. Se junta con las notas de moderación (F10) en "Respuesta del moderador" (etapa 3).
 - Logros L8 a L19: esperan tu voto.

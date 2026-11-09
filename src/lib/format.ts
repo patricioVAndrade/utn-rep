@@ -78,6 +78,16 @@ export function mesaTexto(mesa: string | null | undefined, anio: number | string
   return `Mesa de ${m}${a}`;
 }
 
+/** "Rindió en julio 2026" (F34): lo que dice la reseña que tiene sumado su final. */
+export function rindioTexto(mesa: string | null | undefined, anio: number | string | null | undefined): string {
+  const m = (mesa || '').trim().toLowerCase();
+  if (!m && !anio) return '';
+  const a = anio ? ` ${anio}` : '';
+  if (m.startsWith('feb')) return `Rindió en febrero / marzo${a}`;
+  if (m.startsWith('esp')) return `Rindió en una mesa especial${a}`;
+  return m ? `Rindió en ${m}${a}` : `Rindió el final${a}`;
+}
+
 /** "Editada el 12/11" (vacío si nunca se editó). La fecha la pone la base al cambiar texto, estrellas o "¿Cómo te fue?". */
 export function editadaEl(fecha: string | null | undefined): string {
   if (!fecha) return '';

@@ -5,7 +5,7 @@ import Stars from '../components/Stars.astro';
 import ShareButton from '../components/ShareButton.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase-admin';
-import { COMO_TE_FUE, editadaEl, mesaTexto } from '../lib/format';
+import { COMO_TE_FUE, editadaEl, mesaTexto, rindioTexto } from '../lib/format';
 import { leerPerfil } from '../lib/perfil';
 
 const user = Astro.locals.user;
@@ -34,6 +34,28 @@ const misResenas = (data || []).map((r: any) => {
   return { ...r, materia: one(dictado?.materias), curso: one(dictado?.cursos) };
 });
 const misFinales = (finalesRaw || []).map((f: any) => ({ ...f, materia: one(f.materias) }));
+
+// F34 (migración 13): el final sumado a cada reseña. Sin la migración, la consulta falla y no se ofrece.
+const { data: conFinal, error: sinColumnaFinal } = await client.from('resenas').select('id, final_id').eq('user_id', user.id);
+const finalDeResena = new Map<number, string>();
+(conFinal || []).forEach((r: any) => { if (r.final_id != null) finalDeResena.set(r.id, String(r.final_id)); });
+const usados = new Set(finalDeResena.values());
+const puedeSumar = !sinColumnaFinal;
+const finalPorId = new Map(misFinales.map((f) => [String(f.id), f]));
+/** El final sumado a la reseña, o uno tuyo de la misma materia que todavía no está en ninguna. */
+const finalDe = (r: any) => {
+  const id = finalDeResena.get(r.id);
+  if (id) return { sumado: true, f: finalPorId.get(id) };
+  const libre = puedeSumar ? misFinales.find((f) => f.materia?.id === r.materia?.id && !usados.has(String(f.id))) : undefined;
+  return libre ? { sumado: false, f: libre } : null;
+};
+/** La reseña donde está el final, o una tuya de la misma materia que todavía no tiene final. */
+const resenaDe = (f: any) => {
+  const en = misResenas.find((r) => finalDeResena.get(r.id) === String(f.id));
+  if (en) return { sumado: true, r: en };
+  const libre = puedeSumar ? misResenas.find((r) => r.materia?.id === f.materia?.id && !finalDeResena.has(r.id)) : undefined;
+  return libre ? { sumado: false, r: libre } : null;
+};
 const votosTotales = misResenas.reduce((acc, r) => acc + (r.votos_utilidad || 0), 0);
 
 // ¿Alguna está reportada? (se lo mostramos solo a quien la escribió)
@@ -99,6 +121,15 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
                     <div><b>La moderación te pide que la edites.</b> {r.pedido_edicion} <a href={`/dictado/${r.dictado_id}#resena-${r.id}`}>Editarla</a></div>
                   </div>
                 )}
+                {finalDe(r)?.sumado && (
+                  <div class="sub sumado-final">{rindioTexto(finalDe(r)!.f?.mesa, finalDe(r)!.f?.anio)}: sumaste tu experiencia del final. <button type="button" class="linklike" data-final-resena={r.id} data-final-id="">Sacarlo</button></div>
+                )}
+                {finalDe(r) && !finalDe(r)!.sumado && (
+                  <div class="comofue sumar-final">
+                    <span class="q">Contaste el final de esta materia ({mesaTexto(finalDe(r)!.f.mesa, finalDe(r)!.f.anio).toLowerCase()}). ¿Lo sumás a tu reseña? Va a decir "{rindioTexto(finalDe(r)!.f.mesa, finalDe(r)!.f.anio)}".</span>
+                    <span class="opts"><button type="button" class="btn quiet" data-final-resena={r.id} data-final-id={String(finalDe(r)!.f.id)}>Sumarlo</button></span>
+                  </div>
+                )}
                 {!r.condicion_final && (
                   <div class="comofue" data-resena={r.id}>
                     <span class="q">¿Cómo te fue? Sumalo a tu reseña.</span>
@@ -137,8 +168,14 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
                   <span class="mesa-mini">{mesaTexto(f.mesa, f.anio)}</span>
                 </div>
                 <span class="snip">{recorte(f.comentario || '')}</span>
+                {resenaDe(f) && !resenaDe(f)!.sumado && (
+                  <div class="comofue sumar-final">
+                    <span class="q">Tenés una reseña de esta materia ({resenaDe(f)!.r.curso?.identificador}). ¿Le sumás este final? Va a decir "{rindioTexto(f.mesa, f.anio)}".</span>
+                    <span class="opts"><button type="button" class="btn quiet" data-final-resena={resenaDe(f)!.r.id} data-final-id={String(f.id)}>Sumarlo a mi reseña</button></span>
+                  </div>
+                )}
                 <div class="bottom">
-                  <span class="sub">Contada el {fecha(f.created_at)}</span>
+                  <span class="sub">Contada el {fecha(f.created_at)}{resenaDe(f)?.sumado ? `. Está en tu reseña de ${resenaDe(f)!.r.curso?.identificador || 'la materia'}` : ''}</span>
                   <span class="acts"><a class="btn quiet" href={`/finales?materia=${f.materia?.id}#final-${f.id}`}><Icon name="edit" /> Ver, editar o borrar</a></span>
                 </div>
               </article>
@@ -230,6 +267,24 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
     } catch (err) {
       alert(err instanceof Error ? err.message : 'No se pudo guardar.');
       botones.forEach((x) => (x.disabled = false));
+    }
+  }));
+
+  // Sumar o sacar el final de una reseña (F34)
+  document.querySelectorAll<HTMLButtonElement>('[data-final-resena]').forEach((b) => b.addEventListener('click', async () => {
+    b.disabled = true;
+    try {
+      const res = await fetch('/api/resenas/final', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resena_id: Number(b.dataset.finalResena), final_id: b.dataset.finalId ? (/^\d+$/.test(b.dataset.finalId) ? Number(b.dataset.finalId) : b.dataset.finalId) : null }),
+      });
+      const r = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(r.error || 'No se pudo guardar.');
+      location.reload();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'No se pudo guardar.');
+      b.disabled = false;
     }
   }));
 

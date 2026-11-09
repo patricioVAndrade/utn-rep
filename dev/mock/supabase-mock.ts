@@ -14,7 +14,10 @@ function stats_dictados() {
   });
 }
 function resenas_publicas() {
-  return T.resenas.map((r: any) => ({ ...r, nombre_usuario: r.es_anonima ? null : r.nombre_usuario, user_id: undefined }));
+  return T.resenas.map(({ final_id, ...r }: any) => {
+    const f = final_id ? (T.experiencias_finales || []).find((x: any) => x.id === final_id) : null;
+    return { ...r, nombre_usuario: r.es_anonima ? null : r.nombre_usuario, user_id: undefined, final_mesa: f?.mesa ?? null, final_anio: f?.anio ?? null };
+  });
 }
 function experiencias_finales_publicas() {
   return (T.experiencias_finales || []).map(({ user_id, ...f }: any) => ({ ...f, es_anonima: f.es_anonima !== false, nombre_usuario: f.es_anonima === false ? f.nombre_usuario : null }));
