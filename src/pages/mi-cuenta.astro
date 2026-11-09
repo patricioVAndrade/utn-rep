@@ -10,19 +10,23 @@ import { supabaseAdmin } from '../lib/supabase-admin';
 import { DIBUJOS, leerPerfil } from '../lib/perfil';
 import { PREFERENCIAS_EDITABLES } from '../lib/avisos';
 import { MAIL_POR_DEFECTO } from '../lib/mail';
+import { telegramListo } from '../lib/telegram';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/');
 
 const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
-const [perfil, { data: auth }, { data: seguidasRaw }, { data: prefsRaw }, { count: cantResenas }, { data: logrosRaw }] = await Promise.all([
+const [perfil, { data: auth }, { data: seguidasRaw }, { data: prefsRaw }, { count: cantResenas }, { data: logrosRaw }, { data: telegram }] = await Promise.all([
   leerPerfil(client, user.id),
   client.auth.getUser(),
   client.from('seguimientos').select('materia_id, mail, materias ( id, nombre, nivel )').eq('user_id', user.id).order('created_at', { ascending: true }),
   client.from('preferencias_aviso').select('tipo, canal, activo').eq('user_id', user.id),
   client.from('resenas').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
   client.from('logros_usuario').select('logro, ganado_at').eq('user_id', user.id),
+  // Telegram (migración 18); sin la migración, null
+  client.from('telegram_cuentas').select('usuario, vinculado_at').eq('user_id', user.id).maybeSingle(),
 ]);
+const hayTelegram = telegramListo();
 // Quien eligió la foto de Google antes de la migración 8 todavía no la tiene guardada para las reseñas
 if (perfil.foto === 'google' && typeof user.avatar === 'string' && user.avatar.startsWith('https://') && user.avatar.length <= 500) {
   try { await supabaseAdmin.from('perfiles').update({ foto_url: user.avatar }).eq('user_id', user.id).is('foto_url', null); } catch { /* no es grave */ }
@@ -40,6 +44,8 @@ const prendidoMail = (tipos: string[]) => {
   const fila = (prefsRaw || []).find((p: any) => p.tipo === tipos[0] && p.canal === 'mail');
   return fila ? fila.activo !== false : MAIL_POR_DEFECTO[tipos[0]] === true;
 };
+// Por Telegram (migración 18): sin fila, sí
+const prendidoTelegram = (tipos: string[]) => prendido(tipos, 'telegram');
 const seguidas = (seguidasRaw || [])
   .map((x: any) => ({ mail: x.mail, materia: Array.isArray(x.materias) ? x.materias[0] : x.materias }))
   .filter((x: any) => x.materia)
@@ -164,19 +170,48 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
       <section class="panel" id="avisos">
         <h2>Avisos</h2>
         <div class="acct-row">
-          <div class="acct-lbl"><b>Qué te avisamos</b><span class="sub">En <a href="/avisos">Avisos</a>, arriba de todo, y si querés también por mail</span></div>
+          <div class="acct-lbl"><b>Qué te avisamos</b><span class="sub">En <a href="/avisos">Avisos</a>, arriba de todo, y si querés también {telegram ? 'por Telegram' : 'por mail'}</span></div>
           <div class="acct-val">
             {PREFERENCIAS_EDITABLES.map((p) => (
               <div class="pref">
                 <label class="toggle"><input type="checkbox" data-tipos={p.tipos.join(',')} checked={prendido(p.tipos)} /><span class="tg"></span><span>{p.texto}{p.detalle && <small class="sub"> ({p.detalle})</small>}</span></label>
-                <label class="toggle sm"><input type="checkbox" data-tipos={p.tipos.join(',')} data-canal="mail" checked={prendidoMail(p.tipos)} /><span class="tg"></span><span>Mail</span></label>
+                {telegram
+                  ? <label class="toggle sm"><input type="checkbox" data-tipos={p.tipos.join(',')} data-canal="telegram" checked={prendidoTelegram(p.tipos)} /><span class="tg"></span><span>Telegram</span></label>
+                  : <label class="toggle sm"><input type="checkbox" data-tipos={p.tipos.join(',')} data-canal="mail" checked={prendidoMail(p.tipos)} /><span class="tg"></span><span>Mail</span></label>}
               </div>
             ))}
             <span class="sub">Si la moderación te pide que edites una reseña, te avisamos siempre.</span>
-            <span class="sub">Por mail te llega como mucho uno por día, a la mañana, con todo junto. Si apagás un aviso, tampoco te llega por mail. Las reseñas y los finales nuevos llegan por mail solo de las materias que tienen "Mail" prendido en Materias que seguís.</span>
+            {telegram
+              ? <span class="sub">Con Telegram conectado, los avisos te llegan por ahí al momento, con el link directo, y no por mail. Si apagás un aviso, tampoco te llega por Telegram.</span>
+              : <span class="sub">Por mail te llega como mucho uno por día, a la mañana, con todo junto. Si apagás un aviso, tampoco te llega por mail. Las reseñas y los finales nuevos llegan por mail solo de las materias que tienen "Mail" prendido en Materias que seguís.</span>}
             <p class="sub" id="avisos-ok" aria-live="polite"></p>
           </div>
         </div>
+        {(hayTelegram || telegram) && (
+          <div class="acct-row" id="telegram">
+            <div class="acct-lbl"><b>Telegram</b><span class="sub">Avisos al momento, sin mails</span></div>
+            <div class="acct-val">
+              {telegram ? (
+                <>
+                  <span><Icon name="check" /> Conectado{telegram.usuario ? <> como <b>{telegram.usuario}</b></> : null}. Tus avisos te llegan por Telegram.</span>
+                  <div class="acts-row"><button type="button" class="btn quiet" id="tg-desconectar">Desconectar Telegram</button></div>
+                </>
+              ) : (
+                <>
+                  <span>Recibí tus avisos al momento en Telegram, con el link directo a la reseña o al curso. Mientras esté conectado, no te mandamos mails.</span>
+                  <ol class="tg-pasos sub">
+                    <li>Tocá <b>Conectar Telegram</b>: se abre el bot de UTN REP.</li>
+                    <li>En Telegram, tocá <b>Iniciar</b> (o "Start").</li>
+                    <li>Listo: el bot te confirma y acá vas a ver "Conectado".</li>
+                  </ol>
+                  <div class="acts-row"><button type="button" class="btn primary" id="tg-conectar">Conectar Telegram</button></div>
+                  <span class="sub">Si no tenés Telegram, bajalo gratis de tu tienda de apps. El link sirve por 30 minutos.</span>
+                </>
+              )}
+              <p class="sub" id="tg-ok" aria-live="polite"></p>
+            </div>
+          </div>
+        )}
         <div class="acct-row">
           <div class="acct-lbl"><b>"¿Cómo te fue?"</b><span class="sub">En el inicio</span></div>
           <div class="acct-val">
@@ -365,14 +400,48 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
     try {
       const res = await fetch('/api/avisos/preferencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipos: cb.dataset.tipos!.split(','), canal: cb.dataset.canal || 'sitio', activo: cb.checked }) });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo guardar.');
-      ok.textContent = cb.dataset.canal === 'mail'
-        ? (cb.checked ? 'Listo, también te llega por mail.' : 'Listo, ya no te llega por mail.')
+      const canal = cb.dataset.canal === 'mail' ? 'mail' : cb.dataset.canal === 'telegram' ? 'Telegram' : '';
+      ok.textContent = canal
+        ? (cb.checked ? `Listo, también te llega por ${canal}.` : `Listo, ya no te llega por ${canal}.`)
         : (cb.checked ? 'Listo, te lo avisamos.' : 'Listo, no te lo avisamos más.');
     } catch (e) {
       cb.checked = !cb.checked;
       ok.textContent = (e as Error).message;
     }
   }));
+
+  // Telegram (migración 18)
+  const tgOk = document.getElementById('tg-ok');
+  document.getElementById('tg-conectar')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    // La pestaña se abre ya (con el clic), si no el navegador la bloquea
+    const ventana = window.open('', '_blank');
+    b.disabled = true;
+    try {
+      const res = await fetch('/api/telegram/vincular', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'conectar' }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.link) throw new Error(data.error || 'No se pudo.');
+      if (ventana) ventana.location.href = data.link; else window.location.href = data.link;
+      if (tgOk) tgOk.innerHTML = 'Se abrió Telegram. Cuando toques <b>Iniciar</b>, <a href="/mi-cuenta#telegram">recargá esta página</a>.';
+    } catch (err) {
+      ventana?.close();
+      if (tgOk) tgOk.textContent = (err as Error).message;
+    } finally {
+      b.disabled = false;
+    }
+  });
+  document.getElementById('tg-desconectar')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    b.disabled = true;
+    try {
+      const res = await fetch('/api/telegram/vincular', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'desconectar' }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo.');
+      window.location.reload();
+    } catch (err) {
+      b.disabled = false;
+      if (tgOk) tgOk.textContent = (err as Error).message;
+    }
+  });
 
   // Borrar la cuenta
   const formBorrar = $('form-borrar') as HTMLFormElement;

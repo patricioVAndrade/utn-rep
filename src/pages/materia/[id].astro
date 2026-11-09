@@ -6,6 +6,8 @@ import CursoChips from '../../components/CursoChips.astro';
 import ShareButton from '../../components/ShareButton.astro';
 import SeguirMateria from '../../components/SeguirMateria.astro';
 import FinalesPanel from '../../components/FinalesPanel.astro';
+import Quien from '../../components/Quien.astro';
+import { autoresDeResenas } from '../../lib/fichas';
 import { supabase } from '../../lib/supabase';
 import { anioLabel, compararCursos, nota, tiempoRelativo } from '../../lib/format';
 
@@ -53,6 +55,24 @@ if (dictadoIds.length > 0) {
     .limit(5000);
   resenas = (data || []) as Fila[];
 }
+
+// La más útil de la materia (F35): la reseña con más "Me sirvió" entre todos sus cursos,
+// desde 3 votos; con empate queda la que llegó primero. Igual que la del curso y la del inicio.
+let masUtil: any = null;
+if (dictadoIds.length > 0) {
+  const { data } = await supabase
+    .from('resenas_publicas')
+    .select('id, dictado_id, comentario, calificacion_general, votos_utilidad, nombre_usuario, es_anonima, created_at')
+    .in('dictado_id', dictadoIds)
+    .gte('votos_utilidad', 3)
+    .order('votos_utilidad', { ascending: false })
+    .order('created_at', { ascending: true })
+    .limit(1);
+  masUtil = (data || [])[0] || null;
+}
+const masUtilCurso = masUtil ? lista.find((d: any) => d.id === masUtil.dictado_id)?.cursos?.identificador || '' : '';
+const masUtilFicha = masUtil ? (await autoresDeResenas([masUtil.id])).get(masUtil.id)?.ficha : undefined;
+const recortar = (t: string, n = 220) => (t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t);
 
 const porCurso = new Map<number, { suma: number; count: number; prom: number; conCond: number; ultima: string | null }>();
 const distribucion = [0, 0, 0, 0, 0];
@@ -239,6 +259,16 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
     </div>
 
     <aside class="side" aria-label="Más sobre la materia">
+      {masUtil && (
+        <section class="panel destacada">
+          <h3><Icon name="thumb" /> La más útil de la materia</h3>
+          <div class="in">
+            <span class="sub"><Stars value={masUtil.calificacion_general} /> por <Quien nombre={masUtil.es_anonima ? 'Anónimo' : masUtil.nombre_usuario || 'Estudiante'} anonimo={masUtil.es_anonima} ficha={masUtilFicha} />{masUtilCurso && <>, del curso <a href={`/dictado/${masUtil.dictado_id}`}>{masUtilCurso}</a></>}</span>
+            <blockquote class="quote-mini">"{recortar(masUtil.comentario || '')}"</blockquote>
+            <span class="sub">Le sirvió a <b>{masUtil.votos_utilidad} personas</b>. <a href={`/dictado/${masUtil.dictado_id}#resena-${masUtil.id}`}>Leerla entera</a></span>
+          </div>
+        </section>
+      )}
       <FinalesPanel materiaId={materia.id} />
       <SeguirMateria materiaId={materia.id} materiaNombre={materia.nombre} />
       <section class="panel cta">

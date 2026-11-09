@@ -30,6 +30,12 @@ Resultados de cada migración en la base de prueba (los que pegó Pato):
 | 10. En línea | 8/11 | `1 · 2 · false · false · true` |
 | 11. Historial de profesores | 8/11 | `0 · 1 · 1 · 0 · false` (ok) |
 | 12. Horarios y Mi inscripción | — | Pendiente de correr. Esperado: `2 · 5 · true · false · false` |
+| 13. Final en la reseña | 9/11 | Ok |
+| 14. Visitas | 9/11 | Ok |
+| 15. Recordatorio de fin de cuatrimestre | 9/11 | Ok |
+| 16. Logros nuevos | 9/11 | `4 · true · false · true · 0` |
+| 17. Mails | 9/11 | `1 · false · true · false · true` |
+| 18. Telegram | — | Pendiente de correr. Esperado: `2 · true · false · true · true` (el último `false` si falta pg_net) |
 
 ### Pruebas con datos (se deshacen solas)
 
@@ -84,6 +90,7 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 193 pruebas en 18 archiv
 
 | Migración | Método y ruta | Necesita | Casos a probar | Prueba automática |
 |---|---|---|---|---|
+| 18 | `POST /api/telegram/vincular` `{ accion: "conectar" \| "desconectar" }`, `POST /api/telegram/webhook`, `POST /api/telegram/despachar` y `POST /api/admin/telegram` `{ accion: "estado" \| "conectar" }` | Sesión / header `x-telegram-bot-api-secret-token` / nada / admin + CSRF | Vincular sin sesión → 401; sin las claves → 503; con todo → `{ link }` a `t.me/<bot>?start=…`. Webhook sin el secreto o con uno malo → 401; `/start` con código bueno vincula y contesta "¡Listo!"; el mismo código otra vez o uno vencido (30 min) → "Ese link ya venció"; `/start` solo explica; `/stop` desconecta; `my_chat_member` con `kicked` desconecta; un grupo se ignora. Despachar: manda lo pendiente y una segunda llamada da `enviados: 0` (no repite); varios avisos de una persona van en un mensaje; lo leído, lo de más de 3 días, lo apagado en Mi cuenta y las cuentas bloqueadas no salen; si Telegram contesta 403 se desconecta y el aviso vuelve al mail; más de 60 llamadas por minuto → 429. Con Telegram conectado, `GET /api/cron/mails?prueba=1` no cuenta a esa persona. Admin sin CSRF → 403; `conectar` sin claves → 400, con un sitio http → 400. | Pendiente (se prueba todo junto al final) |
 | 17 | `GET /api/cron/mails` (`?prueba=1` no manda) y `POST /api/avisos/baja` `{ u, t }` | `Authorization: Bearer CRON_SECRET` / link firmado | Sin el secreto → 401. Con `?prueba=1` → presupuesto (`usados`, `reserva`, `disponible`) y asuntos, sin mandar. Una persona con varios avisos recibe un solo mail; al otro día no recibe de nuevo lo mismo; lo leído en el sitio no se manda; con `disponible` en 0 no sale nada y queda para mañana; cuenta bloqueada no recibe. Link de ingreso con el tope alcanzado → 503 "Entrá con Google o GitHub". Baja con firma mala → 400; buena → apaga todos los mails (Mi cuenta muestra "Mail" apagado). | Pendiente (se prueba todo junto al final) |
 | 16 | `POST /api/logros/detective` y los logros nuevos | Sesión | Sin sesión → 401. Cinco toques en "Anónimo" → `{ nuevo: true }` la primera vez, después `false`. Cada logro nuevo aparece en Mi cuenta y deja un aviso. La reseña más votada del curso (3 o más) dice "La más útil del curso". | Pendiente (se prueba todo junto al final) |
 | 15 | Cualquier página con sesión (la primera del día) | Sesión | Con un curso de 1.er cuatrimestre elegido en Mi inscripción antes del 1/8 y sin reseña, del 1/8 al 7/12 aparece "¿Cómo te fue en …?" en Avisos; no se repite; con "Al terminar el cuatrimestre" apagado en Mi cuenta no aparece. Desde el 8/12, lo mismo con los de 2.º y anuales; desde el 1/3 se repite a quien no reseñó. Cookie `rec_cuatri` con la fecha del día. | Pendiente (se prueba todo junto al final) |
@@ -130,5 +137,8 @@ Lo que no se puede probar con Postman porque es de pantalla:
 - Sacar un profe de un curso en Admin > Materias y cursos y ver "Antes: nombre (período)" debajo.
 - Mail del día: que llegue a Gmail y a Hotmail (no a spam), se vea bien en el celular y en modo oscuro, y el link "dejá de recibir mails" lleve a /baja.
 - Mi cuenta: interruptor "Mail" de cada aviso.
+- Telegram (con el bot de prueba, ver `docs/TELEGRAM.md`): conectar desde Mi cuenta, que llegue el aviso en segundos con el botón que lleva a la reseña, que varios avisos juntos lleguen en un solo mensaje, que el interruptor diga "Telegram" en vez de "Mail", `/stop`, bloquear al bot y "Desconectar Telegram". Que la línea de Avisos y el pie del mail inviten a conectarlo solo a quien no lo tiene.
+- Admin > Resumen > Bot de Telegram: sin claves dice cuáles faltan; "Conectar el bot a este sitio" deja las dos direcciones iguales.
+- Materia con una reseña de 3 votos o más: panel "La más útil de la materia" con el curso y el link a la reseña; sin ninguna de 3 votos, no aparece.
 - Logo nuevo: encabezado a 1100 y 390 px, favicon en la pestaña (claro y oscuro), ícono al agregar el sitio a la pantalla del celular y la imagen al compartir un link en WhatsApp.
 - Cada página a 390 px y en modo noche.

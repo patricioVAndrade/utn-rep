@@ -5,9 +5,12 @@ import Stars from '../../components/Stars.astro';
 import { isAdmin } from '../../lib/admin';
 import { supabaseAdmin } from '../../lib/supabase-admin';
 import { tiempoRelativo } from '../../lib/format';
+import { ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
+import { tokenCsrf } from '../../lib/admin-csrf';
 
 const user = Astro.locals.user;
 if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+const csrfToken = tokenCsrf(Astro.cookies);
 
 const DIA = 86400000;
 const ahora = Date.now();
@@ -90,6 +93,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 'n
 ---
 
 <Layout title="Resumen - Panel de admin" crumbs={[{ label: 'Panel de admin' }]}>
+  <div id="admin-csrf" hidden data-h={ADMIN_CSRF_HEADER} data-t={csrfToken}></div>
   <div class="admin-wrap">
     <AdminNav actual="resumen" />
     <div class="admin-main">
@@ -157,6 +161,72 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 'n
           </div>
         </section>
       </div>
+
+      <section class="panel" id="telegram">
+        <h3>Bot de Telegram</h3>
+        <div class="in">
+          <p id="tg-estado" class="sub" role="status">Viendo cómo está el bot…</p>
+          <dl id="tg-datos" class="tg-datos hidden">
+            <dt>Bot</dt><dd id="tg-bot"></dd>
+            <dt>Recibe los mensajes en</dt><dd id="tg-webhook"></dd>
+            <dt>La base avisa a</dt><dd id="tg-sitio"></dd>
+            <dt>Personas conectadas</dt><dd id="tg-conectados"></dd>
+          </dl>
+          <p id="tg-error" class="sub hidden"></p>
+          <div><button type="button" id="tg-conectar-bot" class="btn secondary" disabled>Conectar el bot a este sitio</button></div>
+          <span class="sub">Se toca una vez en cada entorno (el de prueba y el real), después de cargar las tres claves en Vercel. Los pasos están en <code>docs/TELEGRAM.md</code>.</span>
+        </div>
+      </section>
     </div>
   </div>
 </Layout>
+
+<script>
+  import { adminFetch, aviso } from '../../scripts/admin-api';
+
+  type Estado = { falta: string[]; bot: string | null; webhook: string | null; ultimoError: string | null; conectados: number; url_sitio: string | null };
+  const $ = (id: string) => document.getElementById(id)!;
+  const boton = $('tg-conectar-bot') as HTMLButtonElement;
+
+  function mostrar(e: Estado) {
+    const aca = `${location.origin}/api/telegram/webhook`;
+    const estado = $('tg-estado');
+    if (e.falta.length) {
+      estado.textContent = `Falta cargar en Vercel: ${e.falta.join(', ')}. Después de cargarlas hay que volver a desplegar.`;
+      boton.disabled = true;
+      return;
+    }
+    boton.disabled = false;
+    $('tg-datos').classList.remove('hidden');
+    $('tg-bot').textContent = e.bot ? `@${e.bot}` : 'Sin nombre';
+    $('tg-webhook').textContent = e.webhook || 'Ningún lado todavía';
+    $('tg-sitio').textContent = e.url_sitio || 'Ningún lado todavía';
+    $('tg-conectados').textContent = String(e.conectados);
+    const listo = e.webhook === aca && e.url_sitio === location.origin;
+    estado.textContent = listo
+      ? 'El bot está conectado a este sitio.'
+      : e.webhook
+        ? 'El bot está conectado a otra dirección. Si este es el sitio que tiene que usar, conectalo acá.'
+        : 'Las claves están cargadas. Falta conectar el bot.';
+    boton.textContent = listo ? 'Volver a conectar' : 'Conectar el bot a este sitio';
+    const err = $('tg-error');
+    err.classList.toggle('hidden', !e.ultimoError);
+    err.textContent = e.ultimoError ? `Último error que vio Telegram al llamar al sitio: ${e.ultimoError}` : '';
+  }
+
+  const cargar = () => adminFetch<Estado>('/api/admin/telegram', { accion: 'estado' }).then(mostrar)
+    .catch((e) => { $('tg-estado').textContent = (e as Error).message; });
+
+  boton.addEventListener('click', async () => {
+    boton.disabled = true;
+    try {
+      const r = await adminFetch<{ url_sitio: string | null }>('/api/admin/telegram', { accion: 'conectar' });
+      aviso(r.url_sitio ? 'Bot conectado.' : 'Bot conectado, pero no se pudo guardar la dirección en la base (¿corriste la migración 18?).', !r.url_sitio);
+    } catch (e) {
+      aviso((e as Error).message, true);
+    }
+    await cargar();
+  });
+
+  cargar();
+</script>

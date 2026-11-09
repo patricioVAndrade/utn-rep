@@ -153,7 +153,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261109020000_recordatorio_fin_cuatri.sql` (necesita la 7 y la 12). Vuelta atrás: `supabase/rollback/20261109020000_recordatorio_fin_cuatri.sql`.
 - **Verificación esperada:** `funcion = 1`, `anon_puede = false`, `usuario_puede = true`, `sin_sesion = 0`.
 
-### 16. Logros nuevos (votados el 9/11) — **lista para correr en prueba, código subido**
+### 16. Logros nuevos (votados el 9/11) — **corrida en prueba el 9/11, código subido**
 
 - Se suman, y los da la base sola con aviso, como L1 a L6:
   - L8 Pasalo al grupo: tres personas distintas abren un link tuyo.
@@ -172,7 +172,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261109030000_logros_nuevos.sql` (necesita la 8 y la 9). Vuelta atrás: `supabase/rollback/20261109030000_logros_nuevos.sql` (borra los logros nuevos ganados).
 - **Verificación esperada:** `triggers = 4`, `detective_usuario = true`, `detective_anon = false`, `acepta_l20 = true`, y en `logros_nuevos_dados` cuántos se dieron a quienes ya los tenían ganados (puede ser 0).
 
-### 17. Avisos por mail sin pasarse de los 300 por día de Brevo (F11 y el mail de 3.8 y F32) — **lista para correr en prueba, código subido**
+### 17. Avisos por mail sin pasarse de los 300 por día de Brevo (F11 y el mail de 3.8 y F32) — **corrida en prueba el 9/11, código subido**
 
 - Brevo manda 300 mails por día y ahí entran también los links para entrar al sitio. Para no quedarse sin mails:
   - **Un solo mail por persona por día**, a la mañana (9 en Córdoba, cron de Vercel), con todos sus avisos sin leer de la última semana juntos. Lo que ya leyó en el sitio no se manda.
@@ -183,11 +183,25 @@ Las tres tocan la tabla `resenas`, así que van juntas.
   - "Hoy" cuenta desde la medianoche más temprana entre la de Córdoba y la de UTC, así no importa a qué hora reinicia Brevo su contador.
 - Tabla `mails_enviados` (un renglón por mail, sin el texto; se borra a los 30 días) y funciones `quiere_mail`, `anotar_mail_login`, `presupuesto_mails`, `mails_pendientes` y `marcar_mail_enviado`. Todo solo para el servidor.
 - Código: `src/lib/mail.ts` (presupuesto, armado del mail y envío por la API de Brevo), `/api/cron/mails` (con `?prueba=1` no manda nada, dice qué mandaría), `/baja` y `/api/avisos/baja` (dejar de recibir mails sin iniciar sesión, con link firmado), interruptor "Mail" por cada aviso en Mi cuenta, y `vercel.json` con el cron.
+- **Si se llega al tope**: los avisos nunca dependen del mail, siempre quedan en el sitio. Lo que no entró hoy y sigue sin leer sale mañana, cuando Brevo reinicia la cuenta; lo que ya se leyó no se manda. Quien tiene Telegram (migración 18) no gasta mails.
 - **Lo que tenés que cargar en Vercel** (vos, no por el chat): `BREVO_API_KEY` (Brevo > SMTP & API > API Keys), `MAIL_REMITENTE` (por ejemplo `UTN REP <avisos@utnrep.app>`, con una dirección ya verificada en Brevo), `CRON_SECRET` (cualquier texto largo al azar; Vercel lo manda solo al cron) y, si querés, `MAIL_TOPE_DIARIO` (si cambiás de plan). Sin `BREVO_API_KEY` el cron funciona en modo prueba y no manda nada.
 - **En Supabase** (Authentication > Rate Limits): bajar "emails por hora" a 25 o 30, así nadie puede gastar todos los mails del día pidiendo links.
 - El cron de Vercel corre solo en producción. Para probarlo en el Preview: `GET /api/cron/mails?prueba=1` con `Authorization: Bearer <CRON_SECRET>`.
 - **Archivo:** `supabase/migrations/20261109040000_mails.sql` (necesita la 7 y la 9). Vuelta atrás: `supabase/rollback/20261109040000_mails.sql`.
 - **Verificación esperada:** `tabla = 1`, `usuario_lee_registro = false`, `servidor_arma_resumen = true`, `anon_anota = false`, `presupuesto = true`.
+
+### 18. Avisos por Telegram (lo pediste el 9/11) — **lista para correr en prueba, código subido**
+
+- Quien conecta el bot desde Mi cuenta recibe sus avisos **al momento por Telegram, con el link directo** (a la reseña, al final, al curso), y **deja de recibir el mail**. Telegram no tiene tope diario, así que cada persona que lo conecta es un mail menos por día.
+- **Vincular**: Mi cuenta pide un código de un solo uso (30 minutos) y abre `t.me/<bot>?start=<código>`. Al tocar Iniciar, el bot une la cuenta con ese chat. `/stop` en el bot o "Desconectar Telegram" en Mi cuenta lo deshacen; si alguien bloquea al bot, se desconecta solo. Al desconectar, los avisos del último día vuelven a poder salir por mail.
+- **Mandar**: cuando la base crea un aviso para alguien con Telegram, le avisa al sitio con pg_net (`/api/telegram/despachar`, sin datos ni claves). El sitio pide lo pendiente con `reclamar_telegram()`, que lo marca como tomado en el mismo paso para que nunca salga dos veces. Varios avisos juntos para la misma persona van en un solo mensaje. El envío de las 9 repasa lo que haya quedado.
+- **Qué llega**: lo mismo que la persona tiene prendido. Con Telegram conectado, el interruptor "Mail" de cada aviso en Mi cuenta pasa a decir "Telegram". Solo avisos sin leer de los últimos 3 días.
+- **Se le cuenta a la gente** en Mi cuenta (sección Telegram, con los tres pasos), en Avisos (una línea arriba de la lista) y en el pie del mail del día.
+- Tablas `telegram_cuentas` (cada uno ve la suya, sin el número de chat) y `telegram_codigos`, columna `notificaciones.telegram_enviado_at`, `ajustes_sitio` (la dirección del sitio para pg_net) y funciones `vincular_telegram`, `desvincular_telegram`, `quiere_telegram`, `reclamar_telegram` y `liberar_telegram`. `mails_pendientes` se redefine para saltear a quien tiene Telegram.
+- Código: `src/lib/telegram.ts`, `/api/telegram/webhook` (lo que le escriben al bot, con el secreto de Telegram), `/api/telegram/vincular`, `/api/telegram/despachar`, `/api/admin/telegram` y el panel "Bot de Telegram" en el Resumen del admin.
+- **Lo que tenés que hacer vos**: crear el bot con @BotFather, cargar `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` y `TELEGRAM_WEBHOOK_SECRET` en Vercel y tocar "Conectar el bot a este sitio" en el admin. Paso a paso en `docs/TELEGRAM.md`. Sin esas claves el sitio no muestra nada de Telegram.
+- **Archivo:** `supabase/migrations/20261109050000_telegram.sql` (necesita la 7, la 9 y la 17). Vuelta atrás: `supabase/rollback/20261109050000_telegram.sql` (deja `mails_pendientes` como en la 17).
+- **Verificación esperada:** `tablas = 2`, `usuario_ve_la_suya = true`, `usuario_ve_chat = false`, `columna = true` y `aviso_inmediato = true` (si da `false`, falta prender pg_net: ver el tutorial).
 
 ---
 

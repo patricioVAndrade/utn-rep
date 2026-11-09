@@ -107,6 +107,7 @@ export function armarResumen(p: PersonaMail, origen: string): Mail {
       <tr><td style="padding:12px 18px;background:#f5f7fa;border-top:1px solid #d2dbe4;color:#566271;font-size:11.5px">
         Te mandamos como mucho un mail por día, con todo junto. Elegí qué te llega en <a href="${esc(origen)}/mi-cuenta#avisos" style="color:#133d68">Mi cuenta</a>
         o <a href="${esc(baja)}" style="color:#133d68">dejá de recibir mails</a>.<br>
+        ¿Los preferís al momento? <a href="${esc(origen)}/mi-cuenta#telegram" style="color:#133d68">Conectá Telegram</a> y dejamos de mandarte mails.<br>
         UTN REP es un sitio hecho por estudiantes. No es un sitio oficial de la UTN.
       </td></tr>
     </table>
@@ -120,6 +121,7 @@ export function armarResumen(p: PersonaMail, origen: string): Mail {
     '', 'Te mandamos como mucho un mail por día.',
     `Elegí qué te llega: ${origen}/mi-cuenta#avisos`,
     `Dejar de recibir mails: ${baja}`,
+    `¿Preferís Telegram? Conectalo en ${origen}/mi-cuenta#telegram`,
   ].join('\n');
 
   return { para: { email: p.email, ...(p.nombre ? { nombre: p.nombre } : {}) }, asunto: asunto(p.avisos), html, texto, baja };

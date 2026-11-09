@@ -4,6 +4,7 @@ import Icon from '../components/Icon.astro';
 import { createSupabaseServerClient } from '../lib/supabase';
 import { ICONO_AVISO } from '../lib/avisos';
 import { tiempoRelativo } from '../lib/format';
+import { telegramListo } from '../lib/telegram';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/?auth_error=login_required');
@@ -17,6 +18,12 @@ const { data } = await client
   .limit(60);
 const avisos = data || [];
 const sinLeer = avisos.filter((a: any) => !a.leida_at).length;
+// Invitar a Telegram (migración 18) a quien no lo tiene conectado
+let ofrecerTelegram = false;
+if (telegramListo()) {
+  const { data: tg, error: errTg } = await client.from('telegram_cuentas').select('usuario').eq('user_id', user.id).maybeSingle();
+  ofrecerTelegram = !errTg && !tg;
+}
 ---
 
 <Layout title="Avisos - UTN REP" description="Tus avisos en UTN REP." tab="mis" crumbs={[{ label: 'Avisos' }]}>
@@ -29,6 +36,10 @@ const sinLeer = avisos.filter((a: any) => !a.leida_at).length;
         </div>
         {sinLeer > 0 && <div class="actions"><button type="button" class="btn quiet" id="leer-todos"><Icon name="check" /> Marcar todo como leído</button></div>}
       </div>
+
+      {ofrecerTelegram && (
+        <p class="tg-invita"><Icon name="info" /> <span>¿Los querés al momento en el celular? <a href="/mi-cuenta#telegram">Conectá Telegram</a> y te llegan por ahí, con el link directo.</span></p>
+      )}
 
       {avisos.length > 0 ? (
         <ul class="avisos" id="lista-avisos">
