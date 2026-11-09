@@ -45,10 +45,13 @@ con "TODO OK".
 
 ## 2. Pruebas automáticas: `npm test`
 
-Corren sin base (la base se simula con `vi.mock`). Hoy: 141 pruebas en 15 archivos.
+Corren sin base (la base se simula con `vi.mock`). Hoy: 193 pruebas en 18 archivos. Las de endpoints usan `tests/base-falsa.ts`, una base de mentira que anota cada consulta y contesta lo que pida la prueba.
 
 | Archivo | Qué prueba |
 |---|---|
+| `tests/cuenta-api.test.ts` | Migraciones 5 a 9: `POST /api/perfil` (nombre limpio y en la sesión, años, pausa de 30 días, foto de Google solo https y guardada por el servidor, cuenta bloqueada), `POST /api/cuenta/borrar` (BORRAR, dejar anónimo o borrar todo, no borra la cuenta si falla anonimizar), `POST /api/seguir`, `POST /api/avisos` y `/preferencias` (solo los propios; los pedidos de la moderación no se apagan), `GET /api/links/mio` y `POST /api/links/abrir` (código propio no suma, una por visitante, límite por IP). |
+| `tests/resenas-api.test.ts` | Reseñas y finales: escribir (curso inexistente, 8 por hora, una por curso), editar (solo texto o "¿Cómo te fue?", ajena → 403), borrar (RLS, el admin con la clave de servicio y anotado), votar y reportar reseñas y finales, y la cuenta bloqueada → 403 en cada escritura. |
+| `tests/admin-api.test.ts` | Migraciones 4 y 9 con el control de admin y CSRF de verdad: responder (y volver a responder) reseñas y finales, borrar la respuesta, pedir edición, palabras marcadas, bloquear y desbloquear (no a un admin; queda en el registro). |
 | `tests/resena-final.test.ts` | Migración 13: `POST /api/resenas/final` (sin sesión, reseña o final inválidos, sumar, sacar, reseña ajena o inexistente → 404, otra materia → 400, final ya usado → 409, error de la base) y el texto "Rindió en julio 2026". |
 | `tests/finales-crear.test.ts` | `POST /api/finales/crear`: sin sesión, datos inválidos, crear devuelve el id, ofrece sumarlo si tenés una reseña de la materia sin final (`sumar`), y sigue andando si la base todavía no tiene la migración 13. |
 | `tests/horarios.test.ts` | Migración 12: horas ("8:00" y la fracción del día de Google), siglas (ADSI, IOP, ICS, TPA…), juntar módulos, texto del horario, superposiciones (también por cuatrimestre), grilla de Sistemas con celdas combinadas y dos cuatrimestres, "Electiva 1", horarios de Básicas y qué horarios cambian al importar. CSV de horarios (de los PDF oficiales): una fila por módulo, anual o por cuatrimestre, filas que no entiende, le gana a las planillas, materia que no está en la base (se pide en "Materias que no encontré") y curso que no está en la base. |
@@ -87,17 +90,17 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 141 pruebas en 15 archiv
 | 12 | `POST /api/admin/importar` (vista previa con links o archivo) y `{ accion: aplicar, horarios: [{ curso_id, materia_id, dictado_id, crear?, bloques }] }` | Admin + CSRF | La vista previa trae `previa.horarios` (solo los nuevos o distintos), `horariosIguales` y `horariosSinCurso`; acepta un CSV con solo horarios (curso, materia, cuatrimestre, dia, desde, hasta). Guardar reemplaza el horario de cada curso marcado; si el curso no tiene la materia, con `crear: true` se la agrega (cuenta en `dictados`); bloques inválidos → error en `errores`. Volver a leer → 0 horarios distintos. | `tests/horarios.test.ts` (lectura y comparación), `tests/importar-api.test.ts` |
 | 11 | `POST /api/admin/dictados` `{ action: remove_profesor, dictado_id, profesor_id }` y después `assign_profesor` | Admin + CSRF | Sacar al profe del curso deja "Antes: …" en Materias y cursos (el período se cierra). Volver a asignarlo abre otro. Se comprueba en la base con `migracion-11.sql`. | `supabase/pruebas/migracion-11.sql` |
 | 10 | `POST /api/en-linea` `{ visitante }` | Nada | Visitante inválido → 400. Válido → 200 `{ n, texto, corto }`. Con menos de 5 personas, `n`, `texto` y `corto` vienen en `null`. Muchos pedidos de una IP (más de 300 por minuto) → 429. | `tests/en-linea.test.ts` |
-| 9 | `GET /api/links/mio` | Sesión | Con sesión → `{ codigo }` (siempre el mismo). Sin sesión → `{ codigo: null }`. | Falta |
-| 9 | `POST /api/links/abrir` `{ codigo, visitante, ruta }` | Nada | Código o visitante inválidos → 400. Código ajeno → `{ ok: true }` y suma 1 en Admin. El mismo visitante otra vez no suma. El código propio → `{ ok: false }`. | Falta |
-| 9 | `POST /api/admin/usuarios` `{ accion: bloquear, user_id, motivo }` | Admin + CSRF | Sin CSRF → 403. Bloquear un admin → 400. Bloquear → 200 y la cuenta ya no puede escribir (siguiente fila). Desbloquear → 200. | Falta |
-| 9 | Cualquier escritura con una cuenta bloqueada | Sesión bloqueada | `POST /api/resenas`, `PATCH /api/resenas/{id}`, votar, reportar, finales y `POST /api/perfil` (nombre) → 403 "Tu cuenta está bloqueada". | Falta |
-| 8 | `POST /api/perfil` `{ foto: "google" }` | Sesión | Guarda la foto de Google para las reseñas; con `inicial` o `dibujo` la borra. | Falta |
-| 7 | `GET/POST /api/avisos`, `POST /api/avisos/preferencias` | Sesión | Marcar leídos, borrar, apagar un tipo de aviso. | Falta |
-| 6 | `POST /api/seguir` | Sesión | Seguir, dejar de seguir, mail sí o no. | Falta |
-| 5 | `POST /api/perfil`, `POST /api/cuenta/borrar` | Sesión | Nombre, foto, años; borrar dejando anónimo o borrando todo. | Falta |
-| 4 | `POST /api/admin/moderacion` | Admin + CSRF | Responder, pedir edición, palabras marcadas. | Falta |
-| 3 | `PATCH /api/resenas/{id}` | Sesión (dueño) | Cambiar texto o "¿Cómo te fue?"; sin cambios → 400. | Parcial (`validation.test.ts`) |
-| 1 y 2 | `POST /api/finales/crear`, `/votar`, `/reportar` | Sesión | Con nombre o anónima; votar dos veces; reportar dos veces → 409. | Falta |
+| 9 | `GET /api/links/mio` | Sesión | Con sesión → `{ codigo }` (siempre el mismo). Sin sesión → `{ codigo: null }`. | `tests/cuenta-api.test.ts` |
+| 9 | `POST /api/links/abrir` `{ codigo, visitante, ruta }` | Nada | Código o visitante inválidos → 400. Código ajeno → `{ ok: true }` y suma 1 en Admin. El mismo visitante otra vez no suma. El código propio → `{ ok: false }`. | `tests/cuenta-api.test.ts` |
+| 9 | `POST /api/admin/usuarios` `{ accion: bloquear, user_id, motivo }` | Admin + CSRF | Sin CSRF → 403. Bloquear un admin → 400. Bloquear → 200 y la cuenta ya no puede escribir (siguiente fila). Desbloquear → 200. | `tests/admin-api.test.ts` |
+| 9 | Cualquier escritura con una cuenta bloqueada | Sesión bloqueada | `POST /api/resenas`, `PUT /api/resenas/{id}` (o `POST` con `_method: PUT`), votar, reportar, finales y `POST /api/perfil` (nombre) → 403 "Tu cuenta está bloqueada". | `tests/resenas-api.test.ts`, `tests/cuenta-api.test.ts` |
+| 8 | `POST /api/perfil` `{ foto: "google" }` | Sesión | Guarda la foto de Google para las reseñas; con `inicial` o `dibujo` la borra. | `tests/cuenta-api.test.ts` |
+| 7 | `GET/POST /api/avisos`, `POST /api/avisos/preferencias` | Sesión | Marcar leídos, borrar, apagar un tipo de aviso. | `tests/cuenta-api.test.ts` |
+| 6 | `POST /api/seguir` | Sesión | Seguir, dejar de seguir, mail sí o no. | `tests/cuenta-api.test.ts` |
+| 5 | `POST /api/perfil`, `POST /api/cuenta/borrar` | Sesión | Nombre, foto, años; borrar dejando anónimo o borrando todo. | `tests/cuenta-api.test.ts` |
+| 4 | `POST /api/admin/moderacion` | Admin + CSRF | Responder, pedir edición, palabras marcadas. | `tests/admin-api.test.ts` |
+| 3 | `PUT /api/resenas/{id}` (o `POST` con `_method: PUT`) | Sesión (dueño) | Cambiar texto o "¿Cómo te fue?"; sin cambios → 400. | `tests/resenas-api.test.ts` |
+| 1 y 2 | `POST /api/finales/crear`, `/votar`, `/reportar` | Sesión | Con nombre o anónima; votar dos veces; reportar dos veces → 409. | `tests/finales-crear.test.ts`, `tests/resenas-api.test.ts` |
 
 ### Lo que ya estaba antes de la etapa 3
 

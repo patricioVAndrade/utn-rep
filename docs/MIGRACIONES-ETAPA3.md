@@ -124,7 +124,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261108110000_horarios_inscripcion.sql`. Vuelta atrás: `supabase/rollback/20261108110000_horarios_inscripcion.sql`. Prueba con datos: `supabase/pruebas/migracion-12.sql`.
 - **Verificación esperada:** `tablas = 2`, `politicas = 5`, `publico_lee_horarios = true`, `publico_cambia_horarios = false`, `anon_lee_inscripcion = false`.
 
-### 13. Sumar el final a tu reseña (F34) — **lista para correr en prueba, código subido**
+### 13. Sumar el final a tu reseña (F34) — **corrida en prueba el 9/11, código subido**
 
 - Columna nueva `final_id` en `resenas`: el final que contaste, si lo sumaste. Si borrás el final, la reseña queda como estaba (sin final).
 - La base controla que el final sea tuyo y de la misma materia de la reseña (si no, error `FN001`), y que un final esté en una sola reseña.
