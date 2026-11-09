@@ -1,0 +1,40 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { firmaBajaValida } from '../lib/mail';
+
+// Dejar de recibir mails (migración 17). Llega desde el pie de cada mail.
+const q = Astro.url.searchParams;
+const listo = q.get('listo') === '1';
+const u = q.get('u');
+const t = q.get('t');
+const valido = !listo && firmaBajaValida(u, t);
+---
+
+<Layout title="Dejar de recibir mails - UTN REP" description="Dejar de recibir los mails de avisos de UTN REP." crumbs={[{ label: 'Mails' }]}>
+  <div class="layout narrow">
+    <div class="main">
+      <section class="panel">
+        <h1 style="font-size:13px">Mails de UTN REP</h1>
+        <div class="in">
+          {listo ? (
+            <>
+              <p><b>Listo, no te mandamos más mails.</b> Los avisos siguen apareciendo en el sitio, en <a href="/avisos">Avisos</a>.</p>
+              <p class="sub">Si cambiás de idea, prendelos de nuevo en <a href="/mi-cuenta#avisos">Mi cuenta</a>.</p>
+            </>
+          ) : valido ? (
+            <form method="post" action="/api/avisos/baja" style="display:grid;gap:10px">
+              <p>¿Dejar de recibir los mails de avisos? Los avisos siguen apareciendo en el sitio.</p>
+              <input type="hidden" name="u" value={u} />
+              <input type="hidden" name="t" value={t} />
+              <input type="hidden" name="desde" value="pagina" />
+              <div><button type="submit" class="btn">No quiero más mails</button></div>
+              <p class="sub">Si querés recibir solo algunos, elegí cuáles en <a href="/mi-cuenta#avisos">Mi cuenta</a>.</p>
+            </form>
+          ) : (
+            <p>Este link no funciona (puede estar cortado). Para dejar de recibir mails, iniciá sesión y apagalos en <a href="/mi-cuenta#avisos">Mi cuenta</a>.</p>
+          )}
+        </div>
+      </section>
+    </div>
+  </div>
+</Layout>

@@ -387,6 +387,8 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .toggle input:checked + .tg { background-color: var(--ok); background-position: 14px 0; }
 .toggle input:focus-visible + .tg { outline: 3px solid var(--focus); }
 .toggle.sm { font-size: 10.5px; }
+.pref { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; justify-content: space-between; padding-bottom: 5px; border-bottom: 1px dotted var(--line); }
+.pref > .toggle:first-child { flex: 1 1 220px; min-width: 0; }
 .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .av.draw svg { width: 30px; height: 30px; }
 .av.sm { width: 36px; height: 36px; font-size: 16px; }

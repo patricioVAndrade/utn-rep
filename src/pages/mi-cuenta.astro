@@ -9,6 +9,7 @@ import { createSupabaseServerClient } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { DIBUJOS, leerPerfil } from '../lib/perfil';
 import { PREFERENCIAS_EDITABLES } from '../lib/avisos';
+import { MAIL_POR_DEFECTO } from '../lib/mail';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/');
@@ -34,6 +35,11 @@ const ganados = new Set((logrosRaw || []).map((l: any) => l.logro));
 const logrosOrden = [...LOGROS.filter((l) => ganados.has(l.id)), ...LOGROS.filter((l) => !ganados.has(l.id))];
 // Sin fila, el aviso está prendido
 const prendido = (tipos: string[], canal = 'sitio') => !(prefsRaw || []).some((p: any) => tipos.includes(p.tipo) && p.canal === canal && p.activo === false);
+// Por mail (migración 17): sin fila, lo de MAIL_POR_DEFECTO
+const prendidoMail = (tipos: string[]) => {
+  const fila = (prefsRaw || []).find((p: any) => p.tipo === tipos[0] && p.canal === 'mail');
+  return fila ? fila.activo !== false : MAIL_POR_DEFECTO[tipos[0]] === true;
+};
 const seguidas = (seguidasRaw || [])
   .map((x: any) => ({ mail: x.mail, materia: Array.isArray(x.materias) ? x.materias[0] : x.materias }))
   .filter((x: any) => x.materia)
@@ -130,7 +136,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
               </div>
             ))
             : <span class="sub" id="sin-seguidas">Todavía no seguís ninguna. En cada materia y en cada curso hay un botón "Seguir materia".</span>}
-          {seguidas.length > 0 && <span class="sub">Te avisamos en <a href="/avisos">Avisos</a> cuando hay reseñas o finales nuevos. "Mail" es para que también te llegue un mail, cuando esté el envío.</span>}
+          {seguidas.length > 0 && <span class="sub">Te avisamos en <a href="/avisos">Avisos</a> cuando hay reseñas o finales nuevos. Con "Mail" prendido también te llega en el mail del día.</span>}
         </div>
       </section>
 
@@ -156,14 +162,18 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
       </section>
 
       <section class="panel" id="avisos">
-        <h2>Avisos en el sitio</h2>
+        <h2>Avisos</h2>
         <div class="acct-row">
-          <div class="acct-lbl"><b>Qué te avisamos</b><span class="sub">En <a href="/avisos">Avisos</a>, arriba de todo</span></div>
+          <div class="acct-lbl"><b>Qué te avisamos</b><span class="sub">En <a href="/avisos">Avisos</a>, arriba de todo, y si querés también por mail</span></div>
           <div class="acct-val">
             {PREFERENCIAS_EDITABLES.map((p) => (
-              <label class="toggle"><input type="checkbox" data-tipos={p.tipos.join(',')} checked={prendido(p.tipos)} /><span class="tg"></span><span>{p.texto}{p.detalle && <small class="sub"> ({p.detalle})</small>}</span></label>
+              <div class="pref">
+                <label class="toggle"><input type="checkbox" data-tipos={p.tipos.join(',')} checked={prendido(p.tipos)} /><span class="tg"></span><span>{p.texto}{p.detalle && <small class="sub"> ({p.detalle})</small>}</span></label>
+                <label class="toggle sm"><input type="checkbox" data-tipos={p.tipos.join(',')} data-canal="mail" checked={prendidoMail(p.tipos)} /><span class="tg"></span><span>Mail</span></label>
+              </div>
             ))}
             <span class="sub">Si la moderación te pide que edites una reseña, te avisamos siempre.</span>
+            <span class="sub">Por mail te llega como mucho uno por día, a la mañana, con todo junto. Si apagás un aviso, tampoco te llega por mail. Las reseñas y los finales nuevos llegan por mail solo de las materias que tienen "Mail" prendido en Materias que seguís.</span>
             <p class="sub" id="avisos-ok" aria-live="polite"></p>
           </div>
         </div>
@@ -353,9 +363,11 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
     const ok = $('avisos-ok');
     ok.textContent = 'Guardando…';
     try {
-      const res = await fetch('/api/avisos/preferencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipos: cb.dataset.tipos!.split(','), activo: cb.checked }) });
+      const res = await fetch('/api/avisos/preferencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipos: cb.dataset.tipos!.split(','), canal: cb.dataset.canal || 'sitio', activo: cb.checked }) });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo guardar.');
-      ok.textContent = cb.checked ? 'Listo, te lo avisamos.' : 'Listo, no te lo avisamos más.';
+      ok.textContent = cb.dataset.canal === 'mail'
+        ? (cb.checked ? 'Listo, también te llega por mail.' : 'Listo, ya no te llega por mail.')
+        : (cb.checked ? 'Listo, te lo avisamos.' : 'Listo, no te lo avisamos más.');
     } catch (e) {
       cb.checked = !cb.checked;
       ok.textContent = (e as Error).message;

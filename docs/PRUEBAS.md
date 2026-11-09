@@ -84,6 +84,7 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 193 pruebas en 18 archiv
 
 | Migración | Método y ruta | Necesita | Casos a probar | Prueba automática |
 |---|---|---|---|---|
+| 17 | `GET /api/cron/mails` (`?prueba=1` no manda) y `POST /api/avisos/baja` `{ u, t }` | `Authorization: Bearer CRON_SECRET` / link firmado | Sin el secreto → 401. Con `?prueba=1` → presupuesto (`usados`, `reserva`, `disponible`) y asuntos, sin mandar. Una persona con varios avisos recibe un solo mail; al otro día no recibe de nuevo lo mismo; lo leído en el sitio no se manda; con `disponible` en 0 no sale nada y queda para mañana; cuenta bloqueada no recibe. Link de ingreso con el tope alcanzado → 503 "Entrá con Google o GitHub". Baja con firma mala → 400; buena → apaga todos los mails (Mi cuenta muestra "Mail" apagado). | Pendiente (se prueba todo junto al final) |
 | 16 | `POST /api/logros/detective` y los logros nuevos | Sesión | Sin sesión → 401. Cinco toques en "Anónimo" → `{ nuevo: true }` la primera vez, después `false`. Cada logro nuevo aparece en Mi cuenta y deja un aviso. La reseña más votada del curso (3 o más) dice "La más útil del curso". | Pendiente (se prueba todo junto al final) |
 | 15 | Cualquier página con sesión (la primera del día) | Sesión | Con un curso de 1.er cuatrimestre elegido en Mi inscripción antes del 1/8 y sin reseña, del 1/8 al 7/12 aparece "¿Cómo te fue en …?" en Avisos; no se repite; con "Al terminar el cuatrimestre" apagado en Mi cuenta no aparece. Desde el 8/12, lo mismo con los de 2.º y anuales; desde el 1/3 se repite a quien no reseñó. Cookie `rec_cuatri` con la fecha del día. | Pendiente (se prueba todo junto al final) |
 | — | Curso con menos de 5 reseñas (F31) | Nada | Aparece "Pedir reseñas en el grupo"; con 5 o más, no. El link lleva `?de=` si hay sesión. | Pendiente (se prueba todo junto al final) |
@@ -127,4 +128,6 @@ Lo que no se puede probar con Postman porque es de pantalla:
 - "Lo estoy pensando" en un curso, sin sesión (queda en el navegador) y con sesión; al iniciar sesión, lo del navegador pasa a la cuenta.
 - Mi inscripción: elegir uno por materia, "Tu combinación", aviso de horarios que se pisan, Sacar, Quitar materia, "Mandársela a un amigo" y abrir ese link en otro navegador ("La inscripción que te pasaron" y "Sumar a mi lista").
 - Sacar un profe de un curso en Admin > Materias y cursos y ver "Antes: nombre (período)" debajo.
+- Mail del día: que llegue a Gmail y a Hotmail (no a spam), se vea bien en el celular y en modo oscuro, y el link "dejá de recibir mails" lleve a /baja.
+- Mi cuenta: interruptor "Mail" de cada aviso.
 - Cada página a 390 px y en modo noche.

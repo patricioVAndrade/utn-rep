@@ -172,6 +172,23 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261109030000_logros_nuevos.sql` (necesita la 8 y la 9). Vuelta atrás: `supabase/rollback/20261109030000_logros_nuevos.sql` (borra los logros nuevos ganados).
 - **Verificación esperada:** `triggers = 4`, `detective_usuario = true`, `detective_anon = false`, `acepta_l20 = true`, y en `logros_nuevos_dados` cuántos se dieron a quienes ya los tenían ganados (puede ser 0).
 
+### 17. Avisos por mail sin pasarse de los 300 por día de Brevo (F11 y el mail de 3.8 y F32) — **lista para correr en prueba, código subido**
+
+- Brevo manda 300 mails por día y ahí entran también los links para entrar al sitio. Para no quedarse sin mails:
+  - **Un solo mail por persona por día**, a la mañana (9 en Córdoba, cron de Vercel), con todos sus avisos sin leer de la última semana juntos. Lo que ya leyó en el sitio no se manda.
+  - **Lugar guardado para los links de ingreso**: se guarda 1,5 veces el día con más links de la última semana (mínimo 40) y 20 más de margen. El resumen usa solo lo que sobra.
+  - **Primero lo importante**: pedidos de edición, después respuestas de la moderación, recordatorio de fin de cuatrimestre y por último reseñas y finales nuevos. Si no entra todo, el resto sale al día siguiente (hasta 7 días; después queda solo en el sitio).
+  - **Por defecto** van por mail lo de la moderación, el recordatorio y lo nuevo de las materias que seguís con "Mail" prendido. Los logros y "te sirvió" no (se ven en el sitio); se pueden prender en Mi cuenta.
+  - **Si un día se acaban**, el link de ingreso dice "Entrá con Google o GitHub, o probá mañana" en vez de fallar callado.
+  - "Hoy" cuenta desde la medianoche más temprana entre la de Córdoba y la de UTC, así no importa a qué hora reinicia Brevo su contador.
+- Tabla `mails_enviados` (un renglón por mail, sin el texto; se borra a los 30 días) y funciones `quiere_mail`, `anotar_mail_login`, `presupuesto_mails`, `mails_pendientes` y `marcar_mail_enviado`. Todo solo para el servidor.
+- Código: `src/lib/mail.ts` (presupuesto, armado del mail y envío por la API de Brevo), `/api/cron/mails` (con `?prueba=1` no manda nada, dice qué mandaría), `/baja` y `/api/avisos/baja` (dejar de recibir mails sin iniciar sesión, con link firmado), interruptor "Mail" por cada aviso en Mi cuenta, y `vercel.json` con el cron.
+- **Lo que tenés que cargar en Vercel** (vos, no por el chat): `BREVO_API_KEY` (Brevo > SMTP & API > API Keys), `MAIL_REMITENTE` (por ejemplo `UTN REP <avisos@utnrep.app>`, con una dirección ya verificada en Brevo), `CRON_SECRET` (cualquier texto largo al azar; Vercel lo manda solo al cron) y, si querés, `MAIL_TOPE_DIARIO` (si cambiás de plan). Sin `BREVO_API_KEY` el cron funciona en modo prueba y no manda nada.
+- **En Supabase** (Authentication > Rate Limits): bajar "emails por hora" a 25 o 30, así nadie puede gastar todos los mails del día pidiendo links.
+- El cron de Vercel corre solo en producción. Para probarlo en el Preview: `GET /api/cron/mails?prueba=1` con `Authorization: Bearer <CRON_SECRET>`.
+- **Archivo:** `supabase/migrations/20261109040000_mails.sql` (necesita la 7 y la 9). Vuelta atrás: `supabase/rollback/20261109040000_mails.sql`.
+- **Verificación esperada:** `tabla = 1`, `usuario_lee_registro = false`, `servidor_arma_resumen = true`, `anon_anota = false`, `presupuesto = true`.
+
 ---
 
 ## Lo que ya está hecho sin base (7/11, tarde)
