@@ -2,6 +2,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { createSupabaseServerClient, redirectWithCookies } from './lib/supabase';
 import { safeReturnTo } from './lib/redirect';
 import { displayName } from './lib/user';
+import { recordarFinCuatri } from './lib/recordatorio';
 
 /**
  * Middleware that:
@@ -67,6 +68,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
         avatar: user.user_metadata?.avatar_url || undefined,
         email: user.email || '',
       };
+      // F32: avisos de fin de cuatrimestre (una vez por día)
+      await recordarFinCuatri(supabase, cookies).catch((e) => console.error('[recordatorio]', e));
     } else {
       context.locals.user = null;
     }

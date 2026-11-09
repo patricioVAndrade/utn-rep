@@ -114,6 +114,7 @@ export const logros_usuario = [];
 export const seguimientos = [{ user_id: 'u-demo', materia_id: 1, mail: true, created_at: '2026-11-01T10:00:00Z' }];
 export const preferencias_aviso = [];
 export const notificaciones = [
+  { id: 4, user_id: 'u-demo', tipo: 'recordatorio', titulo: '¿Cómo te fue en Paradigmas de Programación, 2K1?', texto: 'Terminó el 1.er cuatrimestre. Lo elegiste en Mi inscripción: tu reseña le sirve a quien elige curso.', link: '/nueva-resena?dictado=5', leida_at: null, created_at: '2026-11-09T00:10:00Z' },
   { id: 1, user_id: 'u-demo', tipo: 'resena_nueva', titulo: 'Reseña nueva en Álgebra y Geometría Analítica', texto: 'Del curso 1K2.', link: '/dictado/2#resena-3', leida_at: null, created_at: '2026-11-07T14:10:00Z' },
   { id: 2, user_id: 'u-demo', tipo: 'te_sirvio', titulo: 'Tu reseña le sirvió a 5 personas', texto: 'La de Análisis Matemático I.', link: '/mis-resenas', leida_at: null, created_at: '2026-11-06T20:00:00Z' },
   { id: 3, user_id: 'u-demo', tipo: 'respuesta_moderador', titulo: 'La moderación respondió tu reseña', texto: 'Gracias, ya lo revisamos con la cátedra.', link: '/mis-resenas', leida_at: '2026-11-05T12:00:00Z', created_at: '2026-11-05T10:00:00Z' },

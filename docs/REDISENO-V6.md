@@ -26,7 +26,8 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | F11 | Seguir una materia y aviso por mail | Parcial (migración 6) | Materia, curso y Mi cuenta | Panel "Seguir esta materia" (desde el curso se sigue su materia) y la lista en Mi cuenta con interruptor de mail y "Dejar de seguir", como la V6. Avisos en el sitio: hechos (migración 7). Falta el envío por mail (necesita un servicio de mail). |
 | F12 | Respuestas a una reseña | Hecho como F10 | — | Solo responde el moderador (decisión de Pato). |
 | F13 | Contador "Hay X estudiantes en línea" | Hecho (migración 10) | Inicio, arriba de "Así viene el cuatri" | Punto verde que late, sin nombres. Solo desde 5 personas. Cada pestaña visible avisa una vez por minuto. |
-| F14 | Visitas | Hecho (migración 14) | Inicio, "Así viene el cuatri" | "Visitas esta semana": cada navegador cuenta una vez por día, con el mismo latido del contador en línea. Sin la migración muestra "cursos reseñados". |
+| F14 | Visitas | Hecho (migración 14) | Inicio, "Así viene el cuatri" | "Visitas esta semana" en lugar de las reseñas de la semana, desde 100 visitas: cada navegador cuenta una vez por día, con el mismo latido del contador en línea. |
+| F31 | Pedí reseñas en el grupo | Hecho (sin base) | Curso, columna derecha arriba | Con menos de 5 reseñas aparece "Este curso tiene pocas reseñas" (o "no tiene") con el botón verde "Pedir reseñas en el grupo": arma el mensaje de WhatsApp con el link del curso y tu código `?de=`; quien lo abre ve la franja "Te pasaron este curso" con "Sumá tu reseña". Aprobada el 9/11. |
 | F15 | Ficha de usuario ocultable | Hecho (migración 8) | Nombre en cada reseña, "por X" en Última reseña (inicio y año) y en la destacada | `Quien.astro`. La arma el servidor con `src/lib/fichas.ts` (el user_id no llega al navegador). Rango, reseñas, finales, "Me sirvió", desde qué año y logros. Se oculta en Mi cuenta. |
 | F16 | Easter egg de Anónimo | Hecho | Igual que F15 | Máscara y una teoría; cada vez que se abre sale otra (`TEORIAS_ANONIMO`). El logro secreto "Detective" (L9) espera tu voto. |
 | F17 | Escudos de rango | Hecho | Al lado del nombre en las reseñas | `Escudo.astro`, los cuatro de la V6. |
@@ -42,7 +43,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 |---|---|---|
 | Logo de la UTN en el encabezado | Hecho | Símbolo UTN en vector. El logo nuevo de UTN REP (opciones A a F) y el favicon esperan tu elección. |
 | "¿Cómo funciona?" con signo de pregunta | Hecho | Pestaña y pie. |
-| Estadísticas como "Así viene el cuatri", sin profesores | Hecho | Como la V6: reseñas, finales contados, reseñas esta semana y visitas esta semana (migración 14). |
+| Estadísticas como "Así viene el cuatri", sin profesores | Hecho | Reseñas, esta semana, experiencias de finales y cursos reseñados. "Esta semana" pasa a "visitas esta semana" desde 100 visitas (migración 14; Pato prefirió esto a la V6 el 9/11). |
 | Materia = cátedra, adentro hay cursos | Hecho | En todos los textos. |
 | Pestaña "Materias" en vez de "Índice" | Hecho | — |
 | "Experiencias de finales" en vez de "Finales" | Hecho | — |
@@ -74,7 +75,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Reseña publicada | Hecho | `/resena-publicada?curso=ID`. Con el cartel de rango ("Subiste a…") y los logros, y los nuevos de los últimos 15 minutos. |
 | Mis reseñas | Hecho | `/mis-resenas` con Reseñas, Finales contados y Borradores, con el turno de cada curso. "Te faltan reseñar" sale de los cursos que elegiste en Mi inscripción (como la V6); si no elegiste ninguno, de tus años de Mi cuenta. Suma "Sumar el final a tu reseña" (F34). Rango y logros van en Mi cuenta. |
 | Mi cuenta | Casi completa | `/mi-cuenta` (tocando tu nombre arriba), como la V6: nombre a mostrar (cambia también en lo ya publicado), foto, mostrar u ocultar la ficha, años de cursada, "¿Cómo te fue?" y borrar la cuenta (dejando lo publicado como anónimo o borrándolo). Todo se guarda en la cuenta (migración 5). Materias que seguís: hecho (migración 6). Rango y logros: hecho (migración 8). |
-| Mi inscripción (F29) | Hecho (migración 12) | `/mi-inscripcion` como la V6: cursos por materia con turno, nota, reseñas y % de promoción, uno elegido por materia, "Tu combinación" y nota promedio. Suma el aviso de horarios que se pisan y el horario de cada tarjeta. "Lo estoy pensando" en cada curso y panel "Horario" en el curso. Sin la etiqueta "idea F29" ni el recuadro de F32 (el recordatorio todavía no existe). El "Mi elegido" va como texto con tilde, sin recuadro de color. |
+| Mi inscripción (F29) | Hecho (migración 12) | `/mi-inscripcion` como la V6: cursos por materia con turno, nota, reseñas y % de promoción, uno elegido por materia, "Tu combinación" y nota promedio. Suma el aviso de horarios que se pisan y el horario de cada tarjeta. "Lo estoy pensando" en cada curso y panel "Horario" en el curso. Sin la etiqueta "idea F29". Con la nota de F32 ("Cuando termine el cuatrimestre te vamos a preguntar…"). El "Mi elegido" va como texto con tilde, sin recuadro de color. |
 | Ingresar | Hecho | Ventana de ingreso con mail, Google y GitHub |
 | ¿Cómo funciona? | Hecho | `/sobre` |
 | Términos | Hecho | `/terminos`, con el texto que aprobaste (mail, anonimato y qué datos se guardan). |
@@ -102,7 +103,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Código | Qué es | Estado | Nota |
 |---|---|---|---|
 | 3.3 | "Editada el 12/11" | Hecho (migración 3) | Reseña y Mis reseñas | La fecha la pone la base (trigger) solo si cambia el texto, las estrellas o "¿Cómo te fue?"; los votos no cuentan como edición. |
-| 3.8 / F33 | Avisos dentro del sitio | Hecho (migración 7) | "Avisos" en la barra de arriba (con cantidad sin leer), página `/avisos` y qué avisos querés en Mi cuenta | Los crea la base: reseña o final nuevo en lo que seguís, "Tu reseña le sirvió a N personas" (máximo uno por semana), respuesta y pedido de la moderación. Tabla de preferencias por canal (sitio, mail, Telegram, push). Mail y el recordatorio de fin de cuatrimestre (F32) van después. |
+| 3.8 / F33 | Avisos dentro del sitio | Hecho (migración 7) | "Avisos" en la barra de arriba (con cantidad sin leer), página `/avisos` y qué avisos querés en Mi cuenta | Los crea la base: reseña o final nuevo en lo que seguís, "Tu reseña le sirvió a N personas" (máximo uno por semana), respuesta y pedido de la moderación. Tabla de preferencias por canal (sitio, mail, Telegram, push). Recordatorio de fin de cuatrimestre (F32) dentro del sitio: hecho con la migración 15. El mail va después. |
 | F38 | Completar "¿Cómo te fue?" en reseñas viejas | Hecho (migración 3) | Inicio, Mis reseñas y Editar | Franja en el inicio, de a una reseña, con Promocioné, Regularicé y Quedé libre; "Ahora no" (30 días) y "No preguntar más" se guardan en tu cuenta (migración 5) y se cambian en Mi cuenta. Solo pregunta por cursadas de años anteriores o reseñas de más de 4 meses. En Mis reseñas, cada reseña sin el dato lo pide; al editar una reseña hay un selector "¿Cómo te fue?". Las estrellas no se pueden cambiar. |
 
 ## Importar cuatrimestre (nuevo)

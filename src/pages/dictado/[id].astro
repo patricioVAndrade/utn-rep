@@ -138,6 +138,8 @@ const { data: otrosRaw } = await supabase
   .select('id, cursos ( identificador, turno )')
   .eq('materia_id', dictado.materia_id);
 const otrosIds = (otrosRaw || []).map((d: any) => d.id).filter((x: number) => x !== dictado.id);
+// F31: con menos reseñas que esto, se ofrece pedirlas en el grupo de WhatsApp del curso
+const POCAS_RESENAS = 5;
 const statsOtros = new Map<number, { promedio: number; cantidad: number }>();
 if (otrosIds.length > 0) {
   const { data } = await supabase.from('stats_dictados').select('dictado_id, cantidad, promedio').in('dictado_id', otrosIds);
@@ -262,6 +264,19 @@ const totalCursos = (otrosRaw || []).length;
     </div>
 
     <aside class="side" aria-label="Datos del curso">
+      {totalResenas < POCAS_RESENAS && (
+        <section class="panel pedir">
+          <h3>{totalResenas ? 'Este curso tiene pocas reseñas' : 'Este curso no tiene reseñas'}</h3>
+          <div class="in">
+            <span>¿Estás en el grupo de WhatsApp del {curso?.identificador || 'curso'}? Pediles a quienes cursaron que cuenten cómo les fue.</span>
+            <ShareButton
+              titulo={`¿Cursaron ${materia?.nombre} en el ${curso?.identificador}? ${totalResenas ? 'Tiene pocas reseñas' : 'Todavía no tiene reseñas'} en UTN REP. Si contás cómo te fue, le sirve a quien elige curso:`}
+              label="Pedir reseñas en el grupo"
+              sinNuevo
+            />
+          </div>
+        </section>
+      )}
       {materia && <FinalesPanel materiaId={materia.id} />}
       {materia && <SeguirMateria materiaId={materia.id} materiaNombre={materia.nombre} />}
 

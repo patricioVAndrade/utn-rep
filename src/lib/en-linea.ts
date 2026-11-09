@@ -26,6 +26,9 @@ export async function latido(visitante: string): Promise<number> {
   return Number(data) || 0;
 }
 
+/** Con menos visitas en la semana, el inicio muestra las reseñas de la semana (Pato, 9/11). */
+export const MINIMO_VISITAS = 100;
+
 /** Visitas de los últimos 7 días (un navegador cuenta una vez por día; migración 14, F14).
  *  null si la base no responde o todavía no tiene la migración. */
 export async function visitasSemana(): Promise<number | null> {

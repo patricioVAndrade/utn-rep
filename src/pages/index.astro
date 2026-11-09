@@ -4,7 +4,7 @@ import Icon from '../components/Icon.astro';
 import Stars from '../components/Stars.astro';
 import Quien from '../components/Quien.astro';
 import { autoresDeResenas } from '../lib/fichas';
-import { enLinea, textoEnLinea, visitasSemana } from '../lib/en-linea';
+import { MINIMO_VISITAS, enLinea, textoEnLinea, visitasSemana } from '../lib/en-linea';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { leerPerfil, preguntarComoTeFue } from '../lib/perfil';
 import { COMO_TE_FUE, anioLabel, nota, tiempoRelativo } from '../lib/format';
@@ -251,13 +251,11 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
           <div class="pulse-head" data-en-linea hidden={!textoLinea}><span class="live"><i></i><span data-texto>{textoLinea || ''}</span></span></div>
           <div class="kpis">
             <div><b>{fmt(totalResenas)}</b><span>reseñas</span></div>
-            <div><b>{fmt(totalFinales)}</b><span>finales contados</span></div>
-            <div><b>+{fmt(nuevasSemana)}</b><span>reseñas esta semana</span></div>
-            {visitas ? (
-              <div><b>{fmt(visitas)}</b><span>visitas esta semana</span></div>
-            ) : (
-              <div><b>{fmt(cursosConResenas)}</b><span>cursos reseñados</span></div>
-            )}
+            {visitas !== null && visitas >= MINIMO_VISITAS
+              ? <div><b>{fmt(visitas)}</b><span>visitas esta semana</span></div>
+              : <div><b>+{fmt(nuevasSemana)}</b><span>esta semana</span></div>}
+            <div><b>{fmt(totalFinales)}</b><span>experiencias de finales</span></div>
+            <div><b>{fmt(cursosConResenas)}</b><span>cursos reseñados</span></div>
           </div>
           <div class="sub">Reseñas por año de la carrera</div>
           <div class="bars">

@@ -134,14 +134,24 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261109000000_resenas_final.sql`. Vuelta atrás: `supabase/rollback/20261109000000_resenas_final.sql`. Prueba con datos: `supabase/pruebas/migracion-13.sql`.
 - **Verificación esperada:** `columna = 1`, `trigger = 1`, `puede_sumar = true`, `vista = 2`, `publico_ve_final_id = 0`.
 
-### 14. "Visitas esta semana" (F14) — **lista para correr en prueba, código subido**
+### 14. "Visitas esta semana" (F14) — **corrida en prueba el 9/11, código subido**
 
 - Tabla `visitas_dia`: el día y el número al azar de cada navegador (el mismo del contador en línea). Cada navegador cuenta una vez por día. No guarda quién es, ni la IP, ni qué página mira, y lo de más de 8 días se borra solo.
 - La anota el mismo latido del contador en línea (migración 10), así que no suma pedidos nuevos.
 - `visitas_semana()`: las visitas de los últimos 7 días, con hora de Córdoba. La usa solo el servidor.
-- En el inicio, "Así viene el cuatri" queda como la V6: reseñas, finales contados, reseñas esta semana y visitas esta semana. Hasta que corras la migración sigue mostrando "cursos reseñados" en ese lugar.
+- En el inicio, "Así viene el cuatri" queda como estaba (reseñas, esta semana, experiencias de finales y cursos reseñados), pero "esta semana" pasa a ser "visitas esta semana" cuando hay 100 o más (lo pediste el 9/11). Con menos, o sin la migración, sigue mostrando las reseñas de la semana.
 - **Archivo:** `supabase/migrations/20261109010000_visitas.sql` (necesita la 10). Vuelta atrás: `supabase/rollback/20261109010000_visitas.sql`. Al correrla hace una prueba rápida (anota un visitante y lo borra) y frena con error si algo no anda.
 - **Verificación esperada:** `tabla = 1`, `funcion = 1`, `anon_lee = false`, `anon_cuenta = false`, `latido_anota = true`.
+
+### 15. Recordatorio de fin de cuatrimestre, en el sitio (F32) — **lista para correr en prueba, código subido**
+
+- Función `recordar_fin_cuatri()`: crea un aviso "¿Cómo te fue en Paradigmas de Programación, 2K3?" por cada curso que elegiste en Mi inscripción y todavía no reseñaste. El aviso lleva a escribir la reseña de ese curso.
+- Fechas que pediste el 9/11: desde el 1 de agosto (terminaron las mesas de julio, antes de anotarse al 2.º cuatrimestre) avisa por los cursos de 1.er cuatrimestre; desde el 8 de diciembre, por los de 2.º, los anuales y los que no se sabe; y desde el 1 de marzo, antes de que arranque el año, repite el de diciembre a quien todavía no reseñó. El cuatrimestre sale de los horarios y, si no hay, del período del curso.
+- Solo cuentan los cursos elegidos en los 11 meses antes del recordatorio (una inscripción vieja no vuelve a avisar al año siguiente). Cada curso avisa una sola vez.
+- No hace falta un proceso programado: el sitio la llama la primera vez en el día que entrás con sesión. Solo crea avisos para quien entra.
+- Se apaga en Mi cuenta ("Al terminar el cuatrimestre, cómo te fue en tus cursos"). El mail viene después, con el servicio de mail.
+- **Archivo:** `supabase/migrations/20261109020000_recordatorio_fin_cuatri.sql` (necesita la 7 y la 12). Vuelta atrás: `supabase/rollback/20261109020000_recordatorio_fin_cuatri.sql`.
+- **Verificación esperada:** `funcion = 1`, `anon_puede = false`, `usuario_puede = true`, `sin_sesion = 0`.
 
 ---
 

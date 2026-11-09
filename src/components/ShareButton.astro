@@ -13,10 +13,12 @@ interface Props {
   /** Botón chico, para usar dentro de una reseña */
   mini?: boolean;
   label?: string;
+  /** Sin la etiqueta "Nuevo" de Compartir (cuando hay otro botón de compartir en la página) */
+  sinNuevo?: boolean;
 }
-const { titulo, ruta, mini = false, label = 'Compartir' } = Astro.props;
+const { titulo, ruta, mini = false, label = 'Compartir', sinNuevo = false } = Astro.props;
 ---
-<button type="button" class:list={['btn', mini ? 'quiet' : 'wa']} data-share data-titulo={titulo} data-ruta={ruta} title={label} data-nuevo={mini ? undefined : 'compartir'}>
+<button type="button" class:list={['btn', mini ? 'quiet' : 'wa']} data-share data-titulo={titulo} data-ruta={ruta} title={label} data-nuevo={mini || sinNuevo ? undefined : 'compartir'}>
   <Icon name="share" /> <span class="lbl">{label}</span>
 </button>
 
