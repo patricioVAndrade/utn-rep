@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Icon from '../components/Icon.astro';
 import Stars from '../components/Stars.astro';
 import ShareButton from '../components/ShareButton.astro';
+import CursoChips from '../components/CursoChips.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { COMO_TE_FUE, editadaEl, mesaTexto, rindioTexto } from '../lib/format';
@@ -18,7 +19,7 @@ const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 const [{ data }, { data: finalesRaw }, { data: materiasRaw }] = await Promise.all([
   client
     .from('resenas')
-    .select('id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, condicion_final, created_at, updated_at, pedido_edicion, dictados ( materia_id, cursos ( identificador ), materias ( id, nombre, nivel ) )')
+    .select('id, dictado_id, calificacion_general, comentario, es_anonima, votos_utilidad, condicion_final, created_at, updated_at, pedido_edicion, dictados ( materia_id, cursos ( identificador, turno ), materias ( id, nombre, nivel ) )')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false }),
   client
@@ -67,6 +68,21 @@ if (misResenas.length) {
 
 // Para "Te faltan reseñar": materias de los años que elegiste en Mi cuenta
 const resenadas = new Set(misResenas.map((r) => r.materia?.id).filter(Boolean));
+// "Te faltan reseñar" como la V6: los cursos que elegiste en Mi inscripción (migración 12)
+// y todavía no reseñaste. Sin inscripción (o sin la migración), salen de tus años.
+const { data: inscRaw } = await client
+  .from('inscripcion_cursos')
+  .select('dictado_id, dictados ( id, cursos ( identificador ), materias ( id, nombre ) )')
+  .eq('user_id', user.id)
+  .eq('elegido', true);
+const resenados = new Set(misResenas.map((r) => r.dictado_id));
+const inscripcion = (inscRaw || []).map((i: any) => {
+  const d = one(i.dictados);
+  return { dictado: i.dictado_id, materia: one(d?.materias)?.id ?? null, nombre: one(d?.materias)?.nombre || 'Materia', curso: one(d?.cursos)?.identificador || '' };
+});
+const inscripcionJSON = inscripcion.length
+  ? JSON.stringify(inscripcion.map((i) => ({ ...i, hecha: resenados.has(i.dictado) })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')))
+  : '';
 const materiasJSON = JSON.stringify((materiasRaw || []).map((m: any) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel, hecha: resenadas.has(m.id) })));
 
 const comoMeFue = (v: string | null) => COMO_TE_FUE.find((c) => c.valor === v);
@@ -108,6 +124,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
                 <div class="top">
                   {r.materia?.nivel && <span class:list={['yr', `y${r.materia.nivel}`]}>{r.materia.nivel}.º</span>}
                   <a href={`/dictado/${r.dictado_id}#resena-${r.id}`}><b>{r.materia?.nombre || 'Materia'}</b>, {r.curso?.identificador || 'Curso'}</a>
+                  {r.curso?.turno && <CursoChips turno={r.curso.turno} mini />}
                   {reportadas.has(r.id)
                     ? <span class="cond reg">Reportada, en revisión</span>
                     : <span class="cond pub">Publicada</span>}
@@ -198,7 +215,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
     <aside class="side">
       <section class="panel">
         <h3>Te faltan reseñar</h3>
-        <div class="in" id="faltan" data-anios={aniosCuenta || undefined}>
+        <div class="in" id="faltan" data-anios={aniosCuenta || undefined} data-inscripcion={inscripcionJSON || undefined}>
           <span class="sub">Elegí qué años cursás en <a href="/mi-cuenta#tus-anios">Mi cuenta</a> y te mostramos acá las materias de esos años que todavía no reseñaste.</span>
         </div>
       </section>
@@ -335,10 +352,39 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
     lista.append(fila);
   });
 
-  // Te faltan reseñar: materias de tus años sin reseña
+  // Te faltan reseñar: los cursos elegidos en Mi inscripción sin reseña (como la V6)
+  type Insc = { dictado: number; materia: number | null; nombre: string; curso: string; hecha: boolean };
+  let insc: Insc[] = [];
+  try { insc = JSON.parse(document.getElementById('faltan')?.dataset.inscripcion || '[]'); } catch {}
+  if (insc.length) {
+    const faltan = insc.filter((i) => !i.hecha);
+    const box = document.getElementById('faltan')!;
+    box.replaceChildren();
+    const intro = document.createElement('span');
+    intro.className = 'sub';
+    intro.textContent = faltan.length ? 'De tu inscripción de este año:' : 'Reseñaste todos los cursos de tu inscripción.';
+    box.append(intro);
+    const feed = document.createElement('div');
+    feed.className = 'feed';
+    faltan.forEach((i) => {
+      const d = document.createElement('div');
+      const a = document.createElement('a');
+      a.href = `/nueva-resena?dictado=${i.dictado}&from=/mis-resenas`;
+      a.textContent = i.curso ? `${i.nombre}, ${i.curso}` : i.nombre;
+      const s = document.createElement('span');
+      s.className = 'sub';
+      const conBorrador = br && (String(br.dictado) === String(i.dictado) || (!br.dictado && String(br.materia) === String(i.materia)));
+      s.textContent = conBorrador ? 'Tenés un borrador' : 'Sin reseña';
+      d.append(a, s);
+      feed.append(d);
+    });
+    if (faltan.length) box.append(feed);
+  }
+
+  // Si no hay inscripción: materias de tus años sin reseña
   let anios: number[] = [];
   try { anios = (JSON.parse(document.getElementById('faltan')?.dataset.anios || localStorage.getItem('misAnios') || '[]') as unknown[]).map(Number).filter(Boolean); } catch {}
-  if (anios.length) {
+  if (!insc.length && anios.length) {
     const faltan = materias.filter((m) => anios.includes(m.nivel) && !m.hecha);
     const box = document.getElementById('faltan')!;
     box.replaceChildren();

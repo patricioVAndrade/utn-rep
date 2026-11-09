@@ -184,6 +184,7 @@ async function rpc(nombre: string, args: any) {
   if (nombre === 'check_rate_limit') return { data: true, error: null };
   // En línea (migración 10): número fijo para ver el contador
   if (nombre === 'en_linea' || nombre === 'latido') return { data: Number(process.env.MOCK_EN_LINEA ?? 23), error: null };
+  if (nombre === 'visitas_semana') return { data: Number(process.env.MOCK_VISITAS ?? 3912), error: null };
   if (nombre === 'anonimizar_usuario') {
     let n = 0;
     for (const t of ['resenas', 'experiencias_finales']) (T[t] || []).forEach((r: any) => { if (r.user_id === args.p_user) { r.user_id = null; r.es_anonima = true; r.nombre_usuario = null; n++; } });

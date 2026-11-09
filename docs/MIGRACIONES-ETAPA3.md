@@ -134,6 +134,15 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261109000000_resenas_final.sql`. Vuelta atrás: `supabase/rollback/20261109000000_resenas_final.sql`. Prueba con datos: `supabase/pruebas/migracion-13.sql`.
 - **Verificación esperada:** `columna = 1`, `trigger = 1`, `puede_sumar = true`, `vista = 2`, `publico_ve_final_id = 0`.
 
+### 14. "Visitas esta semana" (F14) — **lista para correr en prueba, código subido**
+
+- Tabla `visitas_dia`: el día y el número al azar de cada navegador (el mismo del contador en línea). Cada navegador cuenta una vez por día. No guarda quién es, ni la IP, ni qué página mira, y lo de más de 8 días se borra solo.
+- La anota el mismo latido del contador en línea (migración 10), así que no suma pedidos nuevos.
+- `visitas_semana()`: las visitas de los últimos 7 días, con hora de Córdoba. La usa solo el servidor.
+- En el inicio, "Así viene el cuatri" queda como la V6: reseñas, finales contados, reseñas esta semana y visitas esta semana. Hasta que corras la migración sigue mostrando "cursos reseñados" en ese lugar.
+- **Archivo:** `supabase/migrations/20261109010000_visitas.sql` (necesita la 10). Vuelta atrás: `supabase/rollback/20261109010000_visitas.sql`. Al correrla hace una prueba rápida (anota un visitante y lo borra) y frena con error si algo no anda.
+- **Verificación esperada:** `tabla = 1`, `funcion = 1`, `anon_lee = false`, `anon_cuenta = false`, `latido_anota = true`.
+
 ---
 
 ## Lo que ya está hecho sin base (7/11, tarde)
