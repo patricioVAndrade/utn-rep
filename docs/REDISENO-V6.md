@@ -41,7 +41,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 
 | Pedido | Estado | Nota |
 |---|---|---|
-| Logo de la UTN en el encabezado | Hecho | Símbolo UTN en vector. El logo nuevo de UTN REP (opciones A a F) y el favicon esperan tu elección. |
+| Logo de la UTN en el encabezado | Hecho | Logo F2 (elegido el 9/11): símbolo con la barra amarilla y REP adentro, con la bajada "Reseñas de estudiantes, para estudiantes" y "Ingeniería en Sistemas de Información · UTN-FRC". Favicon (barra oficial en amarillo), ícono de la app, imagen al compartir y mail con el logo nuevo. |
 | "¿Cómo funciona?" con signo de pregunta | Hecho | Pestaña y pie. |
 | Estadísticas como "Así viene el cuatri", sin profesores | Hecho | Reseñas, esta semana, experiencias de finales y cursos reseñados. "Esta semana" pasa a "visitas esta semana" desde 100 visitas (migración 14; Pato prefirió esto a la V6 el 9/11). |
 | Materia = cátedra, adentro hay cursos | Hecho | En todos los textos. |

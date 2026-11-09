@@ -6,6 +6,7 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { REGULAR, BOLD } from './og-fuentes';
+import { LOGO_ALTO, LOGO_ANCHO, LOGO_SVG } from './logo';
 
 export type Etiqueta = { texto: string; tipo?: 'curso' | 'turno' | 'anio' | 'gris'; anio?: number };
 export type DatosOg = {
@@ -28,20 +29,13 @@ const h = (type: string, style: Record<string, unknown>, ...children: unknown[])
   props: { style: { display: 'flex', ...style }, children: children.length === 1 ? children[0] : children },
 });
 
-// Símbolo UTN (mismo dibujo que UtnMark.astro)
-const marca = (alto: number): Nodo => ({
-  type: 'svg',
+// Logo F2 (src/lib/logo.ts) como imagen: satori dibuja el SVG tal cual
+const logo = (alto: number): Nodo => ({
+  type: 'img',
   props: {
-    width: Math.round((alto * 100) / 121.13),
+    src: 'data:image/svg+xml;base64,' + Buffer.from(LOGO_SVG).toString('base64'),
+    width: Math.round((alto * LOGO_ANCHO) / LOGO_ALTO),
     height: alto,
-    viewBox: '0 0 100 121.13',
-    fill: '#fff',
-    children: [
-      'M0 0A50 51.2 0 0 0 100 0H80.2A30.6 32.6 0 0 1 19 0Z',
-      'M0 50.6H100V71.7H0Z',
-      'M0 121.13A50 51.5 0 0 1 100 121.13H80.2A31 33.6 0 0 0 18.5 121.13Z',
-      'M40.6 0H60V121.13H40.6Z',
-    ].map((d) => ({ type: 'path', props: { d } })),
   },
 });
 
@@ -93,8 +87,10 @@ export async function imagenOg(d: DatosOg): Promise<Uint8Array> {
     // Agujeros del cuaderno
     h('div', { position: 'absolute', left: 30, top: 0, bottom: 0, flexDirection: 'column', justifyContent: 'space-around' },
       ...[0, 1, 2].map(() => h('div', { width: 30, height: 30, borderRadius: 15, background: '#e8eef4', boxShadow: 'inset 0 3px 4px rgba(0,0,0,.45)' }))),
-    h('div', { alignItems: 'center', gap: 18 }, marca(64),
-      h('div', { fontSize: 52, fontWeight: 700, letterSpacing: -1 }, 'UTN ', h('span', { color: '#ffc63f', marginLeft: 14 }, 'REP'))),
+    h('div', { alignItems: 'center', gap: 26 }, logo(92),
+      h('div', { flexDirection: 'column', gap: 4 },
+        h('div', { fontSize: 26, fontWeight: 700 }, 'Reseñas de estudiantes, para estudiantes'),
+        h('div', { fontSize: 24, color: '#cfdced', alignItems: 'baseline' }, 'Ingeniería en Sistemas de Información · UTN-', h('span', { color: '#ffc63f', fontWeight: 700 }, 'FRC')))),
     h('div', { flexDirection: 'column', flexGrow: 1, justifyContent: 'center', gap: 22 },
       d.arriba ? h('div', { fontSize: 30, opacity: 0.85 }, d.arriba) : h('div', {}),
       h('div', { fontSize: tam, fontWeight: 700, lineHeight: 1.12, letterSpacing: -1 }, titulo),
@@ -104,7 +100,7 @@ export async function imagenOg(d: DatosOg): Promise<Uint8Array> {
           h('div', { fontSize: 96, fontWeight: 700, lineHeight: 1 }, coma(d.nota as number)),
           h('div', { gap: 4 }, ...[1, 2, 3, 4, 5].map((i) => estrella(Math.max(0, Math.min(1, (d.nota as number) - i + 1)), 52))),
           h('div', { fontSize: 34, opacity: 0.9, marginLeft: 8 }, `${d.resenas} reseña${d.resenas === 1 ? '' : 's'}`))
-      : h('div', { fontSize: 32, opacity: 0.9 }, d.pie || 'Reseñas de Ingeniería en Sistemas, UTN FRC'),
+      : h('div', { fontSize: 32, opacity: 0.9 }, d.pie || 'utnrep.app'),
   );
 
   const svg = await satori(arbol as never, {

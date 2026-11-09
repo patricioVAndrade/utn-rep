@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import Analytics from '@vercel/analytics/astro';
 import Icon from '../components/Icon.astro';
-import UtnMark from '../components/UtnMark.astro';
+import LogoRep from '../components/LogoRep.astro';
 import UserBar from '../components/UserBar.astro';
 import LoginModal from '../components/LoginModal.astro';
 import Bienvenida from '../components/Bienvenida.astro';
@@ -66,6 +66,7 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="canonical" href={canonicalURL} />
 
     <meta property="og:type" content="website" />
@@ -124,8 +125,11 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
       <header class="banner">
         <div class="holes" aria-hidden="true"><i></i><i></i><i></i></div>
         <a class="logo" href="/" aria-label="UTN REP, ver todas las materias">
-          <UtnMark />
-          <span><b>UTN <span>REP</span></b><small>Reseñas de Ingeniería en Sistemas, UTN Facultad Regional Córdoba</small></span>
+          <LogoRep class="logo-rep" />
+          <span class="lema">
+            <span class="l1">Reseñas de estudiantes, para estudiantes</span>
+            <span class="l2"><span class="larga">Ingeniería en Sistemas de Información</span><span class="corta">Ing. en Sistemas</span> · UTN-<span class="frc">FRC</span></span>
+          </span>
         </a>
         <div class="search" id="search-container">
           <form role="search" action="/buscar" method="get" id="search-form">

@@ -91,7 +91,10 @@ export function armarResumen(p: PersonaMail, origen: string): Mail {
   const html = `<!doctype html><html lang="es"><body style="margin:0;background:#eef2f6;font:14px/1.5 Verdana,Arial,sans-serif;color:#1f2833">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f6"><tr><td align="center" style="padding:16px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #a9b8c8">
-      <tr><td style="background:#133d68;border-bottom:3px solid #e2a11e;padding:12px 18px;color:#ffffff;font:bold 18px Arial,sans-serif">UTN <span style="color:#ffc63f">REP</span></td></tr>
+      <tr><td style="background:#133d68;border-bottom:3px solid #e2a11e;padding:12px 18px;color:#ffffff;font:bold 18px Arial,sans-serif">
+        <img src="${esc(origen)}/logo-mail.png" width="62" height="40" alt="UTN REP" style="display:inline-block;vertical-align:middle;border:0">
+        <span style="display:inline-block;vertical-align:middle;margin-left:12px;font:12px/1.35 Verdana,Arial,sans-serif;color:#cfdced"><b style="color:#ffffff">Reseñas de estudiantes, para estudiantes</b><br>Ing. en Sistemas · UTN-<b style="font-family:Georgia,serif;color:#ffc63f">FRC</b></span>
+      </td></tr>
       <tr><td style="padding:16px 18px 4px">
         <p style="margin:0 0 6px">${esc(hola)}</p>
         <p style="margin:0">${esc(intro)}</p>

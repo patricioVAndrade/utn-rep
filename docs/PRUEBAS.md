@@ -130,4 +130,5 @@ Lo que no se puede probar con Postman porque es de pantalla:
 - Sacar un profe de un curso en Admin > Materias y cursos y ver "Antes: nombre (período)" debajo.
 - Mail del día: que llegue a Gmail y a Hotmail (no a spam), se vea bien en el celular y en modo oscuro, y el link "dejá de recibir mails" lleve a /baja.
 - Mi cuenta: interruptor "Mail" de cada aviso.
+- Logo nuevo: encabezado a 1100 y 390 px, favicon en la pestaña (claro y oscuro), ícono al agregar el sitio a la pantalla del celular y la imagen al compartir un link en WhatsApp.
 - Cada página a 390 px y en modo noche.
