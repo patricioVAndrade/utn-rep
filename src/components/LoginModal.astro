@@ -5,6 +5,9 @@
  * Los ids los usa el script de Layout.astro.
  */
 import Icon from './Icon.astro';
+import { ingresoPruebaActivo } from '../lib/ingreso-prueba';
+// Solo fuera de producción y con INGRESO_PRUEBA=1 (src/lib/ingreso-prueba.ts)
+const prueba = ingresoPruebaActivo();
 ---
 <div id="login-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
   <div class="box">
@@ -52,6 +55,56 @@ import Icon from './Icon.astro';
         </a>
         <p class="sub" style="margin:0">Solo usamos tu nombre y tu foto de perfil. No publicamos nada en tu cuenta.</p>
       </div>
+
+      {prueba && (
+        <details class="prueba" id="ingreso-prueba">
+          <summary>Ingreso de prueba (solo en Preview)</summary>
+          <form id="pr-form" class="prueba-in" novalidate>
+            <p class="sub" style="margin:0">Para probar sin esperar el mail. Sirve solo con una cuenta de la base de prueba que tenga contraseña. En el sitio real esto no existe.</p>
+            <div class="field">
+              <label for="pr-email">Mail</label>
+              <input type="email" id="pr-email" autocomplete="username" />
+            </div>
+            <div class="field">
+              <label for="pr-clave">Contraseña de prueba</label>
+              <input type="password" id="pr-clave" autocomplete="current-password" />
+            </div>
+            <button id="pr-submit" type="submit" class="btn">Entrar</button>
+            <div id="pr-msg" class="msg hidden" role="status"></div>
+          </form>
+        </details>
+      )}
     </div>
   </div>
 </div>
+
+<script>
+  // Ingreso de prueba (solo existe fuera de producción)
+  const form = document.getElementById('pr-form') as HTMLFormElement | null;
+  if (form) {
+    const mail = document.getElementById('pr-email') as HTMLInputElement;
+    const clave = document.getElementById('pr-clave') as HTMLInputElement;
+    const boton = document.getElementById('pr-submit') as HTMLButtonElement;
+    const msg = document.getElementById('pr-msg')!;
+    const decir = (texto: string) => { msg.className = 'msg bad'; msg.textContent = texto; };
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!mail.value.trim() || !clave.value) return decir('Escribí el mail y la contraseña.');
+      boton.disabled = true;
+      msg.className = 'msg hidden';
+      try {
+        const res = await fetch('/api/auth/prueba', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: mail.value.trim(), clave: clave.value }),
+        });
+        if (res.ok) return window.location.reload();
+        const data = await res.json().catch(() => ({}));
+        decir(data.error || 'No se pudo entrar.');
+      } catch {
+        decir('No se pudo conectar. Probá de nuevo.');
+      }
+      boton.disabled = false;
+    });
+  }
+</script>

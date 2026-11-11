@@ -164,6 +164,8 @@ const auth = {
   getUser: async () => ({ data: { user: DEMO ? { id: 'u-demo', email: 'sofia@frc.utn.edu.ar', created_at: '2025-03-10T12:00:00Z', app_metadata: { provider: 'google' }, user_metadata: meta } : null }, error: null }),
   updateUser: async ({ data }: any) => { Object.assign(meta, data); return { data: {}, error: null }; },
   signOut: async () => ({ error: null }),
+  // Ingreso de prueba: en el mock solo sirve para ver el formulario y el mensaje de error
+  signInWithPassword: async ({ password }: any) => (password === 'prueba' ? { data: {}, error: null } : { data: {}, error: { message: 'Invalid login credentials' } }),
   admin: {
     deleteUser: async () => ({ data: {}, error: null }),
     // Cuentas inventadas a partir de los dueños de las reseñas del fixture

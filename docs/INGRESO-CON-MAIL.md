@@ -1,4 +1,4 @@
-# Ingreso con mail: cómo funciona y qué revisar si falla en Preview
+# Ingreso: cómo funciona con mail, qué revisar si falla en Preview y el ingreso de prueba
 
 ## Cómo funciona
 
@@ -35,6 +35,28 @@ Otras cosas que pueden pasar solo en prueba:
 - **No llega el mail**: si el proyecto de prueba no tiene el SMTP de Brevo cargado (Authentication, Emails, SMTP Settings), Supabase usa su correo propio, que solo le escribe a los miembros del proyecto y manda muy pocos por hora.
 - **"Demasiados intentos"**: el sitio deja pedir 3 links por hora por mail y por conexión.
 - Entrar con Google o GitHub en Preview necesita las mismas Redirect URLs.
+
+## Entrar en Preview sin mail: el ingreso de prueba
+
+En Preview solo hay ingreso con mail (Google y GitHub quedan para producción), y si el proyecto de prueba usa el correo propio de Supabase salen muy pocos mails por hora. Para no depender de eso hay un ingreso con contraseña que **solo existe fuera de producción**.
+
+Se prende una sola vez:
+
+1. **Ponerle contraseña a tu cuenta de la base de prueba.** En Supabase, proyecto de prueba, SQL Editor, con `supabase/pruebas/clave-de-prueba.sql` (paso 1 para ver cómo quedó escrito tu mail, paso 2 para poner la contraseña). La escribís vos ahí. Si todavía no tenés cuenta en la base de prueba, creala en Authentication, Users, Add user, Create new user, con mail, contraseña y "Auto Confirm User" marcado, y poné su id en `ADMIN_IDS` de Preview.
+2. **Cargar en Vercel la variable `INGRESO_PRUEBA` con el valor `1`, marcando solo Preview**, y volver a desplegar (Deployments, los tres puntos, Redeploy). No es una clave, es un interruptor.
+3. En Preview, tocá "Ingresar": abajo de todo aparece **Ingreso de prueba (solo en Preview)**. Mail, contraseña y "Entrar".
+
+Por qué no se puede usar en producción: hacen falta las dos cosas, la variable y que Vercel diga que el entorno no es Production (`VERCEL_ENV`, que pone Vercel solo). Aunque la variable se cargue por error en Production, el formulario no aparece y `/api/auth/prueba` responde 404. Además, en la base de producción ninguna cuenta tiene contraseña. Código: `src/lib/ingreso-prueba.ts`.
+
+## Si dice "Demasiados intentos"
+
+Hay dos topes distintos, y el texto dice cuál es:
+
+| Mensaje | De quién es el tope | Cómo se destraba |
+|---|---|---|
+| "Demasiados intentos. Esperá un rato antes de intentar de nuevo." | Del sitio: 3 links por hora por conexión. | Paso 3 de `supabase/pruebas/clave-de-prueba.sql` (borra esos contadores en la base de prueba), o esperar una hora. |
+| "Ya te enviamos varios links…" | Del sitio: 3 links por hora por mail. | Lo mismo. |
+| "Demasiados intentos. Esperá unos minutos." | De Supabase: con su correo propio manda unos 2 mails por hora en todo el proyecto, y pide esperar un minuto entre un link y otro al mismo mail. | Esperar, o cargar el SMTP de Brevo en el proyecto de prueba (Authentication, Emails, SMTP Settings) y subir el tope en Authentication, Rate Limits. Con el ingreso de prueba no hace falta. |
 
 ## En producción
 
