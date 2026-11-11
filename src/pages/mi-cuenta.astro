@@ -58,7 +58,7 @@ const desde = cuenta?.created_at ? new Date(cuenta.created_at).toLocaleDateStrin
 const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pausa_hasta).getTime() > Date.now();
 ---
 
-<Layout title="Mi cuenta - UTN REP" description="Cómo te ven en UTN REP, tus años de cursada y tu cuenta." tab="mis" crumbs={[{ label: 'Mi cuenta' }]}>
+<Layout title="Mi cuenta - UTN REP" description="Cómo te ven en UTN REP, tus años de cursada y tu cuenta." crumbs={[{ label: 'Mi cuenta' }]}>
   <div class="layout">
     <div class="main">
       <div class="topic">

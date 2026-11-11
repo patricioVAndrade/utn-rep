@@ -109,7 +109,7 @@ const rutaCompartir = `/mi-inscripcion?c=${todosIds.join(',')}${misElegidos.leng
 const nombreGrupo = (m: string) => `pl-${m}`;
 ---
 
-<Layout title="Mi inscripción" tab="mis" crumbs={[{ label: 'Mi inscripción' }]} description="Los cursos que estás pensando, juntos: turno, nota, promoción y si se pisan los horarios.">
+<Layout title="Mi inscripción" crumbs={[{ label: 'Mi inscripción' }]} description="Los cursos que estás pensando, juntos: turno, nota, promoción y si se pisan los horarios.">
   <div class="layout">
     <div class="main" id="mi-inscripcion" data-modo={compartida ? 'compartida' : user ? 'cuenta' : 'local'} data-ids={todosIds.join(',')} data-elegidos={[...elegidos].join(',')}>
       <div class="topic">
