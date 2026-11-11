@@ -2,23 +2,23 @@
 // (localStorage "miInscripcion"); con sesión va a la cuenta por /api/inscripcion.
 // Al iniciar sesión, lo que había en el navegador se pasa a la cuenta.
 
-export type ListaLocal = { c: number[]; e: number[] };
+export type ListaLocal = { c: number[] };
 const CLAVE = 'miInscripcion';
 
 export function leerLocal(): ListaLocal {
   try {
     const x = JSON.parse(localStorage.getItem(CLAVE) || 'null');
     const ids = (v: unknown) => (Array.isArray(v) ? v.filter((n) => Number.isInteger(n) && n > 0).slice(0, 80) : []);
-    return x ? { c: ids(x.c), e: ids(x.e) } : { c: [], e: [] };
+    return { c: ids(x?.c) };
   } catch {
-    return { c: [], e: [] };
+    return { c: [] };
   }
 }
 
 export function guardarLocal(l: ListaLocal) {
   try {
     if (!l.c.length) localStorage.removeItem(CLAVE);
-    else localStorage.setItem(CLAVE, JSON.stringify({ c: l.c, e: l.e.filter((x) => l.c.includes(x)) }));
+    else localStorage.setItem(CLAVE, JSON.stringify({ c: l.c }));
   } catch { /* sin almacenamiento */ }
 }
 
@@ -37,13 +37,13 @@ export async function traerLocal(): Promise<boolean> {
   const l = leerLocal();
   if (!l.c.length) return false;
   try {
-    await api({ accion: 'traer', dictados: l.c, elegidos: l.e });
-    guardarLocal({ c: [], e: [] });
+    await api({ accion: 'traer', dictados: l.c });
+    guardarLocal({ c: [] });
     return true;
   } catch {
     return false;
   }
 }
 
-/** Link de la lista: /mi-inscripcion?c=1,2&e=2 */
-export const linkDe = (l: ListaLocal, extra = '') => `/mi-inscripcion?c=${l.c.join(',')}${l.e.length ? `&e=${l.e.join(',')}` : ''}${extra}`;
+/** Link de la lista: /mi-inscripcion?c=1,2 */
+export const linkDe = (l: ListaLocal, extra = '') => `/mi-inscripcion?c=${l.c.join(',')}${extra}`;

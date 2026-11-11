@@ -203,7 +203,7 @@ describe('importar: horarios que cambian', () => {
     ]);
     expect(previa.horarios).toHaveLength(1);
     expect(previa.horarios[0]).toMatchObject({ curso: '4K2', materia: 'Simulación', dictado_id: 100, materia_id: 1, antes: '1.er cuatri: Martes 13:15 a 14:45' });
-    expect(previa.horarios[0].ahora).toBe('1.er cuatri: Martes 12:05 a 12:50 · Martes 13:15 a 14:45');
+    expect(previa.horarios[0].ahora).toBe('1.er cuatri: Martes 12:05 a 14:45');
     expect(previa.horariosIguales).toBe(1);
   });
   it('si la materia no está en la base, la pide en "Materias que no encontré" y deja el horario sin materia', () => {

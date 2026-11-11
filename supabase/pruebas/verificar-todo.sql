@@ -107,6 +107,9 @@ WITH pruebas(migracion, prueba, esperado, resultado) AS (VALUES
   ('12 horarios', 'sin sesión NO se ven las listas', 'false', pg_temp.priv('anon', 'inscripcion_cursos', 'SELECT')),
   ('12 horarios', 'la materia la completa la base (no se elige)', 'false', pg_temp.colpriv('authenticated', 'inscripcion_cursos', 'materia_id', 'INSERT')),
   ('12 horarios', 'trigger que completa la materia', '1', pg_temp.trig(ARRAY['trg_inscripcion_completar'])),
+  ('19 inscripción', 'sin la columna elegido', 'falta', pg_temp.col('inscripcion_cursos', 'elegido')),
+  ('19 inscripción', 'reseña nueva avisa a quien piensa el curso', 'true', pg_temp.contiene('avisos_resena_nueva()', 'inscripcion_cursos')),
+  ('19 inscripción', 'y va en el mail del día', 'true', pg_temp.contiene('mails_pendientes(integer,integer)', 'inscripcion_cursos')),
   ('12 horarios', 'horarios que terminan antes de empezar', '0', pg_temp.contar('horarios', 'SELECT count(*) FROM public.horarios WHERE hasta <= desde')),
   -- 13. Sumar el final a tu reseña
   ('13 final en reseña', 'columna final_id', 'está', pg_temp.col('resenas', 'final_id')),

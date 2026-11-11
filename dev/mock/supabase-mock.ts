@@ -119,7 +119,7 @@ class Q {
     if (this.op === 'noop') return [this.payload];
     if (this.op === 'insert') {
       // Como el trigger de la migración 12: la materia sale del curso
-      if (this.table === 'inscripcion_cursos') (Array.isArray(this.payload) ? this.payload : [this.payload]).forEach((v: any) => { v.materia_id = T.dictados.find((d: any) => d.id === v.dictado_id)?.materia_id; v.elegido = !!v.elegido; });
+      if (this.table === 'inscripcion_cursos') (Array.isArray(this.payload) ? this.payload : [this.payload]).forEach((v: any) => { v.materia_id = T.dictados.find((d: any) => d.id === v.dictado_id)?.materia_id; });
       const nuevos = (Array.isArray(this.payload) ? this.payload : [this.payload]).map((v: any) => ({ id: t.reduce((m: number, x: any) => (typeof x.id === 'number' && x.id > m ? x.id : m), 0) + 1, created_at: new Date().toISOString(), ...v }));
       nuevos.forEach((n: any) => t.push(n));
       return nuevos;

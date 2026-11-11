@@ -49,11 +49,14 @@ export function juntarBloques(bloques: Bloque[], hueco = 15): Bloque[] {
   return out;
 }
 
+/** Para mostrar: de corrido también el cambio de turno (12:50 a 13:15), así "11:20 a 14:00" no sale partido en dos. */
+export const sinRecreos = (bloques: Bloque[]) => juntarBloques(bloques, 30);
+
 const CUATRI_TEXTO = { 1: '1.er cuatri', 2: '2.º cuatri' } as const;
 
 /** "Lunes 8:00 a 9:30 · Jueves 8:00 a 10:25"; si dice el cuatrimestre, lo antepone. */
 export function textoBloques(bloques: Bloque[]): string {
-  const orden = [...bloques].sort(ordenar);
+  const orden = sinRecreos(bloques);
   const partes: string[] = [];
   let actual: 1 | 2 | null | undefined;
   for (const x of orden) {
@@ -99,11 +102,12 @@ export const horaBase = (min: number) => `${String(Math.floor(min / 60)).padStar
 
 export type Choque = { a: string; b: string; dia: number; desde: number; hasta: number; cuatri: 1 | 2 | null };
 
-/** Pares de cursos que se pisan, con el día y el tramo en común. */
-export function superposiciones(cursos: { id: number; nombre: string; bloques: Bloque[] }[]): Choque[] {
+/** Pares de cursos que se pisan, con el día y el tramo en común. Dos cursos de la misma materia no cuentan. */
+export function superposiciones(cursos: { id: number; nombre: string; materia?: number; bloques: Bloque[] }[]): Choque[] {
   const out: Choque[] = [];
   for (let i = 0; i < cursos.length; i++) {
     for (let j = i + 1; j < cursos.length; j++) {
+      if (cursos[i].materia !== undefined && cursos[i].materia === cursos[j].materia) continue;
       for (const x of cursos[i].bloques) {
         for (const y of cursos[j].bloques) {
           if (x.dia !== y.dia) continue;

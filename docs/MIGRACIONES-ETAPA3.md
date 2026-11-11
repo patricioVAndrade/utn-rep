@@ -119,8 +119,8 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 ### 12. Horarios de cada curso y Mi inscripción (F29) — **lista para correr en prueba, código subido**
 
 - Tabla `horarios`: los bloques de clase de cada curso de una materia (día, desde, hasta y, si la planilla lo dice, el cuatrimestre). Los carga el importador desde la grilla de las planillas: en las de Sistemas entiende las siglas (ADSI, IOP, SIM, ICS, TPA…), las celdas combinadas, los dos cuatrimestres y "Electiva 1 GMP / GIP"; en la de Básicas lee el "08:00 a 09:30" de cada día. Probado con las planillas reales de 4.º año y de Básicas: solo quedó sin reconocer "DAO" en 4K3 (en esa pestaña la materia se llama "Desarrollo de Aplicaciones", sin "con Objetos"), y lo avisa. Los lee cualquiera; solo los cambia el admin.
-- Tabla `inscripcion_cursos`: "Lo estoy pensando". Cada persona guarda los cursos que está pensando y marca uno elegido por materia. Nadie más la ve, salvo que la comparta con el link. La materia la completa la base y hay un tope de 80. Sin sesión la lista queda en el navegador y al iniciar sesión pasa a la cuenta.
-- El aviso de que dos elegidos se pisan lo calcula el sitio con los horarios (`src/lib/horarios.ts`).
+- Tabla `inscripcion_cursos`: "Lo estoy pensando". Cada persona guarda los cursos que está pensando (el "elegido" por materia se sacó con la migración 19). Nadie más la ve, salvo que la comparta con el link. La materia la completa la base y hay un tope de 80. Sin sesión la lista queda en el navegador y al iniciar sesión pasa a la cuenta.
+- El aviso de que dos cursos de materias distintas se pisan lo calcula el sitio con los horarios (`src/lib/horarios.ts`).
 - **Archivo:** `supabase/migrations/20261108110000_horarios_inscripcion.sql`. Vuelta atrás: `supabase/rollback/20261108110000_horarios_inscripcion.sql`. Prueba con datos: `supabase/pruebas/migracion-12.sql`.
 - **Verificación esperada:** `tablas = 2`, `politicas = 5`, `publico_lee_horarios = true`, `publico_cambia_horarios = false`, `anon_lee_inscripcion = false`.
 
@@ -204,6 +204,14 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Lo que tenés que hacer vos, el día de la publicación**: crear el bot con @BotFather, cargar `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` y `TELEGRAM_WEBHOOK_SECRET` en Vercel (solo Production), correr la 18 en producción y tocar "Conectar el bot a este sitio" en el admin de `https://utnrep.app`. Paso a paso en `docs/TELEGRAM.md`. Sin esas claves el sitio no muestra nada de Telegram.
 - **Archivo:** `supabase/migrations/20261109050000_telegram.sql` (necesita la 7, la 9 y la 17). Vuelta atrás: `supabase/rollback/20261109050000_telegram.sql` (deja `mails_pendientes` como en la 17).
 - **Verificación esperada:** `tablas = 2`, `usuario_ve_la_suya = true`, `usuario_ve_chat = false`, `columna = true` y `aviso_inmediato = true` (si da `false`, falta prender pg_net: ver el tutorial).
+
+### 19. Mi inscripción sin "elegido" y con avisos (lo pediste el 11/11) — **lista para correr en prueba, código subido**
+
+- **Reseña nueva**: el aviso le llega también a quien tiene ese curso en Mi inscripción, no solo a quien sigue la materia. Si hace las dos cosas le llega uno solo. Va al sitio, a Telegram y al mail del día (`mails_pendientes` se redefine).
+- **Recordatorio de fin de cuatrimestre**: "¿Cómo te fue en X?" pasa a ser uno por materia de Mi inscripción. Con un solo curso pensado en la materia, el link abre ese curso; con varios, abre la materia.
+- **Saca la columna `inscripcion_cursos.elegido`**: ya no se marca un elegido. No saca cursos de ninguna lista.
+- **Archivo:** `supabase/migrations/20261111000000_inscripcion_avisos.sql` (necesita la 7, la 12, la 15, la 17 y la 18). Vuelta atrás: `supabase/rollback/20261111000000_inscripcion_avisos.sql`.
+- **Verificación esperada:** `true · true · true · true`.
 
 ---
 

@@ -163,6 +163,6 @@ export const inscripcion_cursos = [];
 ['Paradigmas de Programación', 'Sistemas Operativos', 'Análisis Matemático II'].forEach((nombre, i) => {
   const m = materias.find((x) => x.nombre === nombre);
   dictados.filter((d) => d.materia_id === m.id).slice(0, 3).forEach((d, j) => {
-    inscripcion_cursos.push({ user_id: 'u-demo', dictado_id: d.id, materia_id: m.id, elegido: j === (i === 2 ? 1 : 0), created_at: `2026-11-0${i + 1}T12:00:00Z` });
+    inscripcion_cursos.push({ user_id: 'u-demo', dictado_id: d.id, materia_id: m.id, created_at: `2026-11-0${i + 1}T12:00:00Z` });
   });
 });

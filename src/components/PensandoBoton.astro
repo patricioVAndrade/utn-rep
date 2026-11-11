@@ -19,7 +19,7 @@ if (user) {
   esta = !!data;
 }
 ---
-<button type="button" class:list={['btn', esta ? 'pressed' : 'quiet']} aria-pressed={esta ? 'true' : 'false'} data-pensando={dictadoId} title="Lo suma a Mi inscripción, para compararlo con otros cursos">
+<button type="button" class:list={['btn', esta ? 'pressed' : 'quiet']} aria-pressed={esta ? 'true' : 'false'} data-pensando={dictadoId}>
   <Icon name="check" /> <span>{esta ? 'En Mi inscripción' : 'Lo estoy pensando'}</span>
 </button>
 
@@ -41,7 +41,7 @@ if (user) {
       const esta = b.getAttribute('aria-pressed') === 'true';
       if (!conSesion()) {
         const l = leerLocal();
-        if (esta) { l.c = l.c.filter((x) => x !== id); l.e = l.e.filter((x) => x !== id); }
+        if (esta) l.c = l.c.filter((x) => x !== id);
         else if (l.c.length >= 80) return alert('Llegaste al máximo de 80 cursos. Sacá alguno desde Mi inscripción.');
         else l.c.push(id);
         guardarLocal(l);

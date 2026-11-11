@@ -68,20 +68,24 @@ if (misResenas.length) {
 
 // Para "Te faltan reseñar": materias de los años que elegiste en Mi cuenta
 const resenadas = new Set(misResenas.map((r) => r.materia?.id).filter(Boolean));
-// "Te faltan reseñar" como la V6: los cursos que elegiste en Mi inscripción (migración 12)
-// y todavía no reseñaste. Sin inscripción (o sin la migración), salen de tus años.
+// "Te faltan reseñar": las materias de Mi inscripción (migración 12) que todavía
+// no reseñaste. Sin inscripción (o sin la migración), salen de tus años.
 const { data: inscRaw } = await client
   .from('inscripcion_cursos')
   .select('dictado_id, dictados ( id, cursos ( identificador ), materias ( id, nombre ) )')
-  .eq('user_id', user.id)
-  .eq('elegido', true);
-const resenados = new Set(misResenas.map((r) => r.dictado_id));
-const inscripcion = (inscRaw || []).map((i: any) => {
+  .eq('user_id', user.id);
+// Una fila por materia; con un solo curso pensado, el link ya va a ese curso
+const porMateria = new Map<number, { dictado: number | null; materia: number; nombre: string; curso: string; hecha: boolean }>();
+(inscRaw || []).forEach((i: any) => {
   const d = one(i.dictados);
-  return { dictado: i.dictado_id, materia: one(d?.materias)?.id ?? null, nombre: one(d?.materias)?.nombre || 'Materia', curso: one(d?.cursos)?.identificador || '' };
+  const m = one(d?.materias);
+  if (!m) return;
+  const ya = porMateria.get(m.id);
+  if (ya) { ya.dictado = null; ya.curso = ''; }
+  else porMateria.set(m.id, { dictado: i.dictado_id, materia: m.id, nombre: m.nombre, curso: one(d?.cursos)?.identificador || '', hecha: resenadas.has(m.id) });
 });
-const inscripcionJSON = inscripcion.length
-  ? JSON.stringify(inscripcion.map((i) => ({ ...i, hecha: resenados.has(i.dictado) })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')))
+const inscripcionJSON = porMateria.size
+  ? JSON.stringify([...porMateria.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')))
   : '';
 const materiasJSON = JSON.stringify((materiasRaw || []).map((m: any) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel, hecha: resenadas.has(m.id) })));
 
@@ -352,8 +356,8 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
     lista.append(fila);
   });
 
-  // Te faltan reseñar: los cursos elegidos en Mi inscripción sin reseña (como la V6)
-  type Insc = { dictado: number; materia: number | null; nombre: string; curso: string; hecha: boolean };
+  // Te faltan reseñar: las materias de Mi inscripción sin reseña
+  type Insc = { dictado: number | null; materia: number; nombre: string; curso: string; hecha: boolean };
   let insc: Insc[] = [];
   try { insc = JSON.parse(document.getElementById('faltan')?.dataset.inscripcion || '[]'); } catch {}
   if (insc.length) {
@@ -362,18 +366,18 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
     box.replaceChildren();
     const intro = document.createElement('span');
     intro.className = 'sub';
-    intro.textContent = faltan.length ? 'De tu inscripción de este año:' : 'Reseñaste todos los cursos de tu inscripción.';
+    intro.textContent = faltan.length ? 'De tu inscripción:' : 'Reseñaste todas las materias de tu inscripción.';
     box.append(intro);
     const feed = document.createElement('div');
     feed.className = 'feed';
     faltan.forEach((i) => {
       const d = document.createElement('div');
       const a = document.createElement('a');
-      a.href = `/nueva-resena?dictado=${i.dictado}&from=/mis-resenas`;
+      a.href = `/nueva-resena?${i.dictado ? `dictado=${i.dictado}` : `materia=${i.materia}`}&from=/mis-resenas`;
       a.textContent = i.curso ? `${i.nombre}, ${i.curso}` : i.nombre;
       const s = document.createElement('span');
       s.className = 'sub';
-      const conBorrador = br && (String(br.dictado) === String(i.dictado) || (!br.dictado && String(br.materia) === String(i.materia)));
+      const conBorrador = br && String(br.materia) === String(i.materia);
       s.textContent = conBorrador ? 'Tenés un borrador' : 'Sin reseña';
       d.append(a, s);
       feed.append(d);

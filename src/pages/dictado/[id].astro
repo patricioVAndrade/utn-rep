@@ -7,7 +7,7 @@ import ReviewCard from '../../components/ReviewCard.astro';
 import ShareButton from '../../components/ShareButton.astro';
 import SeguirMateria from '../../components/SeguirMateria.astro';
 import PensandoBoton from '../../components/PensandoBoton.astro';
-import { bloquesDeBase, DIAS, horaTexto } from '../../lib/horarios';
+import { bloquesDeBase, DIAS, horaTexto, sinRecreos } from '../../lib/horarios';
 import FinalesPanel from '../../components/FinalesPanel.astro';
 import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 import { supabaseAdmin } from '../../lib/supabase-admin';
@@ -133,7 +133,7 @@ const pct = (n: number) => (conCondicion ? Math.round((n / conCondicion) * 100) 
 
 // Horario del curso (migración 12; sin la tabla queda vacío)
 const { data: horariosRaw } = await supabase.from('horarios').select('cuatri, dia, desde, hasta').eq('dictado_id', id);
-const horario = bloquesDeBase(horariosRaw || []);
+const horario = sinRecreos(bloquesDeBase(horariosRaw || []));
 const hayCuatris = new Set(horario.map((h) => h.cuatri)).size > 1;
 
 // Otros cursos de la misma materia, con su nota
@@ -304,7 +304,6 @@ const totalCursos = (otrosRaw || []).length;
             {horario.map((h) => (
               <div><span><b>{DIAS[h.dia]}</b> {horaTexto(h.desde)} a {horaTexto(h.hasta)}</span>{hayCuatris && h.cuatri && <span class="sub">{h.cuatri === 1 ? '1.er' : '2.º'} cuatri</span>}</div>
             ))}
-            <span class="sub">Según la planilla del centro de estudiantes. Con "Lo estoy pensando" lo comparás con otros en <a href="/mi-inscripcion">Mi inscripción</a>.</span>
           </div>
         </section>
       )}

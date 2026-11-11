@@ -72,14 +72,8 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
-  -- 5. Un solo elegido por materia
+  -- 5. Otro curso de la misma materia entra en la lista
   INSERT INTO public.inscripcion_cursos (user_id, dictado_id) VALUES (v_a, v_d2);
-  UPDATE public.inscripcion_cursos SET elegido = true WHERE user_id = v_a AND dictado_id = v_d1;
-  BEGIN
-    UPDATE public.inscripcion_cursos SET elegido = true WHERE user_id = v_a AND dictado_id = v_d2;
-    RAISE EXCEPTION '5: dejó dos elegidos en la misma materia';
-  EXCEPTION WHEN unique_violation THEN NULL;
-  END;
 
   -- 6. Los horarios los lee, pero no los cambia
   SELECT count(*) INTO v_n FROM public.horarios WHERE dictado_id = v_d1;

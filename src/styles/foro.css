@@ -687,8 +687,6 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
   .post-head .mas-util svg { width: 12px; height: 12px; }
   .panel.pedir .in { display: grid; gap: 10px; }
   .panel.pedir .btn { justify-self: start; }
-  .nota-recordatorio { display: flex; gap: 6px; align-items: baseline; margin-top: 14px; color: var(--muted); font-size: 13px; }
-  .nota-recordatorio svg { width: 14px; height: 14px; flex: none; position: relative; top: 2px; }
   .imp-crear { display: flex; gap: 6px; align-items: center; padding: 2px 4px; color: var(--muted); }
 .imp-sec { border: 1px solid var(--line); background: var(--row-a); }
 .imp-sec > summary { cursor: pointer; padding: 6px 8px; font-size: 12.5px; }
@@ -1018,26 +1016,16 @@ html[data-theme="dark"] { --wa-bg: #14301f; }
 .pasados { margin: 4px 0 0; font-size: 11px; }
 
 /* Mi inscripción (F29, migración 12), como la V6 */
-.combo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); background: var(--turno); margin-bottom: 10px; }
-.combo .chips { display: inline-flex; }
-.combo .choques { flex-basis: 100%; display: grid; gap: 3px; font-size: 12px; }
-.combo .choques span { display: flex; gap: 5px; align-items: baseline; color: var(--bad); font-weight: bold; }
-.combo .choques.ok span { color: var(--ok); font-weight: normal; }
-.combo .choques svg { width: 12px; height: 12px; flex: none; align-self: center; }
+.choques { margin-bottom: 10px; }
+.choques svg { width: 18px; height: 18px; }
 .plan { border: 1px solid var(--line); margin-bottom: 10px; }
 .plan-h { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 10px; background: var(--cat); border-bottom: 1px solid var(--line); }
 .plan-h b { font: bold 13px var(--f-title); }
 .plan-h a.sub { margin-left: auto; }
 .plan-c { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; padding: 8px; background: var(--row-a); }
-.pc { display: grid; gap: 3px; align-content: start; padding: 8px; border: 1px solid var(--line); background: var(--box); cursor: pointer; position: relative; font-size: 12px; }
-.pc input { position: absolute; opacity: 0; pointer-events: none; }
-.pc:has(input:checked) { border: 2px solid var(--amber); padding: 7px; box-shadow: 0 1px 4px var(--shadow); }
-.pc:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
-.pc:has(input:disabled) { cursor: default; }
+.pc { display: grid; gap: 3px; align-content: start; padding: 8px; border: 1px solid var(--line); background: var(--box); font-size: 12px; }
 .pc-top { display: flex; gap: 6px; align-items: center; }
 .pc-hor { font-size: 11px; }
-.pick-tag { justify-self: start; display: inline-flex; gap: 3px; align-items: center; font-size: 11px; font-weight: bold; color: var(--ink); }
-.pick-tag svg { width: 11px; height: 11px; color: var(--amber); }
 .pc-x { justify-self: end; font-size: 11px; }
 .horario > div { display: flex; justify-content: space-between; gap: 6px; }
 

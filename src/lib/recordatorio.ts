@@ -1,6 +1,6 @@
 // Recordatorio de fin de cuatrimestre (F32, migración 15), dentro del sitio.
-// La base crea los avisos "¿Cómo te fue en X, 2K3?" por los cursos elegidos en
-// Mi inscripción. Se pide como mucho una vez por día y por navegador (cookie),
+// La base crea los avisos "¿Cómo te fue en X?" por las materias de
+// Mi inscripción (migración 19). Se pide como mucho una vez por día y por navegador (cookie),
 // la primera vez que la persona entra con sesión.
 import type { AstroCookies } from 'astro';
 

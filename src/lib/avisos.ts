@@ -4,10 +4,10 @@ export const CANALES_AVISO = ['sitio', 'mail', 'telegram', 'push'] as const;
 
 /** Las preferencias que se pueden cambiar en Mi cuenta (los pedidos de la moderación siempre llegan). */
 export const PREFERENCIAS_EDITABLES: { tipos: string[]; texto: string; detalle?: string }[] = [
-  { tipos: ['resena_nueva', 'final_nuevo'], texto: 'Reseñas y finales nuevos en las materias que seguís' },
+  { tipos: ['resena_nueva', 'final_nuevo'], texto: 'Reseñas y finales nuevos', detalle: 'de las materias que seguís y los cursos de Mi inscripción' },
   { tipos: ['te_sirvio'], texto: 'Cuando tus reseñas le sirven a alguien', detalle: 'una vez por semana como máximo' },
   { tipos: ['respuesta_moderador'], texto: 'Cuando la moderación responde lo que escribiste' },
-  { tipos: ['recordatorio'], texto: 'Al terminar el cuatrimestre, cómo te fue en tus cursos', detalle: 'los que elegiste en Mi inscripción' },
+  { tipos: ['recordatorio'], texto: 'Al terminar el cuatrimestre, cómo te fue en tus cursos', detalle: 'los de Mi inscripción' },
 ];
 
 export const ICONO_AVISO: Record<string, string> = {
