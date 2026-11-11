@@ -56,3 +56,13 @@ La migración 12 crea la tabla de horarios **vacía**. Los horarios se cargan de
 5. Si arriba aparece "Materias que no encontré", elegí la materia de la lista para cada una (o dejala en "No importar" y me avisás cuáles son).
 6. Tocá **Guardar cambios**, abajo de todo. Arriba sale un cartel verde con cuántos horarios guardó.
 7. Para ver que quedaron: abrí el curso 1K1, tocá Análisis Matemático I y tiene que mostrar "Lunes 8:00 a 10:25" y "Martes 8:00 a 9:30".
+
+### Si el panel da "Respuesta inválida del servidor" (o falla de otra forma)
+
+Cargalos directo en la base de prueba, sin el panel:
+
+1. Supabase, proyecto **de prueba**, **SQL Editor**, consulta nueva con el **+**.
+2. Pegá todo el archivo `supabase/pruebas/cargar-horarios-2026.sql` (copia en la carpeta del proyecto: `propuestas/base-prueba/cargar-horarios-2026.sql`). No hay que cambiar nada.
+3. Tocá **Run**. Sale una fila: la columna **resultado** dice `LISTO…`, `horarios_nuevos` cuántos guardó y `no_encontre` lo que no pudo ubicar (por ejemplo una electiva que el curso no tiene en la base). Pasame lo de `no_encontre`.
+
+Se puede correr dos veces sin que se repita nada.

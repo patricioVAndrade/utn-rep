@@ -86,7 +86,11 @@ const csrfToken = tokenCsrf(Astro.cookies);
     const headers: Record<string, string> = { [header]: token };
     if (json) headers['Content-Type'] = 'application/json';
     const res = await fetch('/api/admin/importar', { method: 'POST', headers, body, credentials: 'same-origin' });
-    const data = await res.json().catch(() => ({ error: 'Respuesta inválida del servidor.' }));
+    const data = await res.json().catch(() => ({
+      error: res.status === 504 ? 'El servidor tardó demasiado (504). Probá con menos cosas marcadas, o avisá.'
+        : res.status === 413 ? 'El archivo es demasiado grande para el servidor (413).'
+        : `El servidor respondió algo que no esperaba (código ${res.status}). Avisá con ese número.`,
+    }));
     if (!res.ok) throw new Error(data.error || 'Algo salió mal.');
     return data;
   }

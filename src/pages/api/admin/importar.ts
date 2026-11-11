@@ -169,6 +169,7 @@ async function aplicar(body: any) {
 
   // 5. Horarios (migración 12): se reemplazan los de cada curso marcado
   const horarios: any[] = Array.isArray(body.horarios) ? body.horarios.slice(0, MAX_ITEMS) : [];
+  const porDictado = new Map<number, { dictado_id: number; cuatri: number | null; dia: number; desde: string; hasta: string }[]>();
   for (const h of horarios) {
     const materiaId = entero(h?.materia_id);
     const bloques = bloquesValidos(h?.bloques);
@@ -187,10 +188,18 @@ async function aplicar(body: any) {
       res.dictados++;
     }
     if (!dictadoId) { res.errores.push(`${h?.curso || '?'} no tiene esa materia: marcá "Agregarla al curso" para crearla.`); continue; }
-    const { error: e1 } = await supabaseAdmin.from('horarios').delete().eq('dictado_id', dictadoId);
-    const { error: e2 } = e1 ? { error: e1 } : await supabaseAdmin.from('horarios').insert(bloques.map((x) => ({ dictado_id: dictadoId, cuatri: x.cuatri, dia: x.dia, desde: horaBase(x.desde), hasta: horaBase(x.hasta) })));
-    if (e1 || e2) res.errores.push(`No pude guardar el horario de ${h?.curso || '?'}. ¿Ya corriste la migración 12?`);
-    else res.horarios++;
+    if (porDictado.has(dictadoId)) continue;
+    porDictado.set(dictadoId, bloques.map((x) => ({ dictado_id: dictadoId, cuatri: x.cuatri, dia: x.dia, desde: horaBase(x.desde), hasta: horaBase(x.hasta) })));
+  }
+  // Todo junto, en tandas: uno por uno tardaba más de lo que Vercel espera
+  // con los cientos de cursos del CSV de los PDF.
+  const ids = [...porDictado.keys()];
+  for (let i = 0; i < ids.length; i += 200) {
+    const tanda = ids.slice(i, i + 200);
+    const { error: e1 } = await supabaseAdmin.from('horarios').delete().in('dictado_id', tanda);
+    const { error: e2 } = e1 ? { error: e1 } : await supabaseAdmin.from('horarios').insert(tanda.flatMap((id) => porDictado.get(id)!));
+    if (e1 || e2) res.errores.push(`No pude guardar ${tanda.length} horarios. ¿Ya corriste la migración 12?`);
+    else res.horarios += tanda.length;
   }
   return json({ ok: true, ...res });
 }

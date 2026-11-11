@@ -12,7 +12,7 @@ vi.mock('../src/lib/supabase-admin', () => ({
   supabaseAdmin: {
     from: (t: string) => {
       const q: any = { op: 'select' };
-      for (const m of ['select', 'eq', 'range', 'insert', 'delete', 'maybeSingle', 'single']) {
+      for (const m of ['select', 'eq', 'in', 'range', 'insert', 'delete', 'maybeSingle', 'single']) {
         q[m] = (...args: unknown[]) => {
           if (['insert', 'delete'].includes(m)) { q.op = m; hechas.push({ tabla: t, op: m, args }); }
           if (m === 'maybeSingle') q.uno = true;
