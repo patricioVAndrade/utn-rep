@@ -1,10 +1,11 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient, redirectWithCookies } from '../../../lib/supabase';
 import { safeReturnTo } from '../../../lib/redirect';
+import { motivoDeSupabase, motivoIntercambio } from '../../../lib/auth-error';
 
 /**
  * GET /api/auth/callback
- * Supabase redirects here after OAuth. Exchanges the code for a session,
+ * Supabase redirects here after OAuth or a magic link. Exchanges the code for a session,
  * stores session tokens as cookies, then redirects to the returnTo page.
  */
 export const GET: APIRoute = async ({ request, cookies, url }) => {
@@ -19,7 +20,7 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
     console.error('[Auth Callback] Provider error:', error_param, error_description);
     return new Response(null, {
       status: 302,
-      headers: { Location: '/?auth_error=' + encodeURIComponent(error_description || error_param) },
+      headers: { Location: '/?auth_error=' + motivoDeSupabase(url.searchParams.get('error_code'), error_description) },
     });
   }
 
@@ -36,7 +37,7 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
 
   if (error) {
     console.error('[Auth Callback] Exchange error:', error.message);
-    return new Response(null, { status: 302, headers: { Location: '/?auth_error=exchange_failed' } });
+    return new Response(null, { status: 302, headers: { Location: '/?auth_error=' + motivoIntercambio(request.headers.get('cookie'), error.message) } });
   }
 
   // Clean up the returnTo cookie

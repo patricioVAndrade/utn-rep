@@ -6,6 +6,7 @@ import LogoRep from '../components/LogoRep.astro';
 import UserBar from '../components/UserBar.astro';
 import LoginModal from '../components/LoginModal.astro';
 import Bienvenida from '../components/Bienvenida.astro';
+import { textoAuthError } from '../lib/auth-error';
 
 export type Tab = 'materias' | 'finales' | 'mis' | 'ayuda' | 'escribir';
 export interface Crumb { label: string; href?: string }
@@ -48,6 +49,8 @@ const user = Astro.locals.user;
 // Llegó por un link compartido (migración 9). La apertura la anota el navegador.
 const de = (Astro.url.searchParams.get('de') || '').toLowerCase();
 const llegoPorLink = /^[a-z0-9]{4,8}$/.test(de);
+// No se pudo entrar: el motivo viene en ?auth_error= (src/lib/auth-error.ts)
+const errorIngreso = user ? null : textoAuthError(Astro.url.searchParams.get('auth_error'));
 const canonicalURL = Astro.url.href;
 const siteURL = Astro.url.origin;
 const ogImageUrl = new URL(ogImage, siteURL).href;
@@ -168,6 +171,11 @@ const cur = (t: Tab) => (tab === t ? 'page' : undefined);
       )}
 
       <main id="contenido">
+        {errorIngreso && (
+          <div class="de-wrap" id="auth-error">
+            <div class="notice bad" role="alert"><Icon name="alert" /><div>{errorIngreso}</div></div>
+          </div>
+        )}
         {llegoPorLink && !legacy && (
           <div class="de-wrap" id="de-bar">
             <div class="ln-bar">

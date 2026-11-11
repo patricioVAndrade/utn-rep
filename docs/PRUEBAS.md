@@ -108,7 +108,7 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 193 pruebas en 18 archiv
 | 9 | Cualquier escritura con una cuenta bloqueada | Sesión bloqueada | `POST /api/resenas`, `PUT /api/resenas/{id}` (o `POST` con `_method: PUT`), votar, reportar, finales y `POST /api/perfil` (nombre) → 403 "Tu cuenta está bloqueada". | `tests/resenas-api.test.ts`, `tests/cuenta-api.test.ts` |
 | 8 | `POST /api/perfil` `{ foto: "google" }` | Sesión | Guarda la foto de Google para las reseñas; con `inicial` o `dibujo` la borra. | `tests/cuenta-api.test.ts` |
 | 7 | `GET/POST /api/avisos`, `POST /api/avisos/preferencias` | Sesión | Marcar leídos, borrar, apagar un tipo de aviso. | `tests/cuenta-api.test.ts` |
-| 6 | `POST /api/seguir` | Sesión | Seguir (queda con `mail: false`), dejar de seguir, mail sí o no. | `tests/cuenta-api.test.ts` |
+| 6 | `POST /api/seguir` | Sesión | Seguir, dejar de seguir, mail sí o no. | `tests/cuenta-api.test.ts` |
 | 5 | `POST /api/perfil`, `POST /api/cuenta/borrar` | Sesión | Nombre, foto, años; borrar dejando anónimo o borrando todo. | `tests/cuenta-api.test.ts` |
 | 4 | `POST /api/admin/moderacion` | Admin + CSRF | Responder, pedir edición, palabras marcadas. | `tests/admin-api.test.ts` |
 | 3 | `PUT /api/resenas/{id}` (o `POST` con `_method: PUT`) | Sesión (dueño) | Cambiar texto o "¿Cómo te fue?"; sin cambios → 400. | `tests/resenas-api.test.ts` |
@@ -137,8 +137,8 @@ Lo que no se puede probar con Postman porque es de pantalla:
 - Sacar un profe de un curso en Admin > Materias y cursos y ver "Antes: nombre (período)" debajo.
 - Mail del día: que llegue a Gmail y a Hotmail (no a spam), se vea bien en el celular y en modo oscuro, y el link "dejá de recibir mails" lleve a /baja.
 - Mi cuenta: interruptor "Mail" de cada aviso.
-- Seguir una materia nueva: en Mi cuenta aparece con "Mail" apagado; una reseña nueva en esa materia da aviso en el sitio y `GET /api/cron/mails?prueba=1` no cuenta a esa persona. Con "Mail" prendido en esa materia, sí la cuenta.
-- Telegram (con el bot de prueba, ver `docs/TELEGRAM.md`): conectar desde Mi cuenta, que llegue el aviso en segundos con el botón que lleva a la reseña, que varios avisos juntos lleguen en un solo mensaje, que el interruptor diga "Telegram" en vez de "Mail", `/stop`, bloquear al bot y "Desconectar Telegram". Que la línea de Avisos y el pie del mail inviten a conectarlo solo a quien no lo tiene.
+- Ingreso con mail (ver `docs/INGRESO-CON-MAIL.md`): pedir el link y abrirlo en el mismo navegador entra y vuelve a la página donde estabas; abrirlo en otro navegador muestra el cartel "se abrió en un navegador distinto"; usar el link dos veces, o uno viejo después de pedir otro, muestra "ya venció o ya se usó". En Preview, con las Redirect URLs del proyecto de prueba al día. Google y GitHub siguen entrando igual.
+- Telegram (en producción, con tu cuenta, ver `docs/TELEGRAM.md`): conectar desde Mi cuenta, que llegue el aviso en segundos con el botón que lleva a la reseña, que varios avisos juntos lleguen en un solo mensaje, que el interruptor diga "Telegram" en vez de "Mail", `/stop`, bloquear al bot y "Desconectar Telegram". Que la línea de Avisos y el pie del mail inviten a conectarlo solo a quien no lo tiene.
 - Admin > Resumen > Bot de Telegram: sin claves dice cuáles faltan; "Conectar el bot a este sitio" deja las dos direcciones iguales.
 - Materia con una reseña de 3 votos o más: panel "La más útil de la materia" con el curso y el link a la reseña; sin ninguna de 3 votos, no aparece.
 - Logo nuevo: encabezado a 1100 y 390 px, favicon en la pestaña (claro y oscuro), ícono al agregar el sitio a la pantalla del celular y la imagen al compartir un link en WhatsApp.

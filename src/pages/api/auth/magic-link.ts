@@ -53,12 +53,16 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
 
   const returnTo = safeReturnTo(typeof body.returnTo === 'string' ? body.returnTo : null);
   const baseUrl = new URL('/', request.url).origin;
+  // El link vuelve a la misma dirección que Google y GitHub (/api/auth/callback), que es
+  // la que está permitida en Supabase. A dónde seguir después va en una cookie (1 hora,
+  // lo que dura el link), igual que en /api/auth/login.
+  cookies.set('auth_returnTo', encodeURIComponent(returnTo), { path: '/', maxAge: 60 * 60, sameSite: 'lax', httpOnly: false });
 
   const { error } = await supabase.auth.signInWithOtp({
     email: emailResult.email,
     options: {
       data: { full_name: formatearNombre(body.nombre) },
-      emailRedirectTo: `${baseUrl}${returnTo}`,
+      emailRedirectTo: `${baseUrl}/api/auth/callback`,
     },
   });
 

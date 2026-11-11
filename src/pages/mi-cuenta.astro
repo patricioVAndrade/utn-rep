@@ -142,7 +142,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
               </div>
             ))
             : <span class="sub" id="sin-seguidas">Todavía no seguís ninguna. En cada materia y en cada curso hay un botón "Seguir materia".</span>}
-          {seguidas.length > 0 && <span class="sub">Te avisamos en <a href="/avisos">Avisos</a> cuando hay reseñas o finales nuevos. Si además lo querés por mail, prendé "Mail" en esa materia.</span>}
+          {seguidas.length > 0 && <span class="sub">Te avisamos en <a href="/avisos">Avisos</a> cuando hay reseñas o finales nuevos. Con "Mail" prendido también te llega por mail, si no lo viste antes en el sitio.</span>}
         </div>
       </section>
 
@@ -183,7 +183,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
             <span class="sub">Si la moderación te pide que edites una reseña, te avisamos siempre.</span>
             {telegram
               ? <span class="sub">Con Telegram conectado, los avisos te llegan por ahí al momento, con el link directo, y no por mail. Si apagás un aviso, tampoco te llega por Telegram.</span>
-              : <span class="sub">Por mail va solo lo que todavía no viste en el sitio, todo junto y como mucho una vez por día. Si apagás un aviso, tampoco te llega por mail. Las reseñas y los finales nuevos llegan por mail solo de las materias en las que prendiste "Mail" en Materias que seguís.</span>}
+              : <span class="sub">Por mail va solo lo que todavía no viste en el sitio, todo junto y como mucho una vez por día. Si apagás un aviso, tampoco te llega por mail. Las reseñas y los finales nuevos llegan por mail solo de las materias que tienen "Mail" prendido en Materias que seguís.</span>}
             <p class="sub" id="avisos-ok" aria-live="polite"></p>
           </div>
         </div>
