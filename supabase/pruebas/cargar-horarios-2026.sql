@@ -13,6 +13,8 @@
 --  2. Crea el curso 5K5 (noche) con Gestión Gerencial, contracuatrimestre
 --     del 2.º, con Shocron Benmuyal, Leon Elias. Y en 1K16 suma Lógica y
 --     Estructuras Discretas y Sistemas y Procesos de Negocio (2.º cuatri).
+--     Crea 4K1B con Experiencia e Interfaces de Usuario del 2.º cuatri, igual
+--     a 4K1A (1.º cuatri), con el mismo profesor.
 --  3. Pasa a minúscula "de", "y", "e", "la"... en los nombres de materias
 --     que quedaron Con Todas Mayúsculas (por ejemplo "Experiencia E
 --     Interfaces De Usuario").
@@ -97,6 +99,44 @@ WHERE m.id IN (
     (SELECT id FROM public.materias WHERE pg_temp.norma(nombre) = 'logica y estructuras discretas' LIMIT 1),
     (SELECT id FROM public.materias WHERE pg_temp.norma(nombre) LIKE 'sistemas y procesos de negocio%' ORDER BY nivel LIMIT 1))
   AND NOT EXISTS (SELECT 1 FROM public.dictados d WHERE d.materia_id = m.id AND d.curso_id = c.id);
+
+-- 4K1B: Experiencia e Interfaces de Usuario del 2.º cuatrimestre, igual a
+-- 4K1A (que es la del 1.º), con el mismo profesor (Pato, 11/11/2026)
+INSERT INTO public.cursos (identificador, anio_carrera, turno)
+SELECT '4K1B', a.anio_carrera, a.turno FROM public.cursos a
+WHERE upper(trim(a.identificador)) = '4K1A'
+  AND NOT EXISTS (SELECT 1 FROM public.cursos WHERE upper(trim(identificador)) = '4K1B');
+
+INSERT INTO public.dictados (materia_id, curso_id, periodo_dictado)
+SELECT d.materia_id, b.id, 'SEGUNDO_CUATRIMESTRE'
+FROM public.dictados d
+JOIN public.cursos a ON a.id = d.curso_id AND upper(trim(a.identificador)) = '4K1A'
+JOIN public.materias m ON m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'experiencia e interfaces de usuario'
+JOIN public.cursos b ON upper(trim(b.identificador)) = '4K1B'
+WHERE NOT EXISTS (SELECT 1 FROM public.dictados x WHERE x.materia_id = d.materia_id AND x.curso_id = b.id);
+
+UPDATE public.dictados d SET periodo_dictado = 'PRIMER_CUATRIMESTRE'
+FROM public.cursos a, public.materias m
+WHERE a.id = d.curso_id AND upper(trim(a.identificador)) = '4K1A'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'experiencia e interfaces de usuario'
+  AND d.periodo_dictado::text IS DISTINCT FROM 'PRIMER_CUATRIMESTRE';
+
+-- Una corrida anterior pudo dejarle a 4K1A también los horarios del 2.º
+DELETE FROM public.horarios h
+USING public.dictados d, public.cursos a, public.materias m
+WHERE h.dictado_id = d.id AND h.cuatri = 2
+  AND a.id = d.curso_id AND upper(trim(a.identificador)) = '4K1A'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'experiencia e interfaces de usuario';
+
+INSERT INTO public.dictado_profesores (dictado_id, profesor_id)
+SELECT b.id, dp.profesor_id
+FROM public.dictados d
+JOIN public.cursos a ON a.id = d.curso_id AND upper(trim(a.identificador)) = '4K1A'
+JOIN public.materias m ON m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'experiencia e interfaces de usuario'
+JOIN public.dictado_profesores dp ON dp.dictado_id = d.id
+JOIN public.dictados b ON b.materia_id = d.materia_id
+JOIN public.cursos cb ON cb.id = b.curso_id AND upper(trim(cb.identificador)) = '4K1B'
+WHERE NOT EXISTS (SELECT 1 FROM public.dictado_profesores x WHERE x.dictado_id = b.id AND x.profesor_id = dp.profesor_id);
 
 -- 3 y 4, con el resultado en una fila
 WITH arreglados AS (
@@ -881,7 +921,7 @@ grupos AS (
 ),
 -- Materias del curso (sub = false) o de sus subgrupos, como 4K1A (sub = true)
 cand AS (
-  SELECT g.curso, g.materia, g.pp, d.id AS dictado_id, m.nombre AS en_base, pg_temp.palabras(m.nombre) AS pm,
+  SELECT g.curso, g.materia, g.pp, d.id AS dictado_id, d.periodo_dictado::text AS periodo, m.nombre AS en_base, pg_temp.palabras(m.nombre) AS pm,
          upper(trim(c.identificador)) <> upper(g.curso) AS sub
   FROM grupos g
   JOIN public.cursos c ON upper(trim(c.identificador)) = upper(g.curso) OR upper(trim(c.identificador)) ~ ('^' || upper(g.curso) || '[A-Z]$')
@@ -891,7 +931,7 @@ cand AS (
 -- Dos palabras coinciden si son iguales, una empieza con la otra o tienen
 -- las mismas 6 primeras letras (por errores de tipeo como "Estadísitica").
 puntaje AS (
-  SELECT curso, materia, dictado_id, en_base, sub,
+  SELECT curso, materia, dictado_id, periodo, en_base, sub,
     CASE WHEN pp = pm THEN 2 ELSE greatest(
       (SELECT count(*) FROM unnest(pp) a WHERE EXISTS (SELECT 1 FROM unnest(pm) b WHERE a = b OR (length(a) >= 4 AND b LIKE a || '%') OR (length(b) >= 4 AND a LIKE b || '%') OR (length(a) >= 6 AND length(b) >= 6 AND left(a, 6) = left(b, 6))))::numeric / greatest(cardinality(pp), 1),
       (SELECT count(*) FROM unnest(pm) b WHERE EXISTS (SELECT 1 FROM unnest(pp) a WHERE a = b OR (length(a) >= 4 AND b LIKE a || '%') OR (length(b) >= 4 AND a LIKE b || '%') OR (length(a) >= 6 AND length(b) >= 6 AND left(a, 6) = left(b, 6))))::numeric / greatest(cardinality(pm), 1)
@@ -907,15 +947,20 @@ orden AS (
   FROM nivel WHERE sub::int = mejor
   WINDOW w AS (PARTITION BY curso, materia ORDER BY s DESC)
 ),
--- Una sola materia que coincide (o una claramente mejor que la otra)
+-- Una sola materia que coincide (o una claramente mejor que la otra). En
+-- subgrupos puede haber más de una (4K1A del 1.º y 4K1B del 2.º): van todas
+-- las que empatan arriba, y cada una recibe solo los horarios de su cuatri.
 elegido AS (
-  SELECT curso, materia, dictado_id, en_base FROM orden
-  WHERE n = 1 AND (siguiente IS NULL OR s - siguiente >= 0.04)
+  SELECT curso, materia, dictado_id, periodo, sub, en_base FROM orden o
+  WHERE (NOT sub AND n = 1 AND (siguiente IS NULL OR s - siguiente >= 0.04))
+     OR (sub AND s = (SELECT max(x.s) FROM orden x WHERE x.curso = o.curso AND x.materia = o.materia))
 ),
 guardados AS (
   INSERT INTO public.horarios (dictado_id, cuatri, dia, desde, hasta)
   SELECT e.dictado_id, x.cuatri, x.dia, x.desde::time, x.hasta::time
   FROM datos x JOIN elegido e USING (curso, materia)
+  -- En un subgrupo de un solo cuatrimestre (4K1A, 4K1B), solo los de ese cuatrimestre
+  WHERE NOT (e.sub AND ((e.periodo = 'PRIMER_CUATRIMESTRE' AND x.cuatri = 2) OR (e.periodo = 'SEGUNDO_CUATRIMESTRE' AND x.cuatri = 1)))
   ON CONFLICT (dictado_id, (COALESCE(cuatri, 0)), dia, desde) DO NOTHING
   RETURNING dictado_id
 ),
@@ -934,9 +979,9 @@ SELECT
     ELSE 'LISTO, CON FALTANTES: guardé los que encontré. Pasame lo que dice no_encontre.'
   END AS resultado,
   (SELECT count(*) FROM guardados) AS horarios_nuevos,
-  (SELECT count(*) FROM elegido) || ' de ' || (SELECT count(*) FROM grupos) AS materias_en_cursos_con_horario,
+  (SELECT count(*) FROM (SELECT DISTINCT curso, materia FROM elegido) e) || ' de ' || (SELECT count(*) FROM grupos) AS materias_en_cursos_con_horario,
   (SELECT string_agg(curso || ' · ' || materia || ' (' || motivo || ')', E'\n' ORDER BY curso, materia) FROM sin) AS no_encontre,
   (SELECT string_agg(m.nombre || ' en ' || upper(c.identificador) || ': ' || coalesce((SELECT string_agg(p.nombre_completo, ' y ' ORDER BY p.nombre_completo) FROM public.dictado_profesores dp JOIN public.profesores p ON p.id = dp.profesor_id WHERE dp.dictado_id = d.id), 'sin profesores'), E'\n' ORDER BY c.identificador, m.nombre)
    FROM public.dictados d JOIN public.materias m ON m.id = d.materia_id JOIN public.cursos c ON c.id = d.curso_id
-   WHERE pg_temp.norma(m.nombre) LIKE 'creatividad%' OR upper(trim(c.identificador)) = '5K5') AS creatividad_y_5k5,
+   WHERE pg_temp.norma(m.nombre) LIKE 'creatividad%' OR upper(trim(c.identificador)) IN ('5K5', '4K1A', '4K1B')) AS cursos_arreglados,
   coalesce((SELECT string_agg(viejo || ' → ' || nuevo, E'\n') FROM arreglados), 'ninguno (o ya estaban bien)') AS nombres_arreglados;
