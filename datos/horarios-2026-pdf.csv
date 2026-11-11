@@ -264,6 +264,7 @@ curso,materia,cuatrimestre,dia,desde,hasta
 1K16,Lógica y Estructuras Discretas,2,Sábado,8:45,9:30
 1K16,Lógica y Estructuras Discretas,2,Sábado,9:40,10:25
 1K16,Lógica y Estructuras Discretas,2,Sábado,10:25,11:10
+1K16,Lógica y Estructuras Discretas,2,Sábado,11:20,12:05
 1K16,Lógica y Estructuras Discretas,2,Sábado,12:05,12:50
 1K16,Sistemas y Procesos de Negocio,2,Martes,15:40,16:25
 1K16,Sistemas y Procesos de Negocio,2,Martes,16:35,17:20
@@ -1815,12 +1816,12 @@ curso,materia,cuatrimestre,dia,desde,hasta
 5K2,Consultoría en Negocios Digitales,2,Viernes,13:15,14:00
 5K2,Consultoría en Negocios Digitales,2,Viernes,14:00,14:45
 5K2,Consultoría en Negocios Digitales,2,Viernes,14:55,15:40
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Miércoles,15:40,16:25
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Miércoles,16:35,17:20
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Miércoles,17:20,18:05
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Viernes,15:40,16:25
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Viernes,16:35,17:20
-5K2,Creatividad y Desarrollo de Entornos Virtuales,1,Viernes,17:20,18:05
+5K2,Creatividad e Innovación en Ingeniería,1,Miércoles,15:40,16:25
+5K2,Creatividad e Innovación en Ingeniería,1,Miércoles,16:35,17:20
+5K2,Creatividad e Innovación en Ingeniería,1,Miércoles,17:20,18:05
+5K2,Creatividad e Innovación en Ingeniería,1,Viernes,15:40,16:25
+5K2,Creatividad e Innovación en Ingeniería,1,Viernes,16:35,17:20
+5K2,Creatividad e Innovación en Ingeniería,1,Viernes,17:20,18:05
 5K2,Decisiones en Escenarios Complejos,2,Miércoles,13:15,14:00
 5K2,Decisiones en Escenarios Complejos,2,Miércoles,14:00,14:45
 5K2,Decisiones en Escenarios Complejos,2,Miércoles,14:55,15:40
