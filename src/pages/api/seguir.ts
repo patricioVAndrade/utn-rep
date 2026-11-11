@@ -12,7 +12,7 @@ const schema = z.object({
 
 /**
  * POST /api/seguir (F11, migración 6)
- * { materia_id, seguir: true|false } sigue o deja de seguir; { materia_id, mail } cambia el aviso por mail.
+ * { materia_id, seguir: true|false } sigue o deja de seguir (se empieza sin mail); { materia_id, mail } cambia el aviso por mail.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const { client } = createSupabaseServerClient({ headers: request.headers, cookies });
@@ -31,7 +31,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return json({ success: true, sigue: false });
   }
   if (seguir === true) {
-    const { error } = await client.from('seguimientos').insert({ user_id: user.id, materia_id });
+    // Sin mail de entrada: el aviso queda en el sitio y el mail se prende por materia en Mi cuenta
+    const { error } = await client.from('seguimientos').insert({ user_id: user.id, materia_id, mail: false });
     if (error && error.code !== '23505') {
       if (error.code === '23503') return json({ error: 'La materia no existe.' }, 404);
       console.error('Error siguiendo materia:', error);

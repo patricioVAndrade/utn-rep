@@ -118,7 +118,7 @@ describe('POST /api/seguir (migración 6)', () => {
   it('seguir guarda a nombre propio; repetido no es error; materia inexistente → 404', async () => {
     const r = await s({ materia_id: 4, seguir: true });
     expect(r.body).toEqual({ success: true, sigue: true });
-    expect(base.de('seguimientos', 'insert')[0].pasos[0][1][0]).toEqual({ user_id: 'u-1', materia_id: 4 });
+    expect(base.de('seguimientos', 'insert')[0].pasos[0][1][0]).toEqual({ user_id: 'u-1', materia_id: 4, mail: false });
     base.respuestas['seguimientos.insert'] = { error: { code: '23505' } };
     expect((await s({ materia_id: 4, seguir: true })).status).toBe(200);
     base.respuestas['seguimientos.insert'] = { error: { code: '23503' } };

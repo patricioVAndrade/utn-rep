@@ -22,11 +22,11 @@ if (user) {
 <section class="panel seguir" data-materia={materiaId}>
   <h3>Seguir esta materia</h3>
   <div class="in">
-    <span>Te avisamos cuando alguien publica una reseña o cuenta un final de {materiaNombre}.</span>
+    <span>Te avisamos en el sitio cuando alguien publica una reseña o cuenta un final de {materiaNombre}.</span>
     {user
       ? <button type="button" class:list={['btn', sigue ? 'pressed' : 'quiet']} aria-pressed={sigue ? 'true' : 'false'} data-seguir><Icon name="bell" /> <span>{sigue ? 'Siguiendo' : 'Seguir materia'}</span></button>
       : <button type="button" class="btn quiet" data-login><Icon name="bell" /> Seguir materia</button>}
-    <span class="sub">La dejás de seguir con un clic desde acá o desde <a href="/mi-cuenta#seguis">Mi cuenta</a>.</span>
+    <span class="sub">La dejás de seguir con un clic desde acá o desde <a href="/mi-cuenta#seguis">Mi cuenta</a>, donde también podés pedir el aviso por mail.</span>
   </div>
 </section>
 

@@ -119,7 +119,7 @@ export const logros_usuario = [];
   dar('u-demo', 'L10');
   experiencias_finales.forEach((f) => dar(f.user_id, 'L4'));
 }
-export const seguimientos = [{ user_id: 'u-demo', materia_id: 1, mail: true, created_at: '2026-11-01T10:00:00Z' }];
+export const seguimientos = [{ user_id: 'u-demo', materia_id: 1, mail: false, created_at: '2026-11-01T10:00:00Z' }];
 export const preferencias_aviso = [];
 export const notificaciones = [
   { id: 4, user_id: 'u-demo', tipo: 'recordatorio', titulo: '¿Cómo te fue en Paradigmas de Programación, 2K1?', texto: 'Terminó el 1.er cuatrimestre. Lo elegiste en Mi inscripción: tu reseña le sirve a quien elige curso.', link: '/nueva-resena?dictado=5', leida_at: null, created_at: '2026-11-09T00:10:00Z' },
