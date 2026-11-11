@@ -93,6 +93,9 @@ if (ids.length) {
   grupos.forEach((g) => { g.total = cuenta.get(g.materia.id) || g.cursos.length; });
 }
 
+// Si de una materia pensás un solo curso, ese es tu elegido: así los choques se avisan sin tener que marcarlo
+grupos.forEach((g) => { if (g.cursos.length === 1) g.cursos[0].elegido = true; });
+const sinElegir = grupos.filter((g) => !g.cursos.some((c) => c.elegido)).length;
 const misElegidos = grupos.flatMap((g) => g.cursos.filter((c) => c.elegido).map((c) => ({ ...c, materia: g.materia.nombre })));
 const promedioElegidos = notaPromedio(misElegidos.map((c) => c.promedio));
 const conHorario = misElegidos.filter((c) => c.bloques.length);
@@ -147,6 +150,10 @@ const nombreGrupo = (m: string) => `pl-${m}`;
                 ? <div class="choques">{choques.map((c) => <span><Icon name="flag" /> {textoChoque(c)}</span>)}</div>
                 : conHorario.length > 1 && <div class="choques ok"><span><Icon name="check" /> Los horarios no se pisan.{sinHorario > 0 && ` (${sinHorario} sin horario cargado)`}</span></div>}
             </div>
+          )}
+
+          {!compartida && sinElegir > 0 && (
+            <div class="notice"><Icon name="info" /><div>Te falta marcar tu elegido en {sinElegir} materia{sinElegir !== 1 ? 's' : ''}. Los horarios que se pisan se revisan solo entre tus elegidos.</div></div>
           )}
 
           {grupos.map((g) => (
