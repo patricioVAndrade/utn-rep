@@ -18,7 +18,7 @@ const guardar = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.
 type Parada = { sel: string; t: string; x: string };
 const COMPU: Parada[] = [
   { sel: '.banner .search', t: 'El buscador está arriba, en todas las páginas', x: 'Escribí una materia, un curso como 1K3 o el apellido de un profe. Antes estaba solo en el inicio.' },
-  { sel: '.banner .tabs', t: 'Las secciones ahora son pestañas', x: '<b>Materias</b>: todas, por año. <b>Experiencias de finales</b>: lo que antes era el cartel amarillo del inicio. <b>Mis reseñas</b>: antes era el iconito al lado de tu nombre.' },
+  { sel: '.banner .tabs', t: 'Las secciones ahora son pestañas', x: '<b>Materias</b>: todas, por año. <b>Experiencias de finales</b>: lo que antes era el cartel amarillo del inicio. <b>Mi espacio</b>: tus reseñas (antes, el iconito al lado de tu nombre), Mi inscripción y Mi cuenta. <b>Avisos</b>: lo nuevo en las materias que seguís.' },
   { sel: '.banner .write-tab', t: 'Escribir una reseña, siempre a mano', x: 'El botón amarillo está en todas las páginas. En el celular, en el centro de la barra de abajo.' },
   { sel: '.userbar .me-link, .userbar [data-login]', t: 'Tu cuenta está en tu nombre', x: 'Tocalo para ir a <b>Mi cuenta</b>, donde elegís qué años cursás. A la derecha está el <b>Modo noche</b>, por si te gustaba el sitio oscuro como antes.' },
 ];
@@ -26,7 +26,7 @@ const CELU: Parada[] = [
   { sel: '.banner .search', t: 'El buscador, arriba de todo', x: 'Materia, curso como 1K3 o apellido de un profe.' },
   { sel: '.jump', t: 'Tu año, a un toque', x: 'Los años tienen color. Tocá el tuyo y vas directo a sus materias.' },
   { sel: '.bottombar .write', t: 'Escribir, en el centro', x: 'Desde cualquier pantalla, sin buscar el botón.' },
-  { sel: '.bottombar > :last-child', t: 'Tus reseñas y los finales, abajo', x: 'En "Mis reseñas" están las tuyas. En "Finales", las experiencias de mesa. Tu cuenta está en tu nombre, arriba.' },
+  { sel: '.bottombar > :last-child', t: 'Lo tuyo y los finales, abajo', x: 'En "Mi espacio" están tus reseñas, Mi inscripción y Mi cuenta. En "Finales", las experiencias de mesa.' },
 ];
 
 let paso = 0;

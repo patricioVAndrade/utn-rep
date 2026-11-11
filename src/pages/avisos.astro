@@ -26,7 +26,7 @@ if (telegramListo()) {
 }
 ---
 
-<Layout title="Avisos - UTN REP" description="Tus avisos en UTN REP." crumbs={[{ label: 'Avisos' }]}>
+<Layout title="Avisos - UTN REP" description="Tus avisos en UTN REP." tab="avisos" crumbs={[{ label: 'Avisos' }]}>
   <div class="layout narrow">
     <div class="main">
       <div class="topic">
@@ -76,8 +76,7 @@ if (telegramListo()) {
   };
   const actualizarContador = () => {
     const quedan = document.querySelectorAll('.aviso.nuevo').length;
-    const cnt = document.querySelector('.avisos-link .cnt');
-    if (cnt) { if (quedan) cnt.textContent = String(quedan); else cnt.remove(); }
+    document.querySelectorAll('.tabs .cnt, .bottombar .cnt').forEach((cnt) => { if (quedan) cnt.textContent = String(quedan); else cnt.remove(); });
     if (!quedan) document.getElementById('leer-todos')?.remove();
   };
 
