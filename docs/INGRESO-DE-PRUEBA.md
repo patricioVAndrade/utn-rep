@@ -30,7 +30,7 @@ No guardes esa consulta con la contraseña adentro: cerrá la pestaña cuando te
 ## Paso 2. Abrir el deploy nuevo de Preview
 
 1. Entrá a https://vercel.com, abrí el proyecto y tocá la pestaña **Deployments**.
-2. Buscá la fila de más arriba que diga **Preview** y el nombre de la rama, `claude/project-thread-nihy8x`. Tiene que ser de hoy.
+2. Buscá la fila de más arriba que diga **Preview** y el nombre de la rama, `claude/project-thread-5a6dr5`. Tiene que ser de hoy.
 3. Esperá a que diga **Ready** (si dice Building, tarda uno o dos minutos).
 4. Tocá esa fila y después el botón **Visit**.
 
@@ -52,7 +52,7 @@ Queda hecho: las próximas veces solo repetís el paso 3. La contraseña sigue s
 | No aparece "Ingreso de prueba" en la ventana | Estás en un deploy viejo (anterior al 10/11) o en utnrep.app. Volvé al paso 2 y abrí el deploy de más arriba de la rama. |
 | "El mail o la contraseña no coinciden…" | Usá el mail de la columna `mail_para_entrar` del paso 1. Si no te acordás la contraseña, repetí el paso 1 con otra. |
 | "Demasiados intentos" | Son 10 intentos cada 10 minutos. Esperá un rato. |
-| Entrás pero no ves el panel de admin | La variable `ADMIN_IDS` de Preview no tiene el id de esta cuenta. El id está en la columna `id_de_la_cuenta` del paso 1. Avisame y vemos cómo cargarlo. |
+| Entrás pero no ves el panel de admin | Tu cuenta de prueba no está en `ADMIN_IDS` de Preview. Pasos en `docs/ADMIN-EN-PREVIEW.md`. |
 
 ## Si no tenés ninguna cuenta en la base de prueba
 
