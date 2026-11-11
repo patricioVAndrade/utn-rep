@@ -1,15 +1,79 @@
 -- =====================================================================
--- Cargar los horarios 2026 (de los PDF oficiales) en la BASE DE PRUEBA.
--- Hace lo mismo que subir datos/horarios-2026-pdf.csv en /admin/importar.
+-- Cargar los horarios 2026 (de los PDF oficiales) y arreglar materias.
 -- Pegá TODO en el SQL Editor de Supabase y tocá Run. No hay que cambiar nada.
--- Se puede correr más de una vez: lo que ya está no se repite.
--- Busca cada materia entre las que tiene ese curso en la base (el nombre del
--- PDF puede no ser igual al de la base). Lo que no encuentra NO lo guarda y
--- lo muestra en la columna "no_encontre".
+-- Se puede correr más de una vez: lo que ya está no se repite. Sirve igual
+-- para la base de producción cuando Pato lo decida.
+--
+-- Qué hace:
+--  1. Crea la electiva "Creatividad y Desarrollo de Entornos Virtuales"
+--     (5.º año, 2.º cuatrimestre) en 5K1 y 5K4, con Mana, Franco y
+--     Gimenez Zens, Ines Luz (Pato, 11/11/2026). La de 5K2 que figura en
+--     el PDF con la misma sigla es otra materia: no se carga.
+--  2. Pasa a minúscula "de", "y", "e", "la"... en los nombres de materias
+--     que quedaron Con Todas Mayúsculas (por ejemplo "Experiencia E
+--     Interfaces De Usuario").
+--  3. Carga los horarios: busca cada materia entre las que tiene ese curso
+--     (o un subgrupo, como 4K1A, si el curso no la tiene). "I" y "1" valen
+--     lo mismo. Lo que no encuentra no lo guarda y lo muestra en "no_encontre".
 -- Requiere la migración 12 (tabla horarios).
--- Archivo generado desde datos/horarios-2026-pdf.csv (bloques ya juntados).
+-- Horarios generados desde datos/horarios-2026-pdf.csv (bloques juntados).
 -- =====================================================================
-WITH datos(curso, materia, cuatri, dia, desde, hasta) AS (VALUES
+
+-- Ayudantes que duran solo esta sesión (no quedan en la base)
+CREATE OR REPLACE FUNCTION pg_temp.norma(t text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+  SELECT trim(regexp_replace(lower(translate(coalesce(t, ''), 'ÁÉÍÓÚÜÑáéíóúüñ', 'AEIOUUNaeiouun')), '[^a-z0-9]+', ' ', 'g'))
+$$;
+-- Palabras que cuentan: sin "y", "de"...; "I", "II" pasan a 1, 2; sin la s final
+CREATE OR REPLACE FUNCTION pg_temp.palabras(t text) RETURNS text[] LANGUAGE sql IMMUTABLE AS $$
+  SELECT coalesce(array_agg(w ORDER BY n), '{}') FROM (
+    SELECT n, CASE WHEN length(w0) > 4 AND w0 LIKE '%s' THEN left(w0, -1) ELSE w0 END AS w
+    FROM (
+      SELECT n, CASE w WHEN 'i' THEN '1' WHEN 'ii' THEN '2' WHEN 'iii' THEN '3' WHEN 'iv' THEN '4' WHEN 'v' THEN '5' ELSE w END AS w0
+      FROM unnest(string_to_array(pg_temp.norma(t), ' ')) WITH ORDINALITY AS x(w, n)
+    ) a
+    WHERE w0 NOT IN ('', 'y', 'e', 'de', 'del', 'la', 'las', 'el', 'los', 'en', 'para', 'con', 'a', 'elec', 'electiva')
+  ) b
+$$;
+
+-- 1. Creatividad y Desarrollo de Entornos Virtuales
+INSERT INTO public.materias (nombre, nivel, es_electiva, puntos_electiva)
+SELECT 'Creatividad y Desarrollo de Entornos Virtuales', 5, true,
+       (SELECT puntos_electiva FROM public.materias WHERE pg_temp.norma(nombre) LIKE 'consultoria en negocios digitales%' LIMIT 1)
+WHERE NOT EXISTS (SELECT 1 FROM public.materias WHERE pg_temp.norma(nombre) LIKE 'creatividad%entornos virtuales%');
+
+INSERT INTO public.dictados (materia_id, curso_id, periodo_dictado)
+SELECT m.id, c.id, 'SEGUNDO_CUATRIMESTRE'
+FROM public.materias m
+JOIN public.cursos c ON upper(trim(c.identificador)) IN ('5K1', '5K4')
+WHERE pg_temp.norma(m.nombre) LIKE 'creatividad%entornos virtuales%'
+  AND NOT EXISTS (SELECT 1 FROM public.dictados d WHERE d.materia_id = m.id AND d.curso_id = c.id);
+
+INSERT INTO public.profesores (nombre_completo)
+SELECT v.nombre FROM (VALUES ('Mana, Franco'), ('Gimenez Zens, Ines Luz')) v(nombre)
+WHERE NOT EXISTS (SELECT 1 FROM public.profesores p WHERE pg_temp.norma(p.nombre_completo) = pg_temp.norma(v.nombre));
+
+INSERT INTO public.dictado_profesores (dictado_id, profesor_id)
+SELECT d.id, p.id
+FROM public.dictados d
+JOIN public.materias m ON m.id = d.materia_id AND pg_temp.norma(m.nombre) LIKE 'creatividad%entornos virtuales%'
+JOIN public.cursos c ON c.id = d.curso_id AND upper(trim(c.identificador)) IN ('5K1', '5K4')
+JOIN public.profesores p ON pg_temp.norma(p.nombre_completo) IN ('mana franco', 'gimenez zens ines luz')
+WHERE NOT EXISTS (SELECT 1 FROM public.dictado_profesores x WHERE x.dictado_id = d.id AND x.profesor_id = p.id);
+
+-- 2 y 3, con el resultado en una fila
+WITH arreglados AS (
+  UPDATE public.materias m SET nombre = n.nuevo
+  FROM (
+    SELECT id, nombre AS viejo,
+      (SELECT string_agg(CASE WHEN k > 1 AND lower(w) IN ('de', 'del', 'la', 'las', 'el', 'los', 'en', 'y', 'e', 'o', 'u', 'para', 'con', 'a') THEN lower(w) ELSE w END, ' ' ORDER BY k)
+       FROM unnest(string_to_array(nombre, ' ')) WITH ORDINALITY AS t(w, k)) AS nuevo
+    FROM public.materias
+  ) n
+  WHERE m.id = n.id AND n.nuevo <> n.viejo
+    AND NOT EXISTS (SELECT 1 FROM public.materias o WHERE o.nombre = n.nuevo)
+  RETURNING n.viejo, n.nuevo
+),
+datos(curso, materia, cuatri, dia, desde, hasta) AS (VALUES
   ('1K1', 'Algoritmos y Estructuras de Datos', NULL, 2, '11:20', '12:50'),
   ('1K1', 'Algoritmos y Estructuras de Datos', NULL, 2, '13:15', '14:00'),
   ('1K1', 'Algoritmos y Estructuras de Datos', NULL, 3, '08:00', '09:30'),
@@ -716,8 +780,6 @@ WITH datos(curso, materia, cuatri, dia, desde, hasta) AS (VALUES
   ('5K2', 'Ciencia de Datos', 2, 3, '15:40', '18:05'),
   ('5K2', 'Consultoría en Negocios Digitales', 2, 3, '13:15', '15:40'),
   ('5K2', 'Consultoría en Negocios Digitales', 2, 5, '13:15', '15:40'),
-  ('5K2', 'Creatividad y Desarrollo de Entornos Virtuales', 1, 3, '15:40', '18:05'),
-  ('5K2', 'Creatividad y Desarrollo de Entornos Virtuales', 1, 5, '15:40', '18:05'),
   ('5K2', 'Decisiones en Escenarios Complejos', 2, 3, '13:15', '15:40'),
   ('5K2', 'Decisiones en Escenarios Complejos', 2, 5, '13:15', '15:40'),
   ('5K2', 'Gerenciamiento Estratégico', 1, 3, '15:40', '18:05'),
@@ -774,50 +836,50 @@ WITH datos(curso, materia, cuatri, dia, desde, hasta) AS (VALUES
   ('5K4', 'Sistemas de Gestión', 2, 3, '19:55', '23:05'),
   ('5K4', 'Sistemas de Gestión', 2, 4, '19:55', '23:05'),
   ('5K5', 'Gestión Gerencial', 2, 1, '18:15', '20:40'),
-  ('5K5', 'Gestión Gerencial', 2, 4, '18:15', '19:45')),
+  ('5K5', 'Gestión Gerencial', 2, 4, '18:15', '19:45')
+),
 grupos AS (
-  SELECT DISTINCT curso, materia FROM datos
+  SELECT DISTINCT curso, materia, pg_temp.palabras(materia) AS pp FROM datos
 ),
--- Palabras de cada nombre, sin tildes, mayúsculas ni "y", "de", "la"...
--- Dos palabras coinciden si son iguales, una empieza con la otra o tienen
--- las mismas 6 primeras letras (por errores de tipeo como "Estadísitica").
-pal_g AS (
-  SELECT g.curso, g.materia,
-    ARRAY(SELECT w FROM unnest(regexp_split_to_array(trim(regexp_replace(lower(translate(g.materia, 'ÁÉÍÓÚÜÑáéíóúüñ', 'AEIOUUNaeiouun')), '[^a-z0-9]+', ' ', 'g')), ' ')) w
-          WHERE w NOT IN ('', 'y', 'e', 'de', 'del', 'la', 'las', 'el', 'los', 'en', 'para', 'con', 'elec', 'electiva')) AS pp
-  FROM grupos g
-),
+-- Materias del curso (sub = false) o de sus subgrupos, como 4K1A (sub = true)
 cand AS (
-  SELECT p.curso, p.materia, d.id AS dictado_id, m.nombre AS en_base, p.pp,
-    ARRAY(SELECT w FROM unnest(regexp_split_to_array(trim(regexp_replace(lower(translate(m.nombre, 'ÁÉÍÓÚÜÑáéíóúüñ', 'AEIOUUNaeiouun')), '[^a-z0-9]+', ' ', 'g')), ' ')) w
-          WHERE w NOT IN ('', 'y', 'e', 'de', 'del', 'la', 'las', 'el', 'los', 'en', 'para', 'con', 'elec', 'electiva')) AS pm
-  FROM pal_g p
-  JOIN public.cursos c ON upper(trim(c.identificador)) = upper(p.curso)
+  SELECT g.curso, g.materia, g.pp, d.id AS dictado_id, d.periodo_dictado::text AS periodo, m.nombre AS en_base, pg_temp.palabras(m.nombre) AS pm,
+         upper(trim(c.identificador)) <> upper(g.curso) AS sub
+  FROM grupos g
+  JOIN public.cursos c ON upper(trim(c.identificador)) = upper(g.curso) OR upper(trim(c.identificador)) ~ ('^' || upper(g.curso) || '[A-Z]$')
   JOIN public.dictados d ON d.curso_id = c.id
   JOIN public.materias m ON m.id = d.materia_id
 ),
+-- Dos palabras coinciden si son iguales, una empieza con la otra o tienen
+-- las mismas 6 primeras letras (por errores de tipeo como "Estadísitica").
 puntaje AS (
-  SELECT curso, materia, dictado_id, en_base,
+  SELECT curso, materia, dictado_id, periodo, en_base, sub,
     CASE WHEN pp = pm THEN 2 ELSE greatest(
       (SELECT count(*) FROM unnest(pp) a WHERE EXISTS (SELECT 1 FROM unnest(pm) b WHERE a = b OR (length(a) >= 4 AND b LIKE a || '%') OR (length(b) >= 4 AND a LIKE b || '%') OR (length(a) >= 6 AND length(b) >= 6 AND left(a, 6) = left(b, 6))))::numeric / greatest(cardinality(pp), 1),
       (SELECT count(*) FROM unnest(pm) b WHERE EXISTS (SELECT 1 FROM unnest(pp) a WHERE a = b OR (length(a) >= 4 AND b LIKE a || '%') OR (length(b) >= 4 AND a LIKE b || '%') OR (length(a) >= 6 AND length(b) >= 6 AND left(a, 6) = left(b, 6))))::numeric / greatest(cardinality(pm), 1)
     ) - abs(cardinality(pp) - cardinality(pm)) * 0.01 END AS s
   FROM cand
 ),
+-- Primero las del curso; los subgrupos solo si el curso no la tiene
+nivel AS (
+  SELECT *, min(sub::int) OVER (PARTITION BY curso, materia) AS mejor FROM puntaje WHERE s >= 0.6
+),
 orden AS (
   SELECT *, row_number() OVER w AS n, lead(s) OVER w AS siguiente
-  FROM puntaje WHERE s >= 0.6
+  FROM nivel WHERE sub::int = mejor
   WINDOW w AS (PARTITION BY curso, materia ORDER BY s DESC)
 ),
--- Una sola materia del curso que coincide (o una claramente mejor que la otra)
+-- Una sola materia que coincide (o una claramente mejor que la otra)
 elegido AS (
-  SELECT curso, materia, dictado_id, en_base FROM orden
+  SELECT curso, materia, dictado_id, periodo, sub, en_base FROM orden
   WHERE n = 1 AND (siguiente IS NULL OR s - siguiente >= 0.04)
 ),
 guardados AS (
   INSERT INTO public.horarios (dictado_id, cuatri, dia, desde, hasta)
   SELECT e.dictado_id, x.cuatri, x.dia, x.desde::time, x.hasta::time
   FROM datos x JOIN elegido e USING (curso, materia)
+  -- En un subgrupo de un solo cuatrimestre (4K1A), solo los de ese cuatrimestre
+  WHERE NOT (e.sub AND ((e.periodo = 'PRIMER_CUATRIMESTRE' AND x.cuatri = 2) OR (e.periodo = 'SEGUNDO_CUATRIMESTRE' AND x.cuatri = 1)))
   ON CONFLICT (dictado_id, (COALESCE(cuatri, 0)), dia, desde) DO NOTHING
   RETURNING dictado_id
 ),
@@ -837,4 +899,8 @@ SELECT
   END AS resultado,
   (SELECT count(*) FROM guardados) AS horarios_nuevos,
   (SELECT count(*) FROM elegido) || ' de ' || (SELECT count(*) FROM grupos) AS materias_en_cursos_con_horario,
-  (SELECT string_agg(curso || ' · ' || materia || ' (' || motivo || ')', E'\n' ORDER BY curso, materia) FROM sin) AS no_encontre;
+  (SELECT string_agg(curso || ' · ' || materia || ' (' || motivo || ')', E'\n' ORDER BY curso, materia) FROM sin) AS no_encontre,
+  (SELECT string_agg(upper(c.identificador) || ': ' || coalesce((SELECT string_agg(p.nombre_completo, ' y ' ORDER BY p.nombre_completo) FROM public.dictado_profesores dp JOIN public.profesores p ON p.id = dp.profesor_id WHERE dp.dictado_id = d.id), 'sin profesores'), ' · ' ORDER BY c.identificador)
+   FROM public.dictados d JOIN public.materias m ON m.id = d.materia_id JOIN public.cursos c ON c.id = d.curso_id
+   WHERE pg_temp.norma(m.nombre) LIKE 'creatividad%entornos virtuales%') AS creatividad,
+  coalesce((SELECT string_agg(viejo || ' → ' || nuevo, E'\n') FROM arreglados), 'ninguno (o ya estaban bien)') AS nombres_arreglados;
