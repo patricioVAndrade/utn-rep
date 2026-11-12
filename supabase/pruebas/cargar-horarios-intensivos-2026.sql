@@ -10,6 +10,12 @@
 -- 50" vale como "1H10/50" y "1H9 VIRTUAL" como "1H9". Si la planilla dice
 -- solo "1H9" y la materia tiene un único "1H9/algo" libre, usa ese. Lo que
 -- no encuentra no lo guarda y lo muestra en "no_encontre".
+--
+-- Antes crea Física 1 en 1H9 y 1H20 (1.er cuatrimestre, sábados), que no
+-- estaban en la base, con los profesores de la planilla: busca cada uno por
+-- apellido (y nombre, si la planilla lo trae); si no está, lo crea; si hay
+-- más de uno con ese apellido, usa el que ya da Física 1 o no pone ninguno
+-- y lo avisa en "profesores".
 -- Requiere la migración 12 (tabla horarios).
 -- =====================================================================
 
@@ -29,6 +35,67 @@ CREATE OR REPLACE FUNCTION pg_temp.clave_curso(t text) RETURNS text LANGUAGE sql
     upper(translate(coalesce(t, ''), 'ÁÉÍÓÚáéíóú', 'AEIOUaeiou')), 'COMISION|VIRTUAL', '/', 'g'), '[^A-Z0-9/]+', '', 'g'), '/+', '/', 'g'))
 $$;
 
+-- 1. Física 1 en 1H9 y 1H20 ------------------------------------------------------
+INSERT INTO public.cursos (identificador, anio_carrera, turno)
+SELECT v.ident, 1, 'MAÑANA' FROM (VALUES ('1H9'), ('1H20')) v(ident)
+WHERE NOT EXISTS (SELECT 1 FROM public.cursos c WHERE pg_temp.clave_curso(c.identificador) = v.ident);
+
+INSERT INTO public.dictados (materia_id, curso_id, periodo_dictado, es_intensivo)
+SELECT m.id, c.id, 'PRIMER_CUATRIMESTRE', true
+FROM public.materias m
+JOIN public.cursos c ON pg_temp.clave_curso(c.identificador) IN ('1H9', '1H20')
+WHERE pg_temp.materia_corta(m.nombre) = 'fisica 1'
+  AND NOT EXISTS (SELECT 1 FROM public.dictados d WHERE d.materia_id = m.id AND d.curso_id = c.id);
+
+CREATE TEMP TABLE IF NOT EXISTS profes_h (curso text, apellido text, nombre text, crear text, profesor_id integer, nota text);
+TRUNCATE profes_h;
+INSERT INTO profes_h (curso, apellido, nombre, crear) VALUES
+  ('1H9', 'valdiviezo', NULL, 'Valdiviezo'),
+  ('1H9', 'gomez astudillo', 'luis', 'Gomez Astudillo, Luis'),
+  ('1H20', 'montalvan', NULL, 'Montalvan'),
+  ('1H20', 'valdiviezo', NULL, 'Valdiviezo'),
+  ('1H20', 'kassis', 'santiago', 'Kassis, Santiago');
+
+-- Los que ya están en la base
+UPDATE profes_h x SET
+  profesor_id = CASE WHEN k.n = 1 THEN k.uno WHEN k.nf = 1 THEN k.uno_fisica END,
+  nota = CASE WHEN k.n = 1 THEN 'ya estaba: ' || k.nombres
+              WHEN k.nf = 1 THEN 'hay más de uno con ese apellido (' || k.nombres || '); puse el que ya da Física 1'
+              ELSE 'NO PUSE NINGUNO, hay más de uno: ' || k.nombres END
+FROM (
+  SELECT x.curso, x.apellido, count(*) AS n, min(p.id) AS uno,
+         count(*) FILTER (WHERE f.da) AS nf, min(p.id) FILTER (WHERE f.da) AS uno_fisica,
+         string_agg(p.nombre_completo, ' / ' ORDER BY p.nombre_completo) AS nombres
+  FROM profes_h x
+  JOIN public.profesores p ON string_to_array(pg_temp.norma(p.nombre_completo), ' ') @> string_to_array(x.apellido || coalesce(' ' || x.nombre, ''), ' ')
+  CROSS JOIN LATERAL (
+    SELECT EXISTS (
+      SELECT 1 FROM public.dictado_profesores dp
+      JOIN public.dictados d ON d.id = dp.dictado_id
+      JOIN public.materias m ON m.id = d.materia_id
+      WHERE dp.profesor_id = p.id AND pg_temp.materia_corta(m.nombre) = 'fisica 1') AS da
+  ) f
+  GROUP BY x.curso, x.apellido
+) k
+WHERE k.curso = x.curso AND k.apellido = x.apellido;
+
+-- Los que no están se crean
+INSERT INTO public.profesores (nombre_completo)
+SELECT DISTINCT crear FROM profes_h WHERE nota IS NULL;
+UPDATE profes_h x SET profesor_id = p.id, nota = 'no estaba: lo creé como "' || x.crear || '"'
+FROM public.profesores p
+WHERE x.nota IS NULL AND p.nombre_completo = x.crear;
+
+INSERT INTO public.dictado_profesores (dictado_id, profesor_id)
+SELECT d.id, x.profesor_id
+FROM profes_h x
+JOIN public.cursos c ON pg_temp.clave_curso(c.identificador) = x.curso
+JOIN public.dictados d ON d.curso_id = c.id
+JOIN public.materias m ON m.id = d.materia_id AND pg_temp.materia_corta(m.nombre) = 'fisica 1'
+WHERE x.profesor_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM public.dictado_profesores y WHERE y.dictado_id = d.id AND y.profesor_id = x.profesor_id);
+
+-- 2. Horarios -----------------------------------------------------------------------
 WITH datos (materia, curso, cuatri, dia, desde, hasta) AS (VALUES
   ('Álgebra', '1H10/10', 1, 1, '13:15', '14:45'),
   ('Álgebra', '1H10/10', 1, 5, '13:15', '14:45'),
@@ -107,6 +174,7 @@ SELECT
   (SELECT count(*) FROM guardados) AS horarios_nuevos,
   (SELECT count(*) FROM elegido) || ' de ' || (SELECT count(*) FROM grupos) AS cursos_con_horario,
   (SELECT string_agg(materia || ' · ' || curso, E'\n' ORDER BY materia, curso) FROM sin) AS no_encontre,
+  (SELECT string_agg(curso || ' · ' || initcap(apellido) || ': ' || nota, E'\n' ORDER BY curso DESC, apellido) FROM profes_h) AS profesores,
   -- Cursos H de la base (de cualquier materia) que siguen sin horario
   (SELECT string_agg(m.nombre || ' · ' || c.identificador, E'\n' ORDER BY m.nombre, c.identificador)
    FROM public.dictados d JOIN public.materias m ON m.id = d.materia_id JOIN public.cursos c ON c.id = d.curso_id
