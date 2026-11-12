@@ -30,6 +30,7 @@ const [
   { data: ultimas },
   { count: linksSemana },
   { count: linksAntes },
+  { data: conHorario },
 ] = await Promise.all([
   supabaseAdmin.from('reportes_resenas').select('id, resena_id, created_at').order('created_at', { ascending: true }),
   supabaseAdmin.from('resenas').select('id, user_id, created_at').gte('created_at', hace30.toISOString()).range(0, 9999),
@@ -42,6 +43,7 @@ const [
   // Links compartidos (migración 9): personas distintas que abrieron un link con ?de=
   supabaseAdmin.from('aperturas_link').select('codigo', { count: 'exact', head: true }).gte('created_at', hace7),
   supabaseAdmin.from('aperturas_link').select('codigo', { count: 'exact', head: true }).gte('created_at', hace14).lt('created_at', hace7),
+  supabaseAdmin.from('horarios').select('dictado_id').range(0, 49999),
 ]);
 
 // Para hacer hoy
@@ -49,7 +51,10 @@ const reportesLista = reportes || [];
 const resenasReportadas = new Set(reportesLista.map((r) => r.resena_id)).size;
 const masViejo = reportesLista[0]?.created_at;
 const tienenProfes = new Set((conProfes || []).map((d) => d.dictado_id));
-const sinProfes = (dictados || []).filter((d: any) => !tienenProfes.has(d.id)).map((d: any) => `${one(d.materias)?.nombre || 'Materia'}, ${one(d.cursos)?.identificador || '?'}`);
+const nombreCurso = (d: any) => `${one(d.materias)?.nombre || 'Materia'}, ${one(d.cursos)?.identificador || '?'}`;
+const sinProfes = (dictados || []).filter((d: any) => !tienenProfes.has(d.id)).map(nombreCurso);
+const tienenHorario = new Set((conHorario || []).map((h) => h.dictado_id));
+const sinHorario = (dictados || []).filter((d: any) => !tienenHorario.has(d.id)).map(nombreCurso);
 
 // Números de la semana contra la anterior
 const lista30 = resenas30 || [];
@@ -112,8 +117,11 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 'n
         {sinProfes.length > 0 && (
           <div><i class="a"></i><span><b><a href="/admin/materias">{sinProfes.length} curso{sinProfes.length !== 1 ? 's' : ''} sin profesores cargados</a></b><span class="sub">{sinProfes.slice(0, 3).join('; ')}{sinProfes.length > 3 ? ` y ${sinProfes.length - 3} más` : ''}. Se puede completar con Importar cuatrimestre.</span></span></div>
         )}
-        {resenasReportadas === 0 && sinProfes.length === 0 && (
-          <div><i></i><span><b>Nada pendiente.</b><span class="sub">No hay reportes ni cursos sin profesores.</span></span></div>
+        {sinHorario.length > 0 && (
+          <div><i class="a"></i><span><b><a href="/admin/materias">{sinHorario.length} curso{sinHorario.length !== 1 ? 's' : ''} sin horario cargado</a></b><span class="sub">{sinHorario.slice(0, 3).join('; ')}{sinHorario.length > 3 ? ` y ${sinHorario.length - 3} más` : ''}.</span></span></div>
+        )}
+        {resenasReportadas === 0 && sinProfes.length === 0 && sinHorario.length === 0 && (
+          <div><i></i><span><b>Nada pendiente.</b><span class="sub">No hay reportes ni cursos sin profesores o sin horario.</span></span></div>
         )}
       </section>
 

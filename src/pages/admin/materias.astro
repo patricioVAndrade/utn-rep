@@ -50,8 +50,10 @@ const materias = (materiasRaw || []).map((m: any) => {
     .filter((d: any) => d.materia_id === m.id)
     .map((d: any) => ({ ...d, bloques: bloquesDeBase(horariosDe.get(d.id) || []), resenas: resenasDe.get(d.id) || 0, curso: cursoPorId.get(d.curso_id), pasados: pasadosDe.get(d.id) || [], profes: (profesDe.get(d.id) || []).sort((a: any, b: any) => a.nombre_completo.localeCompare(b.nombre_completo)) }))
     .sort((a: any, b: any) => compararCursos(a.curso?.identificador, b.curso?.identificador));
-  return { ...m, dictados, sinProfes: dictados.filter((d: any) => !d.profes.length).length };
+  return { ...m, dictados, sinProfes: dictados.filter((d: any) => !d.profes.length).length, sinHorario: dictados.filter((d: any) => !d.bloques.length).length };
 });
+// El cuatrimestre lo dice la columna Período: solo se aclara si el curso tiene días distintos en cada cuatrimestre
+const textoHorario = (bs: any[]) => textoBloques(new Set(bs.map((b) => b.cuatri)).size > 1 ? bs : bs.map((b) => ({ ...b, cuatri: null })));
 const PERIODOS: [string, string][] = [['', 'Sin dato'], ['PRIMER_CUATRIMESTRE', '1.er cuatrimestre'], ['SEGUNDO_CUATRIMESTRE', '2.º cuatrimestre'], ['ANUAL', 'Anual']];
 const totalDictados = (dictadosRaw || []).length;
 ---
@@ -108,17 +110,18 @@ const totalDictados = (dictadosRaw || []).length;
           {[1, 2, 3, 4, 5].map((n) => <button type="button" aria-pressed="false" data-anio={n}>{n}.º</button>)}
         </span>
         <label class="check"><input type="checkbox" id="f-sinprofes" /> Solo con cursos sin profesores</label>
+        <label class="check"><input type="checkbox" id="f-sinhorario" /> Solo con cursos sin horario</label>
       </div>
 
       <div class="alist">
         {materias.map((m: any) => (
-          <details class="amat" data-id={m.id} data-anio={m.nivel} data-sinprofes={m.sinProfes ? '1' : undefined}
+          <details class="amat" data-id={m.id} data-anio={m.nivel} data-sinprofes={m.sinProfes ? '1' : undefined} data-sinhorario={m.sinHorario ? '1' : undefined}
             data-busca={[m.nombre, ...m.dictados.map((d: any) => d.curso?.identificador), ...m.dictados.flatMap((d: any) => d.profes.map((p: any) => p.nombre_completo))].join(' | ')}>
             <summary>
               <span class:list={['yr', `y${m.nivel}`]}>{m.nivel}.º</span>
               <b class="mnom">{m.nombre}</b>
               {m.es_electiva && <span class="sub">Electiva, {m.puntos_electiva || 0} pts</span>}
-              <span class="sub mcnt">{m.dictados.length} curso{m.dictados.length !== 1 ? 's' : ''}{m.sinProfes > 0 && <b class="warn">, {m.sinProfes} sin profesores</b>}</span>
+              <span class="sub mcnt">{m.dictados.length} curso{m.dictados.length !== 1 ? 's' : ''}{m.sinProfes > 0 && <b class="warn">, {m.sinProfes} sin profesores</b>}{m.sinHorario > 0 && <b class="warn">, {m.sinHorario} sin horario</b>}</span>
             </summary>
             <div class="amat-in">
               <form class="arow medit" data-materia={m.id}>
@@ -161,7 +164,7 @@ const totalDictados = (dictadosRaw || []).length;
                           </div>
                         </td>
                         <td class="hcol" data-bloques={JSON.stringify(d.bloques)}>
-                          <span class="htxt">{d.bloques.length ? textoBloques(d.bloques) : <span class="sub">Sin horario</span>}</span>
+                          <span class="htxt">{d.bloques.length ? textoHorario(d.bloques) : <b class="warn">Sin horario</b>}</span>
                           <button type="button" class="linklike" data-editar-horario>Editar</button>
                         </td>
                         <td>{d.resenas > 0
@@ -277,9 +280,8 @@ const totalDictados = (dictadosRaw || []).length;
     });
   });
 
-  // Horario de cada curso: una fila por bloque (cuatrimestre, día, desde y hasta)
+  // Horario de cada curso: una fila por día (día, desde y hasta). El cuatrimestre sale del período del curso.
   const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const CUATRIS: [string, string][] = [['', 'Todo el curso'], ['1', '1.er cuatri'], ['2', '2.º cuatri']];
   const aHora = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   const aMin = (t: string) => { const [h, m] = t.split(':').map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN; };
   type B = { cuatri: 1 | 2 | null; dia: number; desde: number; hasta: number };
@@ -287,9 +289,6 @@ const totalDictados = (dictadosRaw || []).length;
   function filaBloque(b: B) {
     const f = document.createElement('div');
     f.className = 'hfila';
-    const cu = document.createElement('select');
-    cu.className = 'mini'; cu.dataset.c = 'cuatri'; cu.setAttribute('aria-label', 'Cuatrimestre');
-    CUATRIS.forEach(([v, t]) => cu.append(opcion(v, t, String(b.cuatri ?? '') === v)));
     const di = document.createElement('select');
     di.className = 'mini'; di.dataset.c = 'dia'; di.setAttribute('aria-label', 'Día');
     DIAS.slice(1).forEach((t, i) => di.append(opcion(String(i + 1), t, b.dia === i + 1)));
@@ -298,11 +297,7 @@ const totalDictados = (dictadosRaw || []).length;
     x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Sacar este horario');
     x.addEventListener('click', () => f.remove());
     const a = document.createElement('span'); a.textContent = 'a';
-    const arriba = document.createElement('span'); arriba.className = 'hlin';
-    arriba.append(di, cu);
-    const abajo = document.createElement('span'); abajo.className = 'hlin';
-    abajo.append(hora('desde', b.desde, 'Desde'), a, hora('hasta', b.hasta, 'Hasta'), x);
-    f.append(arriba, abajo);
+    f.append(di, hora('desde', b.desde, 'Desde'), a, hora('hasta', b.hasta, 'Hasta'), x);
     return f;
   }
   document.querySelectorAll<HTMLTableCellElement>('td.hcol').forEach((td) => {
@@ -321,9 +316,8 @@ const totalDictados = (dictadosRaw || []).length;
         const prev = filas.lastElementChild as HTMLElement | null;
         const desde = prev ? aMin(prev.querySelector<HTMLInputElement>('[data-c="desde"]')!.value) : 480;
         const hasta = prev ? aMin(prev.querySelector<HTMLInputElement>('[data-c="hasta"]')!.value) : 625;
-        const cuatri = prev ? (Number(prev.querySelector<HTMLSelectElement>('[data-c="cuatri"]')!.value) || null) as B['cuatri'] : null;
         const diaPrev = prev ? Number(prev.querySelector<HTMLSelectElement>('[data-c="dia"]')!.value) : 0;
-        filas.append(filaBloque({ cuatri, dia: diaPrev >= 6 ? 1 : diaPrev + 1, desde: desde || 480, hasta: hasta || 625 }));
+        filas.append(filaBloque({ cuatri: null, dia: diaPrev >= 6 ? 1 : diaPrev + 1, desde: desde || 480, hasta: hasta || 625 }));
       });
       const guardar = document.createElement('button');
       guardar.type = 'button'; guardar.className = 'btn primary'; guardar.textContent = 'Guardar horario';
@@ -331,8 +325,10 @@ const totalDictados = (dictadosRaw || []).length;
       cancelar.type = 'button'; cancelar.className = 'btn quiet'; cancelar.textContent = 'Cancelar';
       cancelar.addEventListener('click', () => ed.remove());
       guardar.addEventListener('click', async () => {
+        const periodo = td.closest('tr')!.querySelector<HTMLSelectElement>('[data-campo="periodo_dictado"]')?.value;
+        const cuatri: B['cuatri'] = periodo === 'PRIMER_CUATRIMESTRE' ? 1 : periodo === 'SEGUNDO_CUATRIMESTRE' ? 2 : null;
         const nuevos: B[] = [...filas.querySelectorAll<HTMLElement>('.hfila')].map((f) => ({
-          cuatri: (Number(f.querySelector<HTMLSelectElement>('[data-c="cuatri"]')!.value) || null) as B['cuatri'],
+          cuatri,
           dia: Number(f.querySelector<HTMLSelectElement>('[data-c="dia"]')!.value),
           desde: aMin(f.querySelector<HTMLInputElement>('[data-c="desde"]')!.value),
           hasta: aMin(f.querySelector<HTMLInputElement>('[data-c="hasta"]')!.value),
@@ -344,7 +340,8 @@ const totalDictados = (dictadosRaw || []).length;
           await adminFetch('/api/admin/dictados', { action: 'set_horarios', dictado_id: id, bloques: nuevos });
           td.dataset.bloques = JSON.stringify(nuevos);
           const txt = td.querySelector('.htxt')!;
-          txt.textContent = nuevos.length ? textoHorario(nuevos) : 'Sin horario';
+          if (nuevos.length) txt.textContent = textoHorario(nuevos);
+          else txt.innerHTML = '<b class="warn">Sin horario</b>';
           ed.remove();
           aviso('Horario guardado.');
         } catch (err) { error(err); }
@@ -358,8 +355,8 @@ const totalDictados = (dictadosRaw || []).length;
     });
   });
   function textoHorario(bs: B[]) {
-    return [...bs].sort((a, b) => (a.cuatri ?? 0) - (b.cuatri ?? 0) || a.dia - b.dia || a.desde - b.desde)
-      .map((b) => `${b.cuatri ? `${b.cuatri === 1 ? '1.er' : '2.º'} cuatri: ` : ''}${DIAS[b.dia]} ${aHora(b.desde).replace(/^0/, '')} a ${aHora(b.hasta).replace(/^0/, '')}`)
+    return [...bs].sort((a, b) => a.dia - b.dia || a.desde - b.desde)
+      .map((b) => `${DIAS[b.dia]} ${aHora(b.desde).replace(/^0/, '')} a ${aHora(b.hasta).replace(/^0/, '')}`)
       .join(' · ');
   }
 
@@ -383,16 +380,18 @@ const totalDictados = (dictadosRaw || []).length;
   // Filtros
   const texto = document.getElementById('f-texto') as HTMLInputElement;
   const sinProfes = document.getElementById('f-sinprofes') as HTMLInputElement;
+  const sinHorario = document.getElementById('f-sinhorario') as HTMLInputElement;
   let anio = '';
   const filtrar = () => {
     const q = sinAcentos(texto.value.trim());
     document.querySelectorAll<HTMLDetailsElement>('details.amat').forEach((d) => {
-      const ok = (!anio || d.dataset.anio === anio) && (!sinProfes.checked || d.dataset.sinprofes === '1') && (!q || sinAcentos(d.dataset.busca || '').includes(q));
+      const ok = (!anio || d.dataset.anio === anio) && (!sinProfes.checked || d.dataset.sinprofes === '1') && (!sinHorario.checked || d.dataset.sinhorario === '1') && (!q || sinAcentos(d.dataset.busca || '').includes(q));
       d.classList.toggle('hidden', !ok);
     });
   };
   texto.addEventListener('input', filtrar);
   sinProfes.addEventListener('change', filtrar);
+  sinHorario.addEventListener('change', filtrar);
   document.querySelectorAll<HTMLButtonElement>('[data-anio]').forEach((b) => b.addEventListener('click', () => {
     anio = b.dataset.anio || '';
     document.querySelectorAll('[data-anio]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));

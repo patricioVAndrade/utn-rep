@@ -150,6 +150,7 @@ const INICIO = { MAÑANA: '08:00', TARDE: '13:15', NOCHE: '18:15' };
 const sumar = (h, min) => { const [a, b] = h.split(':').map(Number); const t = a * 60 + b + min; return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}:00`; };
 export const horarios = [];
 dictados.forEach((d) => {
+  if (d.id % 23 === 0) return; // algunos cursos sin horario, para ver el aviso del admin
   const c = cursos.find((x) => x.id === d.curso_id);
   const ini = INICIO[c?.turno] || '08:00';
   const corrido = (d.materia_id % 2) * 145;
