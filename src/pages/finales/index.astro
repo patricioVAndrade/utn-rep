@@ -196,7 +196,7 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
                       </button>
                     )}
                     {isOwner && (exp.votos_utilidad || 0) > 0 && <span class="sub">Le sirvió a {exp.votos_utilidad} persona{exp.votos_utilidad !== 1 ? 's' : ''}</span>}
-                    {!isOwner && <button type="button" class="btn quiet" data-reportar-final data-login={user ? undefined : ''} title="Reportar esta experiencia"><Icon name="flag" /> Reportar</button>}
+                    {!isOwner && <button type="button" class="btn quiet reportar" data-reportar-final data-login={user ? undefined : ''} title="Reportar esta experiencia"><Icon name="flag" /> Reportar</button>}
                     <ShareButton mini titulo="Mirá cómo tomaron este final en UTN REP" ruta={`/finales?materia=${exp.materia?.id}#final-${exp.id}`} />
                   </div>
                   {(isOwner || userIsAdmin) && (

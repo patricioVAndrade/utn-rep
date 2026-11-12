@@ -189,6 +189,11 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .foro .btn.quiet:hover { color: var(--ink); }
 .foro .btn.pressed { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); font-weight: bold; }
 .foro .btn.danger { color: var(--bad); border-color: var(--bad); background: var(--bad-bg); }
+/* Compartir y Reportar debajo de reseñas y finales: color suave, sin fondo (Pato, 12/11) */
+.foro .post-tools .btn.quiet[data-share] { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+.foro .post-tools .btn.quiet.reportar { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); }
+.foro .post-tools .btn.quiet[data-share]:hover { background: var(--ok-bg); }
+.foro .post-tools .btn.quiet.reportar:hover { background: var(--bad-bg); }
 .foro .btn.cafe { color: #fff; border-color: #4f2f17; background: linear-gradient(#9a6a40, #6f4423); }
 .btn.big { min-height: 38px; padding: 8px 16px; font-size: 12.5px; width: 100%; }
 .btn svg { width: 14px; height: 14px; flex: none; }
