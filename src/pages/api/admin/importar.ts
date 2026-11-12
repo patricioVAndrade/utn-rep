@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { requireAdmin } from '../../../lib/admin-guards';
+import { noAutorizado, requireAdmin } from '../../../lib/admin-guards';
 import { json } from '../../../lib/http';
 import { leerXlsx } from '../../../lib/xlsx';
 import { idDePlanilla, leerCsv, leerPlanilla, limpiar, type LecturaPlanilla } from '../../../lib/planilla';
@@ -207,7 +207,7 @@ async function aplicar(body: any) {
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const user = await requireAdmin(request, cookies, { requireCsrf: true });
-  if (!user) return json({ error: 'No autorizado.' }, 403);
+  if (!user) return noAutorizado(request);
   try {
     if ((request.headers.get('content-type') || '').includes('multipart/form-data')) return await previa(request);
     const body: any = await request.clone().json().catch(() => null);

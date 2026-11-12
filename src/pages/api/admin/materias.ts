@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { requireAdmin } from '../../../lib/admin-guards';
+import { noAutorizado, requireAdmin } from '../../../lib/admin-guards';
 import { json } from '../../../lib/http';
 
 
@@ -18,7 +18,7 @@ function normalizeNombre(nombre: string): string {
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const user = await requireAdmin(request, cookies, { requireCsrf: true });
-  if (!user) return json({ error: 'No autorizado.' }, 403);
+  if (!user) return noAutorizado(request);
 
   let body: any;
   try {
@@ -75,7 +75,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
  */
 export const PUT: APIRoute = async ({ request, cookies }) => {
   const user = await requireAdmin(request, cookies, { requireCsrf: true });
-  if (!user) return json({ error: 'No autorizado.' }, 403);
+  if (!user) return noAutorizado(request);
 
   let body: any;
   try {

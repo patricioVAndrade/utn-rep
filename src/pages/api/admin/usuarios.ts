@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { requireAdmin } from '../../../lib/admin-guards';
+import { noAutorizado, requireAdmin } from '../../../lib/admin-guards';
 import { isAdmin } from '../../../lib/admin';
 import { json } from '../../../lib/http';
 import { registrar } from '../../../lib/moderacion';
@@ -12,7 +12,7 @@ import { registrar } from '../../../lib/moderacion';
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const admin = await requireAdmin(request, cookies, { requireCsrf: true });
-  if (!admin) return json({ error: 'No autorizado.' }, 403);
+  if (!admin) return noAutorizado(request);
 
   let body: any;
   try {

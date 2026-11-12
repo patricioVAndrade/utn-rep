@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { requireAdmin } from '../../../lib/admin-guards';
+import { noAutorizado, requireAdmin } from '../../../lib/admin-guards';
 import { json, readJson } from '../../../lib/http';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { llamar, secretoWebhook, token, usuarioBot } from '../../../lib/telegram';
@@ -13,7 +13,7 @@ import { llamar, secretoWebhook, token, usuarioBot } from '../../../lib/telegram
  */
 export const POST: APIRoute = async ({ request, cookies, url }) => {
   const admin = await requireAdmin(request, cookies, { requireCsrf: true });
-  if (!admin) return json({ error: 'No autorizado.' }, 403);
+  if (!admin) return noAutorizado(request);
   const body = (await readJson(request)) as { accion?: string } | undefined;
   const falta = [!token() && 'TELEGRAM_BOT_TOKEN', !usuarioBot() && 'TELEGRAM_BOT_USERNAME', !secretoWebhook() && 'TELEGRAM_WEBHOOK_SECRET'].filter(Boolean);
 

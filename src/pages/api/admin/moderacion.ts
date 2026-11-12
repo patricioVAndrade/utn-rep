@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { requireAdmin } from '../../../lib/admin-guards';
+import { noAutorizado, requireAdmin } from '../../../lib/admin-guards';
 import { json } from '../../../lib/http';
 import { registrar } from '../../../lib/moderacion';
 import { limpiarPalabra } from '../../../lib/palabras';
@@ -13,7 +13,7 @@ import { limpiarPalabra } from '../../../lib/palabras';
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const user = await requireAdmin(request, cookies, { requireCsrf: true });
-  if (!user) return json({ error: 'No autorizado.' }, 403);
+  if (!user) return noAutorizado(request);
 
   let body: any;
   try {
