@@ -1,7 +1,8 @@
 ---
 /**
  * Mi inscripción (F29, migración 12): los cursos que estás pensando, por
- * materia, con turno, nota y horario, y el aviso si dos se pisan. No inscribe.
+ * materia, con turno, período (anual o cuatrimestre), nota y horario, y el
+ * aviso si dos se pisan. No inscribe.
  *  - Con sesión: la lista de tu cuenta.
  *  - Sin sesión: la del navegador, que llega en el link (?c=...&mia=1).
  *  - Con ?c= y sin mia=1: una lista que te pasaron (solo para mirar).
@@ -36,13 +37,18 @@ if (deLink) {
 }
 
 const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
-type Curso = { id: number; curso: string; turno: string | null; promedio: number | null; cantidad: number; bloques: Bloque[] };
+type Curso = { id: number; curso: string; turno: string | null; periodo: string | null; promedio: number | null; cantidad: number; bloques: Bloque[]; horario: string };
+const PERIODOS: Record<string, { texto: string; cuatri: 1 | 2 | null }> = {
+  ANUAL: { texto: 'Anual', cuatri: null },
+  PRIMER_CUATRIMESTRE: { texto: '1.er cuatrimestre', cuatri: 1 },
+  SEGUNDO_CUATRIMESTRE: { texto: '2.º cuatrimestre', cuatri: 2 },
+};
 type Grupo = { materia: { id: number; nombre: string; nivel: number }; cursos: Curso[]; total: number };
 let grupos: Grupo[] = [];
 
 if (ids.length) {
   const [{ data: dictados }, { data: stats }, { data: horarios }] = await Promise.all([
-    supabase.from('dictados').select('id, materia_id, cursos ( identificador, turno ), materias ( id, nombre, nivel )').in('id', ids),
+    supabase.from('dictados').select('id, materia_id, periodo_dictado, cursos ( identificador, turno ), materias ( id, nombre, nivel )').in('id', ids),
     supabase.from('stats_dictados').select('dictado_id, cantidad, promedio').in('dictado_id', ids),
     supabase.from('horarios').select('dictado_id, cuatri, dia, desde, hasta').in('dictado_id', ids),
   ]);
@@ -57,13 +63,23 @@ if (ids.length) {
     if (!m) continue;
     const s: any = st.get(d.id);
     const g: Grupo = porMateria.get(m.id) || { materia: m, cursos: [], total: 0 };
+    // El período sale del curso; si no lo dice, del cuatrimestre de sus horarios
+    let bloques = sinRecreos(bloquesDeBase(horDe.get(d.id) || []));
+    const unico = bloques.length && bloques.every((b) => b.cuatri !== null && b.cuatri === bloques[0].cuatri) ? bloques[0].cuatri : null;
+    const per = PERIODOS[(d as any).periodo_dictado] || (unico ? PERIODOS[unico === 1 ? 'PRIMER_CUATRIMESTRE' : 'SEGUNDO_CUATRIMESTRE'] : null);
+    // Un horario sin cuatrimestre de un curso cuatrimestral es de ese cuatrimestre (para los choques)
+    if (per?.cuatri) bloques = bloques.map((b) => (b.cuatri === null ? { ...b, cuatri: per.cuatri } : b));
+    // Si la tarjeta ya dice el cuatrimestre, el horario no lo repite
+    const repetido = !!per?.cuatri && bloques.every((b) => b.cuatri === per.cuatri);
     g.cursos.push({
       id: d.id,
       curso: c?.identificador || 'Curso',
       turno: c?.turno ?? null,
+      periodo: per?.texto ?? null,
       promedio: s?.cantidad ? s.promedio : null,
       cantidad: s?.cantidad || 0,
-      bloques: sinRecreos(bloquesDeBase(horDe.get(d.id) || [])),
+      bloques,
+      horario: textoBloques(repetido ? bloques.map((b) => ({ ...b, cuatri: null })) : bloques),
     });
     porMateria.set(m.id, g);
   }
@@ -87,7 +103,7 @@ const periodo = mes <= 2 ? `primer cuatrimestre ${hoy.getFullYear()}` : mes <= 7
 const todosIds = grupos.flatMap((g) => g.cursos.map((c) => c.id));
 ---
 
-<Layout title="Mi inscripción" tab="mis" crumbs={[{ label: 'Mi inscripción' }]} description="Los cursos que estás pensando, juntos: turno, nota y si se pisan los horarios.">
+<Layout title="Mi inscripción" tab="mis" crumbs={[{ label: 'Mi inscripción' }]} description="Los cursos que estás pensando, juntos: turno, cuatrimestre, nota y si se pisan los horarios.">
   <div class:list={['layout', { single: compartida }]}>
     <div class="main" id="mi-inscripcion" data-modo={compartida ? 'compartida' : user ? 'cuenta' : 'local'} data-ids={todosIds.join(',')}>
       <div class="topic">
@@ -128,10 +144,11 @@ const todosIds = grupos.flatMap((g) => g.cursos.map((c) => c.id));
                 {g.cursos.map((c) => (
                   <div class="pc" data-dictado={c.id}>
                     <span class="pc-top"><a href={`/dictado/${c.id}`}><b>{c.curso}</b></a><CursoChips mini turno={c.turno} /></span>
+                    {c.periodo && <span>{c.periodo}</span>}
                     {c.promedio !== null
                       ? <span><Stars value={c.promedio} /> {nota(c.promedio)} <span class="sub">· {c.cantidad} reseña{c.cantidad !== 1 ? 's' : ''}</span></span>
                       : <span class="sub">Sin reseñas</span>}
-                    <span class="sub pc-hor">{c.bloques.length ? textoBloques(c.bloques) : 'Sin horario cargado'}</span>
+                    <span class="sub pc-hor">{c.horario || 'Sin horario cargado'}</span>
                     {!compartida && <button type="button" class="linklike sub pc-x" data-sacar={c.id} aria-label={`Sacar ${c.curso}`}>Sacar</button>}
                   </div>
                 ))}
