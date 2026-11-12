@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { noAutorizado, requireAdmin } from '../../../lib/admin-guards';
 import { json } from '../../../lib/http';
+import { bloquesValidos, horaBase } from '../../../lib/horarios';
 
 
 const ALLOWED_PERIODOS = new Set(['PRIMER_CUATRIMESTRE', 'SEGUNDO_CUATRIMESTRE', 'ANUAL']);
@@ -60,7 +61,9 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
 
 /**
  * POST /api/admin/dictados
- * Actions: assign_profesor, remove_profesor, create, delete, update
+ * Actions: assign_profesor, remove_profesor, create, delete, update,
+ * set_horarios { dictado_id, bloques: [{ cuatri, dia, desde, hasta }] } (minutos desde las 0:00):
+ * reemplaza el horario del curso; con bloques vacío lo borra.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const user = await requireAdmin(request, cookies, { requireCsrf: true });
@@ -234,6 +237,38 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     return json({ success: true, data });
+  }
+
+  // ── HORARIOS: reemplaza los del curso (migración 12) ──
+  if (action === 'set_horarios') {
+    const dictadoId = Number(body.dictado_id);
+    if (!Number.isInteger(dictadoId) || dictadoId <= 0) return json({ error: 'ID de dictado inválido.' }, 400);
+    const bloques = bloquesValidos(body.bloques);
+    if (!bloques) return json({ error: 'Revisá los horarios: cada uno necesita día, y que termine después de empezar.' }, 400);
+    // Sin repetir el mismo día y hora de inicio (la base no lo deja)
+    const vistos = new Set<string>();
+    const filas = bloques
+      .filter((b) => { const k = `${b.cuatri ?? 0}-${b.dia}-${b.desde}`; if (vistos.has(k)) return false; vistos.add(k); return true; })
+      .map((b) => ({ dictado_id: dictadoId, cuatri: b.cuatri, dia: b.dia, desde: horaBase(b.desde), hasta: horaBase(b.hasta) }));
+
+    const { data: existe } = await supabaseAdmin.from('dictados').select('id').eq('id', dictadoId).maybeSingle();
+    if (!existe) return json({ error: 'Ese curso no existe.' }, 404);
+    const { data: antes } = await supabaseAdmin.from('horarios').select('cuatri, dia, desde, hasta').eq('dictado_id', dictadoId);
+    const { error: e1 } = await supabaseAdmin.from('horarios').delete().eq('dictado_id', dictadoId);
+    if (e1) {
+      console.error('Error borrando horarios:', e1);
+      return json({ error: 'No se pudo guardar el horario.' }, 500);
+    }
+    if (filas.length) {
+      const { error: e2 } = await supabaseAdmin.from('horarios').insert(filas);
+      if (e2) {
+        console.error('Error guardando horarios:', e2);
+        // Se vuelve a dejar el que estaba
+        if (antes?.length) await supabaseAdmin.from('horarios').insert(antes.map((h: any) => ({ ...h, dictado_id: dictadoId })));
+        return json({ error: 'No se pudo guardar el horario.' }, 500);
+      }
+    }
+    return json({ success: true, guardados: filas.length });
   }
 
   return json({ error: 'Acción no válida.' }, 400);

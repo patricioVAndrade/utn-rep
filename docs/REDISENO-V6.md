@@ -81,7 +81,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 | Términos | Hecho | `/terminos`, con el texto que aprobaste (mail, anonimato y qué datos se guardan). |
 | Error 404 | Hecho | Cualquier dirección que no existe | El "2" de la libreta con el tamaño de la V6 (Pato, 12/11). |
 | Link compartido por WhatsApp | Hecho | Imagen y título propios por página, código `?de=` sin nombre y la franja verde "Te pasaron este curso por WhatsApp" (migración 9). |
-| Admin | Hecho | `/admin`, `/admin/reportes`, `/admin/resenas`, `/admin/finales`, `/admin/materias`, `/admin/profesores`, `/admin/importar`. |
+| Admin | Hecho | `/admin`, `/admin/reportes`, `/admin/resenas`, `/admin/finales`, `/admin/materias` (con el horario de cada curso editable a mano; 12/11), `/admin/profesores`, `/admin/importar`. |
 
 ## Bienvenida al cambio (aprobada el 7/11)
 

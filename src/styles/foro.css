@@ -918,6 +918,16 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .pchips .x { border: 1px solid var(--line); background: var(--box); color: var(--bad); width: 18px; height: 18px; line-height: 14px; padding: 0; cursor: pointer; border-radius: 3px; font-weight: bold; }
 .pchips.col li { justify-content: space-between; max-width: 560px; padding: 3px 6px; background: var(--box); border: 1px solid var(--line-soft); }
 .padd { display: flex; gap: 4px; flex-wrap: wrap; }
+.hcol { min-width: 200px; font-size: 11.5px; }
+.hcol .linklike { margin-left: 4px; font-size: 11.5px; }
+.hedit { display: grid; gap: 6px; margin-top: 6px; padding: 8px; border: 1px solid var(--line); background: var(--box); }
+.hfilas { display: grid; gap: 4px; }
+.hfila { display: grid; gap: 4px; padding-bottom: 6px; border-bottom: 1px dashed var(--line); }
+.hlin { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.hfila input[type="time"] { width: 96px; }
+.hfila .x { border: 1px solid var(--line); background: var(--box); color: var(--bad); width: 22px; height: 22px; padding: 0; cursor: pointer; border-radius: 3px; font-weight: bold; }
+.hacts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.hacts .btn { min-height: 26px; padding: 3px 10px; }
 .padd .btn { min-height: 26px; padding: 3px 9px; }
 .atoast { position: fixed; right: 16px; bottom: 16px; z-index: 960; padding: 8px 12px; background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); font: bold 12px var(--f-body); box-shadow: 0 4px 14px var(--shadow); max-width: calc(100vw - 32px); }
 .atoast.bad { background: var(--bad-bg); color: var(--bad); border-color: var(--bad); }

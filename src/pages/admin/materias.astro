@@ -8,6 +8,7 @@ import { supabaseAdmin } from '../../lib/supabase-admin';
 import { ADMIN_CSRF_HEADER } from '../../lib/admin-guards';
 import { tokenCsrf } from '../../lib/admin-csrf';
 import { compararCursos, turnoLabel } from '../../lib/format';
+import { bloquesDeBase, textoBloques } from '../../lib/horarios';
 
 const user = Astro.locals.user;
 if (!user || !isAdmin(user.id)) return Astro.redirect('/');
@@ -23,6 +24,10 @@ const [{ data: materiasRaw }, { data: cursosRaw }, { data: dictadosRaw }, { data
 // Profes que ya no están en el curso (migración 11)
 const { data: pasadosRaw } = await supabaseAdmin.from('profesores_historial').select('dictado_id, profesor_id, desde_anio, desde_cuatri, hasta_anio, hasta_cuatri').not('hasta_anio', 'is', null).range(0, 49999);
 const { data: statsRaw } = await supabaseAdmin.from('stats_dictados').select('dictado_id, cantidad').range(0, 19999);
+// Horarios de cada curso (migración 12); sin la tabla, vacío
+const { data: horariosRaw } = await supabaseAdmin.from('horarios').select('dictado_id, cuatri, dia, desde, hasta').range(0, 49999);
+const horariosDe = new Map<number, any[]>();
+(horariosRaw || []).forEach((h: any) => horariosDe.set(h.dictado_id, [...(horariosDe.get(h.dictado_id) || []), h]));
 const resenasDe = new Map((statsRaw || []).map((s: any) => [s.dictado_id, s.cantidad || 0]));
 const cursos = cursosRaw || [];
 const profes = profesRaw || [];
@@ -43,7 +48,7 @@ const pasadosDe = new Map<number, { nombre: string; periodo: string }[]>();
 const materias = (materiasRaw || []).map((m: any) => {
   const dictados = (dictadosRaw || [])
     .filter((d: any) => d.materia_id === m.id)
-    .map((d: any) => ({ ...d, resenas: resenasDe.get(d.id) || 0, curso: cursoPorId.get(d.curso_id), pasados: pasadosDe.get(d.id) || [], profes: (profesDe.get(d.id) || []).sort((a: any, b: any) => a.nombre_completo.localeCompare(b.nombre_completo)) }))
+    .map((d: any) => ({ ...d, bloques: bloquesDeBase(horariosDe.get(d.id) || []), resenas: resenasDe.get(d.id) || 0, curso: cursoPorId.get(d.curso_id), pasados: pasadosDe.get(d.id) || [], profes: (profesDe.get(d.id) || []).sort((a: any, b: any) => a.nombre_completo.localeCompare(b.nombre_completo)) }))
     .sort((a: any, b: any) => compararCursos(a.curso?.identificador, b.curso?.identificador));
   return { ...m, dictados, sinProfes: dictados.filter((d: any) => !d.profes.length).length };
 });
@@ -126,7 +131,7 @@ const totalDictados = (dictadosRaw || []).length;
               </form>
               <div class="grid-tbl">
                 <table>
-                  <thead><tr><th>Curso</th><th>Período</th><th>Opciones</th><th>Profesores</th><th></th></tr></thead>
+                  <thead><tr><th>Curso</th><th>Período</th><th>Opciones</th><th>Profesores</th><th>Horario</th><th></th></tr></thead>
                   <tbody>
                     {m.dictados.map((d: any) => (
                       <tr data-dictado={d.id}>
@@ -154,6 +159,10 @@ const totalDictados = (dictadosRaw || []).length;
                             <input type="text" class="ainput sm" list="dl-profes" placeholder="Agregar profe" aria-label={`Agregar profesor a ${d.curso?.identificador}`} />
                             <button type="button" class="btn quiet" data-agregar>Agregar</button>
                           </div>
+                        </td>
+                        <td class="hcol" data-bloques={JSON.stringify(d.bloques)}>
+                          <span class="htxt">{d.bloques.length ? textoBloques(d.bloques) : <span class="sub">Sin horario</span>}</span>
+                          <button type="button" class="linklike" data-editar-horario>Editar</button>
                         </td>
                         <td>{d.resenas > 0
                           ? <span class="sub" title="Tiene reseñas: no se puede sacar desde acá">{d.resenas} reseña{d.resenas !== 1 ? 's' : ''}</span>
@@ -267,6 +276,92 @@ const totalDictados = (dictadosRaw || []).length;
       try { await adminFetch('/api/admin/dictados', { action: 'delete', id }); tr.remove(); aviso('Curso sacado de la materia.'); } catch (err) { error(err); }
     });
   });
+
+  // Horario de cada curso: una fila por bloque (cuatrimestre, día, desde y hasta)
+  const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const CUATRIS: [string, string][] = [['', 'Todo el curso'], ['1', '1.er cuatri'], ['2', '2.º cuatri']];
+  const aHora = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  const aMin = (t: string) => { const [h, m] = t.split(':').map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN; };
+  type B = { cuatri: 1 | 2 | null; dia: number; desde: number; hasta: number };
+  const opcion = (v: string, t: string, sel: boolean) => { const o = document.createElement('option'); o.value = v; o.textContent = t; o.selected = sel; return o; };
+  function filaBloque(b: B) {
+    const f = document.createElement('div');
+    f.className = 'hfila';
+    const cu = document.createElement('select');
+    cu.className = 'mini'; cu.dataset.c = 'cuatri'; cu.setAttribute('aria-label', 'Cuatrimestre');
+    CUATRIS.forEach(([v, t]) => cu.append(opcion(v, t, String(b.cuatri ?? '') === v)));
+    const di = document.createElement('select');
+    di.className = 'mini'; di.dataset.c = 'dia'; di.setAttribute('aria-label', 'Día');
+    DIAS.slice(1).forEach((t, i) => di.append(opcion(String(i + 1), t, b.dia === i + 1)));
+    const hora = (c: string, v: number, l: string) => { const i = document.createElement('input'); i.type = 'time'; i.step = '300'; i.className = 'mini'; i.dataset.c = c; i.value = aHora(v); i.setAttribute('aria-label', l); return i; };
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Sacar este horario');
+    x.addEventListener('click', () => f.remove());
+    const a = document.createElement('span'); a.textContent = 'a';
+    const arriba = document.createElement('span'); arriba.className = 'hlin';
+    arriba.append(di, cu);
+    const abajo = document.createElement('span'); abajo.className = 'hlin';
+    abajo.append(hora('desde', b.desde, 'Desde'), a, hora('hasta', b.hasta, 'Hasta'), x);
+    f.append(arriba, abajo);
+    return f;
+  }
+  document.querySelectorAll<HTMLTableCellElement>('td.hcol').forEach((td) => {
+    const id = Number(td.closest<HTMLTableRowElement>('tr')!.dataset.dictado);
+    td.querySelector('[data-editar-horario]')!.addEventListener('click', () => {
+      if (td.querySelector('.hedit')) return;
+      const bloques: B[] = JSON.parse(td.dataset.bloques || '[]');
+      const ed = document.createElement('div');
+      ed.className = 'hedit';
+      const filas = document.createElement('div');
+      filas.className = 'hfilas';
+      bloques.forEach((b) => filas.append(filaBloque(b)));
+      const mas = document.createElement('button');
+      mas.type = 'button'; mas.className = 'linklike'; mas.textContent = '+ Agregar día';
+      mas.addEventListener('click', () => {
+        const prev = filas.lastElementChild as HTMLElement | null;
+        const desde = prev ? aMin(prev.querySelector<HTMLInputElement>('[data-c="desde"]')!.value) : 480;
+        const hasta = prev ? aMin(prev.querySelector<HTMLInputElement>('[data-c="hasta"]')!.value) : 625;
+        const cuatri = prev ? (Number(prev.querySelector<HTMLSelectElement>('[data-c="cuatri"]')!.value) || null) as B['cuatri'] : null;
+        const diaPrev = prev ? Number(prev.querySelector<HTMLSelectElement>('[data-c="dia"]')!.value) : 0;
+        filas.append(filaBloque({ cuatri, dia: diaPrev >= 6 ? 1 : diaPrev + 1, desde: desde || 480, hasta: hasta || 625 }));
+      });
+      const guardar = document.createElement('button');
+      guardar.type = 'button'; guardar.className = 'btn primary'; guardar.textContent = 'Guardar horario';
+      const cancelar = document.createElement('button');
+      cancelar.type = 'button'; cancelar.className = 'btn quiet'; cancelar.textContent = 'Cancelar';
+      cancelar.addEventListener('click', () => ed.remove());
+      guardar.addEventListener('click', async () => {
+        const nuevos: B[] = [...filas.querySelectorAll<HTMLElement>('.hfila')].map((f) => ({
+          cuatri: (Number(f.querySelector<HTMLSelectElement>('[data-c="cuatri"]')!.value) || null) as B['cuatri'],
+          dia: Number(f.querySelector<HTMLSelectElement>('[data-c="dia"]')!.value),
+          desde: aMin(f.querySelector<HTMLInputElement>('[data-c="desde"]')!.value),
+          hasta: aMin(f.querySelector<HTMLInputElement>('[data-c="hasta"]')!.value),
+        }));
+        if (nuevos.some((b) => !(b.hasta > b.desde))) return aviso('Cada horario tiene que terminar después de empezar.', true);
+        const claves = new Set(nuevos.map((b) => `${b.cuatri ?? 0}-${b.dia}-${b.desde}`));
+        if (claves.size < nuevos.length) return aviso('Hay un día repetido con la misma hora.', true);
+        try {
+          await adminFetch('/api/admin/dictados', { action: 'set_horarios', dictado_id: id, bloques: nuevos });
+          td.dataset.bloques = JSON.stringify(nuevos);
+          const txt = td.querySelector('.htxt')!;
+          txt.textContent = nuevos.length ? textoHorario(nuevos) : 'Sin horario';
+          ed.remove();
+          aviso('Horario guardado.');
+        } catch (err) { error(err); }
+      });
+      const acts = document.createElement('div');
+      acts.className = 'hacts';
+      acts.append(mas, guardar, cancelar);
+      ed.append(filas, acts);
+      td.append(ed);
+      if (!bloques.length) mas.click();
+    });
+  });
+  function textoHorario(bs: B[]) {
+    return [...bs].sort((a, b) => (a.cuatri ?? 0) - (b.cuatri ?? 0) || a.dia - b.dia || a.desde - b.desde)
+      .map((b) => `${b.cuatri ? `${b.cuatri === 1 ? '1.er' : '2.º'} cuatri: ` : ''}${DIAS[b.dia]} ${aHora(b.desde).replace(/^0/, '')} a ${aHora(b.hasta).replace(/^0/, '')}`)
+      .join(' · ');
+  }
 
   // Agregar un curso a la materia
   document.querySelectorAll<HTMLButtonElement>('[data-crear-dictado]').forEach((b) => b.addEventListener('click', async () => {
