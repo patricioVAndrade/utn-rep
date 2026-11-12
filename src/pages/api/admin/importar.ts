@@ -8,7 +8,8 @@ import { compararConBase, type Base } from '../../../lib/importar';
 import { bloquesValidos, horaBase } from '../../../lib/horarios';
 
 const TURNOS = new Set(['MAÑANA', 'TARDE', 'NOCHE']);
-const CURSO_K = /^\d+K\d+$/;
+// Cursos de Sistemas (4K1) e intensivos (1H10/11)
+const CURSO_K = /^\d+(K\d+|H\d+(\/\d+)?)$/;
 const MAX_ITEMS = 3000;
 
 async function bajarPlanilla(link: string): Promise<Uint8Array> {

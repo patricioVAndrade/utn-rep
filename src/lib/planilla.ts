@@ -1,10 +1,11 @@
 // Lee las planillas de horarios del centro de estudiantes y saca, para cada
-// curso de Sistemas (los que tienen K, como 4K1), qué materias tiene y quién
-// las da. Hay dos formatos:
+// curso de Sistemas (los que tienen K, como 4K1, y los intensivos de Básicas
+// con H, como 1H10/11), qué materias tiene y quién las da. Hay dos formatos:
 //  - Sistemas: una pestaña por curso (4K1, 4K2...) con una tabla
 //    "Materia | Docentes" al costado de la grilla de horarios.
 //  - Básicas: una pestaña por materia (Álgebra Anual, Física 1...) con una
-//    fila por curso de todas las carreras. De esas solo se leen las de K.
+//    fila por curso de todas las carreras. De esas solo se leen las de K y
+//    los intensivos (H), que son de todas las ingenierías.
 import { rellenarCombinadas, type Hoja } from './xlsx';
 import { diaDe, hora, juntarBloques, materiaDeCelda, type Bloque } from './horarios';
 
@@ -40,6 +41,14 @@ export const sinAcentos = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, 
 const clave = (s: string) => sinAcentos(limpiar(s)).toLowerCase();
 
 const CURSO_K = /^\d+K\d+$/i;
+/** Intensivo: "1H10/11", "1H9" */
+export const CURSO_H = /^\d+H\d+(\/\d+)?$/;
+
+/** Celda de curso intensivo: "1H10 / Comisión 50" -> "1H10/50"; "1H8/8 / VIRTUAL" -> "1H8/8"; "1H9 / VIRTUAL" -> "1H9". */
+export function cursoIntensivo(celda: string): string | null {
+  const t = sinAcentos(limpiar(celda)).toUpperCase().replace(/COMISION|VIRTUAL|RECURSANTES?/g, '/').replace(/[^A-Z0-9/]+/g, '').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
+  return CURSO_H.test(t) ? t : null;
+}
 const ES_HORA = /\d{1,2}[:.]\d{2}/;
 
 export function turnoDe(texto: string): Turno | null {
@@ -69,8 +78,8 @@ export function separarDocentesSistemas(celda: string): string[] {
 export function separarDocentesBasicas(celda: string): string[] {
   return celda
     .split(/\r?\n|\s\|\s/)
-    .map(limpiar)
-    .filter((l) => l && !ES_HORA.test(l) && !/^(teoric[oa]|practic[oa]|teoria|practica|aula|virtual|laboratorio)\b/i.test(sinAcentos(l)));
+    .map((l) => limpiar(l).replace(/\s*\((t|p)\)\s*$/i, ''))
+    .filter((l) => l && /[a-z]{2}/i.test(l) && !ES_HORA.test(l) && !/^(teoric[oa]|practic[oa]|teoria|practica|aula|virtual|laboratorio|solo consultas|cada \d+|recursantes?|ingresantes?|comision)\b/i.test(sinAcentos(l)));
 }
 
 const CUATRI_DE = (texto: string): 1 | 2 | null => {
@@ -210,7 +219,8 @@ function leerHojaBasicas(h: Hoja, out: LecturaPlanilla): boolean {
     if (colCurso < 0) continue;
     const celdaCurso = limpiar(fila[colCurso] || '');
     if (!celdaCurso) continue;
-    const cursos = celdaCurso.split(/[|/,;\s]+/).map((c) => c.trim().toUpperCase()).filter(Boolean);
+    const intensivo = cursoIntensivo(celdaCurso);
+    const cursos = intensivo ? [intensivo] : celdaCurso.split(/[|/,;\s]+/).map((c) => c.trim().toUpperCase()).filter(Boolean);
     const docentes = new Set<string>();
     for (const i of dias) for (const d of separarDocentesBasicas(fila[i] || '')) docentes.add(d);
     const bloques: Bloque[] = [];
@@ -224,8 +234,10 @@ function leerHojaBasicas(h: Hoja, out: LecturaPlanilla): boolean {
       }
     }
     for (const c of cursos) {
-      if (!/^\d+K\d+/.test(c)) continue;
-      if (!CURSO_K.test(c)) { otrosK.add(c); continue; }
+      if (!CURSO_H.test(c)) {
+        if (!/^\d+K\d+/.test(c)) continue;
+        if (!CURSO_K.test(c)) { otrosK.add(c); continue; }
+      }
       if (bloques.length) bloquesDe.set(c, [...(bloquesDe.get(c) || []), ...bloques]);
       const prev = porCurso.get(c);
       if (prev) docentes.forEach((d) => { if (!prev.docentes.includes(d)) prev.docentes.push(d); });

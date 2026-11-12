@@ -632,12 +632,11 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .faq > div { padding: 0 12px 10px 24px; font-size: 12.5px; line-height: 1.65; max-width: 80ch; }
 .faq > div p { margin: 0 0 6px; }
 .e404 { display: grid; justify-items: center; gap: 14px; padding: 24px 10px 10px; }
-.e404 .sheet { position: relative; display: flex; gap: 18px; align-items: center; max-width: 520px; width: 100%; padding: 14px 18px 14px 50px; border: 1px solid var(--line); background-color: var(--box); background-image: linear-gradient(var(--line-soft) 1px, transparent 1px); background-size: 100% 22px; }
+.e404 .sheet { position: relative; display: flex; gap: 16px; align-items: center; max-width: 520px; width: 100%; padding: 16px 20px 16px 46px; border: 1px solid var(--line); background-color: var(--box); background-image: linear-gradient(var(--line-soft) 1px, transparent 1px); background-size: 100% 22px; }
 .e404 .sheet::before { content: ""; position: absolute; left: 30px; top: 0; bottom: 0; width: 2px; background: var(--margin-red); }
-.e404 .nota { display: grid; place-items: center; width: 62px; height: 62px; flex: none; border: 3px solid #a3241f; border-radius: 50%; color: #a3241f; font: bold 40px/1 Georgia, 'Times New Roman', serif; transform: rotate(-6deg); }
-html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
-.e404 h1 { margin: 0; font: bold 18px var(--f-title); color: var(--ink); }
-.e404 p { margin: 3px 0 0; font-size: 12.5px; color: var(--ink); }
+.e404 .nota { display: grid; place-items: center; width: 76px; height: 76px; flex: none; border: 3px solid var(--bad); border-radius: 50%; color: var(--bad); font: bold 54px/1 var(--f-title); transform: rotate(-10deg); }
+.e404 h1 { margin: 0; font: bold 20px var(--f-title); color: var(--ink); }
+.e404 p { margin: 4px 0 0; font-size: 12.5px; color: var(--ink); }
 .e404 .search404 { display: flex; width: 100%; max-width: 420px; }
 .e404 .search404 input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); background: var(--input-bg); color: var(--ink); font: 13px var(--f-body); }
 .e404 .links { font-size: 12px; }
@@ -786,7 +785,7 @@ html[data-theme="dark"] .e404 .nota { border-color: #ff7a72; color: #ff7a72; }
   .rep-body { grid-template-columns: 1fr; }
   .rep-body > div + div { border-left: 0; border-top: 1px solid var(--line-soft); }
   .diff > div { grid-template-columns: 1fr; }
-  .e404 .sheet { padding-left: 40px; gap: 12px; }
+  .e404 .sheet { flex-direction: column; text-align: center; padding-left: 40px; }
   .grid-tbl.stack table { display: none; }
   .grid-tbl.stack { overflow: visible; border: 0; }
   .grid-tbl.stack .cards-sm { display: grid; gap: 8px; }
