@@ -52,7 +52,7 @@ TRUNCATE profes_h;
 INSERT INTO profes_h (curso, apellido, nombre, crear) VALUES
   ('1H9', 'valdiviezo', NULL, 'Valdiviezo'),
   ('1H9', 'gomez astudillo', 'luis', 'Gomez Astudillo, Luis'),
-  ('1H20', 'montalvan', NULL, 'Montalvan'),
+  ('1H20', 'montalvan', 'natalia', 'Montalvan, Natalia'),
   ('1H20', 'valdiviezo', NULL, 'Valdiviezo'),
   ('1H20', 'kassis', 'santiago', 'Kassis, Santiago');
 
