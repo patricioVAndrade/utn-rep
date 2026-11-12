@@ -4,7 +4,7 @@ import Icon from '../../components/Icon.astro';
 import ShareButton from '../../components/ShareButton.astro';
 import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 import { isAdmin } from '../../lib/admin';
-import { anioLabel, mesaTexto, tiempoRelativo } from '../../lib/format';
+import { anioLabel, fechaHora, mesaTexto, tiempoRelativo } from '../../lib/format';
 import { buscarProfesor, indexar } from '../../lib/importar';
 
 const user = Astro.locals.user;
@@ -164,7 +164,7 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
                     {exp.es_anonima === false && exp.nombre_usuario
                       ? <span class="uname">{exp.nombre_usuario}</span>
                       : <span class="uname anon">Anónimo</span>}
-                    <span class="sub">{isOwner ? 'La contaste vos' : `Contada ${tiempoRelativo(exp.created_at).toLowerCase()}`}</span>
+                    <time class="sub" datetime={exp.created_at} title={tiempoRelativo(exp.created_at)}>{fechaHora(exp.created_at)}</time>
                   </div>
                   <div class="message">
                     <div class="kv">

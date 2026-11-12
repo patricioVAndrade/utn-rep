@@ -11,7 +11,7 @@ import ShareButton from './ShareButton.astro';
 import Quien from './Quien.astro';
 import Escudo from './Escudo.astro';
 import LogroIcono from './LogroIcono.astro';
-import { COMO_TE_FUE, editadaEl, rindioTexto, tiempoRelativo } from '../lib/format';
+import { COMO_TE_FUE, editadaEl, fechaHora, rindioTexto, tiempoRelativo } from '../lib/format';
 import { DIBUJOS } from '../lib/perfil';
 import { rango } from '../lib/logros';
 import type { Autor } from '../lib/fichas';
@@ -74,7 +74,7 @@ const suRango = ficha ? rango(ficha.resenas) : null;
   <div class="post-head">
     <span>
       {curso ? <a href={curso.href}>{curso.label}</a> : <a href={`#resena-${resena.id}`}>#{resena.id}</a>}
-      {fecha && <> · <time datetime={resena.created_at}>{tiempoRelativo(resena.created_at)}</time></>}
+      {fecha && <> · <time datetime={resena.created_at} title={tiempoRelativo(resena.created_at)}>{fechaHora(resena.created_at)}</time></>}
       <span class="editada">{resena.updated_at ? ` · ${editadaEl(resena.updated_at)}` : ''}</span>
     </span>
     <span class="tags">

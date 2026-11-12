@@ -12,6 +12,17 @@ export function tiempoRelativo(fecha: string, now = Date.now()): string {
   return `Hace ${anios} año${anios > 1 ? 's' : ''}`;
 }
 
+/** Fecha y hora exactas, como en los foros: "12/11/2026 02:11" (hora de Córdoba). */
+export function fechaHora(fecha: string): string {
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return '';
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Argentina/Cordoba' })
+      .formatToParts(d).map((x) => [x.type, x.value]),
+  );
+  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
+}
+
 export function estrellas(n: number): string {
   const llenas = Math.min(Math.max(Math.round(n), 0), 5);
   return '★'.repeat(llenas) + '☆'.repeat(5 - llenas);
