@@ -53,7 +53,7 @@ const materias = (materiasRaw || []).map((m: any) => {
   return { ...m, dictados, sinProfes: dictados.filter((d: any) => !d.profes.length).length, sinHorario: dictados.filter((d: any) => !d.bloques.length).length };
 });
 // El cuatrimestre lo dice la columna Período: solo se aclara si el curso tiene días distintos en cada cuatrimestre
-const textoHorario = (bs: any[]) => textoBloques(new Set(bs.map((b) => b.cuatri)).size > 1 ? bs : bs.map((b) => ({ ...b, cuatri: null })));
+const textoHorario = (bs: any[]) => textoBloques(bs.some((b) => b.cuatri === 1) && bs.some((b) => b.cuatri === 2) ? bs : bs.map((b) => ({ ...b, cuatri: null })));
 const PERIODOS: [string, string][] = [['', 'Sin dato'], ['PRIMER_CUATRIMESTRE', '1.er cuatrimestre'], ['SEGUNDO_CUATRIMESTRE', '2.º cuatrimestre'], ['ANUAL', 'Anual']];
 const totalDictados = (dictadosRaw || []).length;
 ---
@@ -300,6 +300,35 @@ const totalDictados = (dictadosRaw || []).length;
     f.append(di, hora('desde', b.desde, 'Desde'), a, hora('hasta', b.hasta, 'Hasta'), x);
     return f;
   }
+  // Una lista de días con su "+ Agregar día"
+  function listaDias(bloques: B[], titulo?: string) {
+    const caja = document.createElement('div');
+    caja.className = 'hfilas';
+    if (titulo) { const h = document.createElement('b'); h.className = 'htit'; h.textContent = titulo; caja.append(h); }
+    const filas = document.createElement('div');
+    filas.className = 'hfilas';
+    bloques.forEach((b) => filas.append(filaBloque(b)));
+    const mas = document.createElement('button');
+    mas.type = 'button'; mas.className = 'linklike'; mas.textContent = '+ Agregar día';
+    mas.addEventListener('click', () => {
+      const prev = filas.lastElementChild as HTMLElement | null;
+      const desde = prev ? aMin(prev.querySelector<HTMLInputElement>('[data-c="desde"]')!.value) : 480;
+      const hasta = prev ? aMin(prev.querySelector<HTMLInputElement>('[data-c="hasta"]')!.value) : 625;
+      const diaPrev = prev ? Number(prev.querySelector<HTMLSelectElement>('[data-c="dia"]')!.value) : 0;
+      filas.append(filaBloque({ cuatri: null, dia: diaPrev >= 6 ? 1 : diaPrev + 1, desde: desde || 480, hasta: hasta || 625 }));
+    });
+    caja.append(filas, mas);
+    if (!bloques.length) mas.click();
+    const leer = (cuatri: B['cuatri']): B[] => [...filas.querySelectorAll<HTMLElement>('.hfila')].map((f) => ({
+      cuatri,
+      dia: Number(f.querySelector<HTMLSelectElement>('[data-c="dia"]')!.value),
+      desde: aMin(f.querySelector<HTMLInputElement>('[data-c="desde"]')!.value),
+      hasta: aMin(f.querySelector<HTMLInputElement>('[data-c="hasta"]')!.value),
+    }));
+    return { caja, leer };
+  }
+  const esMixto = (bs: B[]) => bs.some((b) => b.cuatri === 1) && bs.some((b) => b.cuatri === 2);
+
   document.querySelectorAll<HTMLTableCellElement>('td.hcol').forEach((td) => {
     const id = Number(td.closest<HTMLTableRowElement>('tr')!.dataset.dictado);
     td.querySelector('[data-editar-horario]')!.addEventListener('click', () => {
@@ -307,32 +336,46 @@ const totalDictados = (dictadosRaw || []).length;
       const bloques: B[] = JSON.parse(td.dataset.bloques || '[]');
       const ed = document.createElement('div');
       ed.className = 'hedit';
-      const filas = document.createElement('div');
-      filas.className = 'hfilas';
-      bloques.forEach((b) => filas.append(filaBloque(b)));
-      const mas = document.createElement('button');
-      mas.type = 'button'; mas.className = 'linklike'; mas.textContent = '+ Agregar día';
-      mas.addEventListener('click', () => {
-        const prev = filas.lastElementChild as HTMLElement | null;
-        const desde = prev ? aMin(prev.querySelector<HTMLInputElement>('[data-c="desde"]')!.value) : 480;
-        const hasta = prev ? aMin(prev.querySelector<HTMLInputElement>('[data-c="hasta"]')!.value) : 625;
-        const diaPrev = prev ? Number(prev.querySelector<HTMLSelectElement>('[data-c="dia"]')!.value) : 0;
-        filas.append(filaBloque({ cuatri: null, dia: diaPrev >= 6 ? 1 : diaPrev + 1, desde: desde || 480, hasta: hasta || 625 }));
-      });
+      // Un curso cuatrimestral que se da en los dos cuatrimestres puede tener días distintos en cada uno
+      const dos = document.createElement('label');
+      dos.className = 'check';
+      const chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.checked = esMixto(bloques);
+      dos.append(chk, ' Distinto en cada cuatrimestre');
+      const cuerpo = document.createElement('div');
+      cuerpo.className = 'hfilas';
+      let leer: () => B[] = () => [];
+      const armar = (bs: B[]) => {
+        cuerpo.replaceChildren();
+        if (chk.checked) {
+          const de = (c: 1 | 2) => bs.filter((b) => b.cuatri === c || b.cuatri === null);
+          const l1 = listaDias(de(1), '1.er cuatrimestre');
+          const l2 = listaDias(de(2), '2.º cuatrimestre');
+          cuerpo.append(l1.caja, l2.caja);
+          leer = () => [...l1.leer(1), ...l2.leer(2)];
+        } else {
+          const vistos = new Set<string>();
+          // Al destildar queda el del 1.er cuatrimestre
+          const unicos = (esMixto(bs) ? bs.filter((b) => b.cuatri !== 2) : bs).filter((b) => { const k = `${b.dia}-${b.desde}`; if (vistos.has(k)) return false; vistos.add(k); return true; });
+          const l = listaDias(unicos);
+          cuerpo.append(l.caja);
+          leer = () => l.leer(null);
+        }
+      };
+      armar(bloques);
+      chk.addEventListener('change', () => armar(leer()));
       const guardar = document.createElement('button');
       guardar.type = 'button'; guardar.className = 'btn primary'; guardar.textContent = 'Guardar horario';
       const cancelar = document.createElement('button');
       cancelar.type = 'button'; cancelar.className = 'btn quiet'; cancelar.textContent = 'Cancelar';
       cancelar.addEventListener('click', () => ed.remove());
       guardar.addEventListener('click', async () => {
-        const periodo = td.closest('tr')!.querySelector<HTMLSelectElement>('[data-campo="periodo_dictado"]')?.value;
-        const cuatri: B['cuatri'] = periodo === 'PRIMER_CUATRIMESTRE' ? 1 : periodo === 'SEGUNDO_CUATRIMESTRE' ? 2 : null;
-        const nuevos: B[] = [...filas.querySelectorAll<HTMLElement>('.hfila')].map((f) => ({
-          cuatri,
-          dia: Number(f.querySelector<HTMLSelectElement>('[data-c="dia"]')!.value),
-          desde: aMin(f.querySelector<HTMLInputElement>('[data-c="desde"]')!.value),
-          hasta: aMin(f.querySelector<HTMLInputElement>('[data-c="hasta"]')!.value),
-        }));
+        let nuevos = leer();
+        if (!chk.checked) {
+          const periodo = td.closest('tr')!.querySelector<HTMLSelectElement>('[data-campo="periodo_dictado"]')?.value;
+          const cuatri: B['cuatri'] = periodo === 'PRIMER_CUATRIMESTRE' ? 1 : periodo === 'SEGUNDO_CUATRIMESTRE' ? 2 : null;
+          nuevos = nuevos.map((b) => ({ ...b, cuatri }));
+        }
         if (nuevos.some((b) => !(b.hasta > b.desde))) return aviso('Cada horario tiene que terminar después de empezar.', true);
         const claves = new Set(nuevos.map((b) => `${b.cuatri ?? 0}-${b.dia}-${b.desde}`));
         if (claves.size < nuevos.length) return aviso('Hay un día repetido con la misma hora.', true);
@@ -348,15 +391,21 @@ const totalDictados = (dictadosRaw || []).length;
       });
       const acts = document.createElement('div');
       acts.className = 'hacts';
-      acts.append(mas, guardar, cancelar);
-      ed.append(filas, acts);
+      acts.append(guardar, cancelar);
+      ed.append(dos, cuerpo, acts);
       td.append(ed);
-      if (!bloques.length) mas.click();
     });
   });
   function textoHorario(bs: B[]) {
-    return [...bs].sort((a, b) => a.dia - b.dia || a.desde - b.desde)
-      .map((b) => `${DIAS[b.dia]} ${aHora(b.desde).replace(/^0/, '')} a ${aHora(b.hasta).replace(/^0/, '')}`)
+    const mixto = esMixto(bs);
+    const orden = (b: B) => (mixto ? (b.cuatri ?? 0) * 10 : 0) + b.dia;
+    let actual: B['cuatri'] | undefined;
+    return [...bs].sort((a, b) => orden(a) - orden(b) || a.desde - b.desde)
+      .map((b) => {
+        const pre = mixto && b.cuatri !== actual ? `${b.cuatri === 1 ? '1.er' : '2.º'} cuatri: ` : '';
+        actual = b.cuatri;
+        return `${pre}${DIAS[b.dia]} ${aHora(b.desde).replace(/^0/, '')} a ${aHora(b.hasta).replace(/^0/, '')}`;
+      })
       .join(' · ');
   }
 

@@ -236,12 +236,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return json({ error: 'Error actualizando dictado.' }, 500);
     }
 
-    // El horario va con el período: cuatrimestral, ese cuatrimestre; anual, todo el año
+    // El horario va con el período: cuatrimestral, ese cuatrimestre; anual, todo el año.
+    // No se toca si tiene días distintos en cada cuatrimestre.
     if (updatePayload.periodo_dictado) {
       const p = updatePayload.periodo_dictado;
       const cuatri = p === 'PRIMER_CUATRIMESTRE' ? 1 : p === 'SEGUNDO_CUATRIMESTRE' ? 2 : null;
-      const { error: eh } = await supabaseAdmin.from('horarios').update({ cuatri }).eq('dictado_id', dictadoId);
-      if (eh) console.error('Error pasando el horario al período nuevo:', eh);
+      const { data: hs } = await supabaseAdmin.from('horarios').select('cuatri').eq('dictado_id', dictadoId);
+      const mixto = (hs || []).some((h: any) => h.cuatri === 1) && (hs || []).some((h: any) => h.cuatri === 2);
+      if (!mixto) {
+        const { error: eh } = await supabaseAdmin.from('horarios').update({ cuatri }).eq('dictado_id', dictadoId);
+        if (eh) console.error('Error pasando el horario al período nuevo:', eh);
+      }
     }
 
     return json({ success: true, data });
@@ -255,13 +260,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (!bloques) return json({ error: 'Revisá los horarios: cada uno necesita día, y que termine después de empezar.' }, 400);
     const { data: existe } = await supabaseAdmin.from('dictados').select('id, periodo_dictado').eq('id', dictadoId).maybeSingle();
     if (!existe) return json({ error: 'Ese curso no existe.' }, 404);
-    // El cuatrimestre sale del período del curso (anual: todo el año); sin período, el que vino
+    // El cuatrimestre sale del período del curso (anual: todo el año); sin período, el que vino.
+    // Si vienen días de los dos cuatrimestres (se da dos veces en el año), quedan como vienen.
     const p = existe.periodo_dictado;
     const delPeriodo = p === 'PRIMER_CUATRIMESTRE' ? 1 : p === 'SEGUNDO_CUATRIMESTRE' ? 2 : null;
+    const mixto = bloques.some((b) => b.cuatri === 1) && bloques.some((b) => b.cuatri === 2);
     // Sin repetir el mismo día y hora de inicio (la base no lo deja)
     const vistos = new Set<string>();
     const filas = bloques
-      .map((b) => ({ ...b, cuatri: p ? delPeriodo : b.cuatri }))
+      .map((b) => ({ ...b, cuatri: p && !mixto ? delPeriodo : b.cuatri }))
       .filter((b) => { const k = `${b.cuatri ?? 0}-${b.dia}-${b.desde}`; if (vistos.has(k)) return false; vistos.add(k); return true; })
       .map((b) => ({ dictado_id: dictadoId, cuatri: b.cuatri, dia: b.dia, desde: horaBase(b.desde), hasta: horaBase(b.hasta) }));
     const { data: antes } = await supabaseAdmin.from('horarios').select('cuatri, dia, desde, hasta').eq('dictado_id', dictadoId);
