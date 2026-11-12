@@ -7,7 +7,10 @@ let esAdmin = true;
 const tablas: Record<string, unknown[]> = {};
 const hechas: { tabla: string; op: string; args: unknown[] }[] = [];
 
-vi.mock('../src/lib/admin-guards', () => ({ requireAdmin: async () => (esAdmin ? { id: 'admin' } : null) }));
+vi.mock('../src/lib/admin-guards', () => ({
+  requireAdmin: async () => (esAdmin ? { id: 'admin' } : null),
+  noAutorizado: () => new Response(JSON.stringify({ error: 'No autorizado.' }), { status: 403 }),
+}));
 vi.mock('../src/lib/supabase-admin', () => ({
   supabaseAdmin: {
     from: (t: string) => {
