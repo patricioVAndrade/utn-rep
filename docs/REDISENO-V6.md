@@ -15,7 +15,7 @@ Este archivo sirve para comparar, lado a lado, la maqueta V6 (`propuestas/v6/for
 |---|---|---|---|---|
 | F1 | Modo noche | Hecho | Interruptor "Modo noche" arriba a la derecha | Si nunca lo tocaste, sigue el modo del teléfono o la compu. |
 | F2 | Carpetas de "nuevas desde tu última visita" | Hecho | Inicio, carpeta amarilla y "hay nuevas" | Se guarda en el navegador, no en la cuenta: en otro dispositivo empieza de cero. La primera vez marca como nuevas las de las últimas dos semanas. Arriba dice "Tu última visita". |
-| F3 | Buscador con sugerencias agrupadas | Hecho | Banner, en cualquier página; Enter abre `/buscar?q=` | Sugerencias agrupadas en Materias, Cursos y Profesores. La página de resultados suma Finales, filtros y qué hacer si no hay nada. |
+| F3 | Buscador con sugerencias agrupadas | Hecho | Banner, en cualquier página; Enter abre `/buscar?q=` | Sugerencias agrupadas en Materias, Cursos y Profesores. La página de resultados suma Finales, filtros y qué hacer si no hay nada. Búsqueda tolerante (12/11): cursos como 1K1B o 1H10/11, siglas (AED, AM1), números romanos ("Análisis 1") y, si no hay nada tal cual, lo parecido ("algoritmso", "montalban"). |
 | F4 | Reparto de estrellas | Hecho | Curso y materia, "Cómo lo puntuaron" | — |
 | F5 | Rangos por cantidad de reseñas | Hecho (migración 8) | Reseñas, ficha, Mi cuenta, Reseña publicada, ¿Cómo funciona? | Sale de contar reseñas (también las anónimas, sin decir cuáles): 1 Ingresante, 2 a 4 Cursante, 5 a 14 Referente, 15 o más Leyenda. `src/lib/logros.ts`. |
 | F6 | Etiqueta de plan de estudios (2008 o 2023) | Base lista, sin mostrar | — | Migración 3: columna `plan` con 2023 en todas. No se muestra ni se pregunta, como pidió Pato; queda lista para cuando convivan los dos planes. |

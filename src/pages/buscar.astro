@@ -4,13 +4,15 @@ import Stars from '../components/Stars.astro';
 import CursoChips from '../components/CursoChips.astro';
 import { supabase } from '../lib/supabase';
 import { compararCursos, mesaTexto, nota } from '../lib/format';
+import { coincide as coincideTexto, cursoCoincide, cursoParecido, esCodigoCurso, losParecidos, palabrasDe } from '../lib/buscar';
 
 const q = (Astro.url.searchParams.get('q') || '').trim().slice(0, 80);
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const nq = norm(q);
-const palabras = nq.split(/\s+/).filter(Boolean);
-const coincide = (texto: string) => palabras.length > 0 && palabras.every((p) => norm(texto).includes(p));
-const esCurso = /^\d[a-z]\d{1,2}$/i.test(q);
+const palabras = palabrasDe(q);
+const coincide = (texto: string) => coincideTexto(palabras, texto);
+const esCurso = esCodigoCurso(q);
+// Sin nada tal cual, se muestra lo parecido
+let parecidos = false;
 
 const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 
@@ -35,8 +37,10 @@ if (palabras.length > 0) {
   const st = new Map((stats || []).map((s: any) => [s.dictado_id, s]));
   const nombreMateria = new Map((mats || []).map((m: any) => [m.id, m]));
 
+  const armar = (aproximado: boolean) => {
+  const filtrar = <T,>(xs: T[], texto: (x: T) => string) => (aproximado ? losParecidos(xs, texto, palabras) : xs.filter((x) => coincide(texto(x))));
   // Materias
-  materias = (mats || []).filter((m: any) => coincide(m.nombre)).map((m: any) => {
+  materias = filtrar(mats || [], (m: any) => m.nombre).map((m: any) => {
     const ds = (dics || []).filter((d: any) => d.materia_id === m.id);
     let count = 0;
     let suma = 0;
@@ -51,7 +55,7 @@ if (palabras.length > 0) {
   // Cursos: por código (2K3) o de las materias encontradas
   cursos = (dics || [])
     .map((d: any) => ({ ...d, curso: one(d.cursos), materia: nombreMateria.get(d.materia_id) }))
-    .filter((d: any) => d.curso && (esCurso ? norm(d.curso.identificador) === nq : idsMaterias.has(d.materia_id)))
+    .filter((d: any) => d.curso && (esCurso ? (aproximado ? cursoParecido : cursoCoincide)(d.curso.identificador, q) : idsMaterias.has(d.materia_id)))
     .map((d: any) => ({
       id: d.id,
       ident: d.curso.identificador,
@@ -64,7 +68,7 @@ if (palabras.length > 0) {
     .sort((a: any, b: any) => (b.promedio ?? -1) - (a.promedio ?? -1) || compararCursos(a.ident, b.ident));
 
   // Profesores
-  profes = (prs || []).filter((p: any) => coincide(p.nombre_completo)).map((p: any) => {
+  profes = filtrar(prs || [], (p: any) => p.nombre_completo).map((p: any) => {
     const porMateria = new Map<string, string[]>();
     (p.dictado_profesores || []).forEach((dp: any) => {
       const d = one(dp.dictados);
@@ -80,7 +84,13 @@ if (palabras.length > 0) {
   // Experiencias de finales: por materia o por texto
   finales = (fins || [])
     .map((f: any) => ({ ...f, materia: one(f.materias) }))
-    .filter((f: any) => f.materia && (idsMaterias.has(f.materia.id) || coincide(f.comentario || '')));
+    .filter((f: any) => f.materia && (idsMaterias.has(f.materia.id) || (!aproximado && coincide(f.comentario || ''))));
+  };
+  armar(false);
+  if (!materias.length && !cursos.length && !profes.length && !finales.length) {
+    armar(true);
+    parecidos = materias.length + cursos.length + profes.length + finales.length > 0;
+  }
 }
 
 const total = materias.length + cursos.length + profes.length + finales.length;
@@ -128,7 +138,7 @@ if (q && total === 0) {
       <div class="topic">
         <div>
           <h1>{q ? `Resultados para "${q}"` : 'Buscar'}</h1>
-          <p>{!q ? 'Escribí el nombre de una materia, un curso como 2K3 o el apellido de un profe.' : total ? `${total} resultado${total !== 1 ? 's' : ''}. Tocá un grupo para ver solo eso.` : 'No encontramos nada con eso.'}</p>
+          <p>{!q ? 'Escribí el nombre de una materia, un curso como 2K3 o el apellido de un profe.' : total && parecidos ? `No encontramos "${q}" tal cual. Esto es lo más parecido.` : total ? `${total} resultado${total !== 1 ? 's' : ''}. Tocá un grupo para ver solo eso.` : 'No encontramos nada con eso.'}</p>
         </div>
       </div>
 

@@ -295,6 +295,7 @@ const mia = (href: string) => (ruta === href ? 'page' : undefined);
 
 <script>
   // ========== BUSCADOR DEL BANNER ==========
+  import { codigoCurso, coincide, esCodigoCurso, losParecidos, palabrasDe } from '../lib/buscar';
   // Los datos se piden una sola vez, la primera vez que se usa el buscador.
   type Materia = { id: number; nombre: string; nivel: number };
   type Curso = { id: number; materiaId: number; curso: string; turno: string | null };
@@ -362,12 +363,18 @@ const mia = (href: string) => (ruta === href ? 'page' : undefined);
       return;
     }
     const nombreMateria = new Map(datos.materias.map((m) => [m.id, m.nombre]));
-    const materias = datos.materias.filter((m) => norm(m.nombre).includes(q)).slice(0, 6);
-    const qCurso = q.replace(/\s+/g, '');
-    const cursos = /^\d[a-z]\d*$/.test(qCurso)
-      ? datos.cursos.filter((c) => norm(c.curso).startsWith(qCurso)).slice(0, 8)
+    const palabras = palabrasDe(input.value);
+    // Tal cual y, si no hay nada, lo parecido (por si se escribió mal)
+    const buscarEn = <T,>(xs: T[], texto: (x: T) => string) => {
+      const tal = xs.filter((x) => coincide(palabras, texto(x)));
+      return tal.length ? tal : losParecidos(xs, texto, palabras);
+    };
+    const materias = buscarEn(datos.materias, (m) => m.nombre).slice(0, 6);
+    const qCurso = codigoCurso(input.value);
+    const cursos = esCodigoCurso(qCurso, true)
+      ? datos.cursos.filter((c) => codigoCurso(c.curso).startsWith(qCurso)).slice(0, 8)
       : [];
-    const profes = datos.profesores.filter((p) => norm(p.nombre).includes(q)).slice(0, 6);
+    const profes = buscarEn(datos.profesores, (p) => p.nombre).slice(0, 6);
 
     let html = '';
     let n = 0;

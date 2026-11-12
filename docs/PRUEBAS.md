@@ -119,6 +119,8 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 193 pruebas en 18 archiv
 
 ### Lo que ya estaba antes de la etapa 3
 
+Buscador tolerante (`src/lib/buscar.ts`, falta probar): `/buscar?q=1K1B` y `1k1 b` encuentran 1K1B; `1H10` encuentra 1H10/11; `aed`, `am1`, `analisis 1` encuentran la materia; `algoritmso`, `paradignas`, `montalban` muestran lo parecido con el aviso; `xqzw` muestra "No encontramos nada con eso."; `fisica 3` muestra Física I y II como parecidas.
+
 Para completar al armar la colección: búsqueda (`/api/buscar.json`), reseñas
 (`POST /api/resenas`, votar, reportar), ingreso (`/api/auth/*`), últimas
 experiencias (`/api/finales/ultimas.json`), y el panel de admin (materias,
