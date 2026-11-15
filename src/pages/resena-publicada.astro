@@ -103,7 +103,7 @@ const mensaje = `Escribí una reseña de ${nombre} en UTN REP. Si cursaste, sum�
         <a href={`/nueva-resena?from=${encodeURIComponent(`/nivel/${materia?.nivel}`)}`}>
           <Icon name="pen" />
           <b>Reseñar otro curso</b>
-          <span class="sub">{faltan > 0 ? `Te quedan ${faltan} materia${faltan !== 1 ? 's' : ''} de este año` : 'Ya reseñaste todas las de este año'}</span>
+          <span class="sub">{faltan > 0 ? `Te ${faltan === 1 ? 'queda 1 materia' : `quedan ${faltan} materias`} de este año` : 'Ya reseñaste todas las de este año'}</span>
         </a>
         <a href={`${ruta}#resena-${mia.id}`}>
           <Icon name="book" />

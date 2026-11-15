@@ -1,15 +1,17 @@
 import type { APIRoute } from 'astro';
-import { createSupabaseServerClient } from '../../lib/supabase';
-import { json, readJson } from '../../lib/http';
-import { MAX_INSCRIPCION, idsDeTexto } from '../../lib/inscripcion';
+import { createSupabaseServerClient } from '../../../lib/supabase';
+import { json, readJson } from '../../../lib/http';
+import { MAX_INSCRIPCION, idsDeTexto } from '../../../lib/inscripcion';
 
 /**
  * POST /api/inscripcion (F29, migración 12): "Lo estoy pensando".
  * { accion: 'agregar' | 'quitar', dictado_id }
  * { accion: 'traer', dictados: [..] } pasa la lista del navegador a la cuenta.
+ * { accion: 'elegir', dictado_id, quitar: [..] } (simulador): suma ese curso y saca los otros de la misma materia.
+ * { accion: 'quitar', dictados: [..] } saca varios juntos (quitar una materia del simulador).
  * Cada persona toca solo su lista (RLS); la materia de cada curso la completa la base.
  */
-const ACCIONES = new Set(['agregar', 'quitar', 'traer']);
+const ACCIONES = new Set(['agregar', 'quitar', 'traer', 'elegir']);
 const id = (x: unknown) => (Number.isInteger(x) && (x as number) > 0 ? (x as number) : null);
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -43,8 +45,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return json({ success: true });
   }
 
+  if (accion === 'quitar' && Array.isArray(body.dictados)) {
+    const dictados = idsDeTexto(body.dictados.join(','));
+    if (!dictados.length) return json({ error: 'Curso inválido.' }, 400);
+    const { error } = await tabla().delete().eq('user_id', user.id).in('dictado_id', dictados);
+    return error ? fallo(error, 'quitar') : json({ success: true });
+  }
+
   const dictadoId = id(body.dictado_id);
   if (!dictadoId) return json({ error: 'Curso inválido.' }, 400);
+
+  if (accion === 'elegir') {
+    // Primero suma el nuevo (si falla, no se pierde el que estaba) y después saca los otros
+    const err = await agregar(dictadoId);
+    if (err) return err;
+    const otros = idsDeTexto((Array.isArray(body.quitar) ? body.quitar : []).join(',')).filter((x) => x !== dictadoId);
+    if (otros.length) {
+      const { error } = await tabla().delete().eq('user_id', user.id).in('dictado_id', otros);
+      if (error) return fallo(error, 'elegir');
+    }
+    return json({ success: true });
+  }
 
   if (accion === 'agregar') return (await agregar(dictadoId)) || json({ success: true, esta: true });
   const { error } = await tabla().delete().eq('user_id', user.id).eq('dictado_id', dictadoId);

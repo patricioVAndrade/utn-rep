@@ -223,7 +223,7 @@ const aniosViejos = Array.from({ length: Math.max(0, currentYear - 4 - 2015 + 1)
       if (!response.ok) throw new Error(data.error || 'Ocurrió un error al guardar.');
       try { localStorage.removeItem(CLAVE); } catch {}
       // Si tenés una reseña de esa materia sin final, te ofrece sumarlo (F34)
-      window.location.href = data.sumar ? '/mis-resenas#finales' : `/finales?materia=${materia_id}`;
+      window.location.href = data.sumar ? '/mis-resenas#finales' : `/finales?materia=${materia_id}&publicada=1`;
     } catch (err: any) {
       mostrarError(err.message);
       submitBtn.disabled = false;

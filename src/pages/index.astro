@@ -157,19 +157,19 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
       {user && (
         <div hidden id="anios-hint" data-mis-anios={misAnios ? JSON.stringify(misAnios.map(String)) : undefined}></div>
       )}
-      {preguntas.length > 0 && (
-        <section class="anuncio-sim" aria-label="Nuevo: Simulá tu inscripción">
-          <Icon name="cal" />
-          <div>
-            <b>Nuevo: Simulá tu inscripción</b>
-            <span>Agregá tus materias y elegí cada curso mirando sus estrellas y reseñas. Si los horarios se pisan, te avisa.</span>
-          </div>
-          <div class="acts">
-            <a class="btn primary" href="/mi-inscripcion">Armar mi inscripción</a>
-            <button type="button" class="linklike">Ahora no</button>
-          </div>
-        </section>
+      <section class="anuncio-sim hidden" id="anuncio-sim" aria-label="Nuevo: Simulá tu inscripción">
+        <Icon name="cal" />
+        <div>
+          <b>Nuevo: Simulá tu inscripción</b>
+          <span>Agregá tus materias y elegí cada curso mirando sus estrellas y reseñas. Si los horarios se pisan, te avisa.</span>
+        </div>
+        <div class="acts">
+          <a class="btn primary" href="/mi-inscripcion">Armar mi inscripción</a>
+          <button type="button" class="linklike" data-ahora-no-sim>Ahora no</button>
+        </div>
+      </section>
 
+      {preguntas.length > 0 && (
         <section class="comofue hidden" id="comofue" aria-label="¿Cómo te fue?">
           {preguntas.map((p, i) => (
             <div class:list={['cf-item', { hidden: i > 0 }]} data-resena={p.id}>
@@ -292,31 +292,13 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
         </div>
       </section>
 
-      {Astro.url.searchParams.get('cafe') === '2' ? (
-        <section class="panel cafe">
-          <h3>Sin publicidad</h3>
-          <div class="in">
-            <span>UTN REP es gratis y no tiene publicidad. Lo sostienen los cafecitos de quienes quieren aportar.</span>
-            <a class="btn quiet cafe-suave" href="https://cafecito.app/utnrep" target="_blank" rel="noopener noreferrer"><Icon name="cup" /> Cafecito</a>
-          </div>
-        </section>
-      ) : Astro.url.searchParams.get('cafe') === '3' ? (
-        <section class="panel cafe">
-          <h3>Gracias por usar UTN REP</h3>
-          <div class="in">
-            <span>Es gratis y no tiene publicidad. Si alguna vez te sirvió, podés dejar un cafecito.</span>
-            <a class="btn quiet cafe-suave" href="https://cafecito.app/utnrep" target="_blank" rel="noopener noreferrer"><Icon name="cup" /> Dejar un cafecito</a>
-          </div>
-        </section>
-      ) : (
-        <section class="panel cafe">
-          <h3>Sin publicidad</h3>
-          <div class="in">
-            <span>UTN REP es gratis y no tiene publicidad. Lo mantengo yo.</span>
-            <a class="cafe-a" href="https://cafecito.app/utnrep" target="_blank" rel="noopener noreferrer"><Icon name="cup" /> Si querés dar una mano, está mi Cafecito</a>
-          </div>
-        </section>
-      )}
+      <section class="panel cafe">
+        <h3>Gracias por usar UTN REP</h3>
+        <div class="in">
+          <span>Es gratis y no tiene publicidad. Si alguna vez te sirvió, podés dejar un cafecito.</span>
+          <a class="btn quiet cafe-suave" href="https://cafecito.app/utnrep" target="_blank" rel="noopener noreferrer"><Icon name="cup" /> Dejar un cafecito</a>
+        </div>
+      </section>
 
       {destacada && (
         <section class="panel destacada">
@@ -396,6 +378,18 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
         botones.forEach((x) => (x.disabled = false));
       }
     });
+  }
+
+  // Aviso del simulador: hasta que lo abrís o tocás "Ahora no" (queda en este navegador)
+  const anuncio = document.getElementById('anuncio-sim');
+  const AVISO_SIM = 'avisoSimuladorVisto';
+  let visto = false;
+  try { visto = localStorage.getItem(AVISO_SIM) === '1'; } catch {}
+  if (anuncio && !visto && Date.now() < new Date('2027-04-01T03:00:00Z').getTime()) {
+    anuncio.classList.remove('hidden');
+    const apagar = () => { try { localStorage.setItem(AVISO_SIM, '1'); } catch {} };
+    anuncio.querySelector('a')?.addEventListener('click', apagar);
+    anuncio.querySelector('[data-ahora-no-sim]')?.addEventListener('click', () => { apagar(); anuncio.classList.add('hidden'); });
   }
 
   // Carpetas: "nuevas" = reseñas desde tu última visita (la primera vez, las de las últimas dos semanas)

@@ -181,3 +181,19 @@ export function materiaDeCelda(celda: string, materias: string[]): string | null
   if (costos.length > 1 && costos[1].c === costos[0].c) return null; // no se sabe cuál
   return costos[0].m;
 }
+
+/**
+ * Nombre corto para la semana del simulador: iniciales de las palabras
+ * importantes más el número ("Análisis Matemático II" -> "AM II",
+ * "Sintaxis y Semántica de los Lenguajes" -> "SSL"). Si queda una sola
+ * palabra, va la palabra ("Física II").
+ */
+export function siglaMateria(nombre: string): string {
+  const limpio = limpiarMateria(nombre);
+  const pal = limpio.split(/\s+/).filter(Boolean);
+  const numero = (p: string) => /^(?:[IVX]+|\d+)$/.test(p);
+  const nums = pal.filter(numero);
+  const palabras = pal.filter((p) => !numero(p) && !CORTAS.has(clave(p)));
+  if (palabras.length <= 1) return limpio;
+  return [palabras.map((p) => sinAcentos(p)[0].toUpperCase()).join(''), ...nums].join(' ');
+}

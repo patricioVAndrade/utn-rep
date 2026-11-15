@@ -300,6 +300,12 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
 <script>
   import { visitaAnterior, textoVisita } from '../../scripts/visitas';
   import { coincide, palabrasDe, parecido } from '../../lib/buscar';
+  // "Tu experiencia ya está publicada" se ve una sola vez: al recargar, ya no
+  if (new URLSearchParams(location.search).has('publicada')) {
+    const u = new URL(location.href);
+    u.searchParams.delete('publicada');
+    history.replaceState(history.state, '', u);
+  }
   const cards = Array.from(document.querySelectorAll<HTMLElement>('.final-card'));
 
   // Borrador sin publicar (se guarda en este navegador mientras escribís)

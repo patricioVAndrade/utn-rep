@@ -1083,6 +1083,81 @@ html[data-theme="dark"] { --wa-bg: #14301f; }
   .anuncio-sim .acts { display: flex; gap: 12px; align-items: center; }
   @container (max-width: 600px) { .anuncio-sim { grid-template-columns: 22px minmax(0,1fr); } .anuncio-sim .acts { grid-column: 1 / -1; } }
   .foro .btn.cafe-suave { color: var(--cafe); border-color: var(--cafe); background: var(--box); justify-self: start; }
-  .foro .cafe-a { display: inline-flex; align-items: center; gap: 6px; color: var(--cafe); font-weight: bold; }
-  .foro .cafe-a svg { width: 15px; height: 15px; }
+}
+
+/* Simulá tu inscripción (Mi inscripción, 15/11): un color por materia, la semana y los cursos */
+@layer components {
+  .foro .m1 { --mc: #2f6fb5; --mbg: #e6effa; }
+  .foro .m2 { --mc: #2c8549; --mbg: #e5f3e9; }
+  .foro .m3 { --mc: #8a5a1c; --mbg: #f7eedf; }
+  .foro .m4 { --mc: #6f4fb8; --mbg: #eee8fa; }
+  .foro .m5 { --mc: #1b7a8c; --mbg: #e2f2f4; }
+  .foro .m6 { --mc: #5f6b1d; --mbg: #eef1dc; }
+  html[data-theme="dark"] .foro .m1 { --mc: #7fb0ea; --mbg: #1d2c40; }
+  html[data-theme="dark"] .foro .m2 { --mc: #7cc796; --mbg: #1c3326; }
+  html[data-theme="dark"] .foro .m3 { --mc: #e0b072; --mbg: #3a2d1c; }
+  html[data-theme="dark"] .foro .m4 { --mc: #b9a0ef; --mbg: #2c2342; }
+  html[data-theme="dark"] .foro .m5 { --mc: #72c6d4; --mbg: #183238; }
+  html[data-theme="dark"] .foro .m6 { --mc: #c4d17a; --mbg: #2c3019; }
+
+  .semana { position: relative; display: grid; grid-template-columns: 40px repeat(6, minmax(0, 1fr)); border: 1px solid var(--line); background: var(--box); margin: 10px 0 12px; font-size: 11px; }
+  .semana .dh { padding: 5px 4px; text-align: center; font-weight: bold; background: var(--cat); border-bottom: 1px solid var(--line); border-left: 1px solid var(--line-soft); }
+  .semana .dh:first-child { border-left: 0; }
+  .semana .horas, .semana .dia { position: relative; height: var(--alto); }
+  .semana .dia { border-left: 1px solid var(--line-soft); }
+  .semana .hl { position: absolute; left: 0; right: 0; height: 1px; background: var(--line-soft); }
+  .semana .hueco { position: absolute; left: 0; right: 0; background: var(--row-a); border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
+  .semana .hueco-txt { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: center; font-size: 10.5px; color: var(--muted); pointer-events: none; }
+  .semana .horas span { position: absolute; right: 5px; transform: translateY(-50%); color: var(--muted); font-size: 10px; }
+  .semana .horas span:first-child { transform: none; }
+  .bq { position: absolute; left: 2px; right: 2px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; padding: 3px 5px; overflow: hidden; border: 0; border-left: 3px solid var(--mc); background: var(--mbg); color: var(--ink); font: inherit; line-height: 1.25; text-align: left; cursor: pointer; }
+  .bq:hover { filter: brightness(.97); }
+  .bq b { color: var(--mc); }
+  .bq .st { color: var(--muted); white-space: nowrap; }
+  .bq .st-c { display: none; }
+  .bq.pisa { border: 1px solid var(--bad); border-left: 3px solid var(--bad); background: repeating-linear-gradient(135deg, var(--mbg) 0 6px, var(--bad-bg) 6px 12px); }
+  .bq.pisa b { color: var(--bad); }
+  .bq.tocado { outline: 2px solid var(--mc); outline-offset: 1px; z-index: 2; }
+
+  .sim-toque { display: grid; grid-template-columns: 4px minmax(0,1fr); gap: 0 10px; margin: -4px 0 12px; border: 1px solid var(--line); background: var(--box); font-size: 12.5px; }
+  .sim-toque > i { background: var(--mc); }
+  .sim-toque > div { display: grid; gap: 3px; padding: 8px 10px 8px 0; }
+  .sim-toque .acc { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 3px; }
+
+  .sim-filtro { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+  .sim-m { border: 1px solid var(--line); margin-bottom: 10px; }
+  .sim-m .plan-h { gap: 8px; }
+  .sim-m .plan-h .cuad { width: 12px; height: 12px; background: var(--mc); border-radius: 2px; flex: none; }
+  .sim-m .plan-h .linklike { margin-left: auto; font-size: 11.5px; }
+  .op { display: grid; grid-template-columns: 18px 44px minmax(0, 1fr) auto; gap: 2px 8px; align-items: baseline; padding: 7px 10px; border-top: 1px solid var(--line-soft); font-size: 12px; cursor: pointer; background: var(--box); }
+  .op:first-of-type { border-top: 0; }
+  .op:hover { background: var(--row-hover); }
+  .op input { accent-color: var(--mc); margin: 0; align-self: center; }
+  .op.sel { background: var(--mbg); }
+  .op .cod { font-weight: bold; }
+  .op .hor, .op .pisa-txt { grid-column: 3 / 5; font-size: 11.5px; }
+  .op .hor { color: var(--muted); }
+  .op .pisa-txt { color: var(--bad); }
+  .op .nota { white-space: nowrap; }
+  .sim-m .mas { display: block; width: 100%; padding: 6px 10px; border-top: 1px solid var(--line-soft); background: var(--row-a); font-size: 12px; text-align: left; }
+  .sim-m .vacia { padding: 8px 10px; font-size: 12px; color: var(--muted); background: var(--box); }
+
+  .sim-agregar { position: relative; }
+  .sim-sumar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px dashed var(--line); background: var(--row-a); }
+  .sim-sumar svg { width: 16px; height: 16px; color: var(--muted); }
+  .sim-sumar input { flex: 1; min-width: 0; border: 0; background: transparent; font: 13px var(--f-body); color: var(--ink); outline: none; }
+  .sugerencias { position: absolute; left: 0; right: 0; bottom: calc(100% + 2px); z-index: 5; max-height: 300px; overflow-y: auto; border: 1px solid var(--line); background: var(--box); box-shadow: 0 4px 14px var(--shadow); font-size: 12.5px; }
+  .sugerencias .t { padding: 5px 10px; background: var(--cat); font-size: 11px; color: var(--muted); font-weight: bold; }
+  .sugerencias button { display: flex; width: 100%; gap: 8px; align-items: center; padding: 8px 10px; border: 0; border-top: 1px solid var(--line-soft); background: var(--box); color: var(--ink); font: 12.5px var(--f-body); text-align: left; cursor: pointer; }
+  .sugerencias button.act, .sugerencias button:hover { background: var(--row-hover); }
+  .sugerencias button .sub { margin-left: auto; white-space: nowrap; }
+  .sugerencias .nada { padding: 8px 10px; color: var(--muted); }
+
+  @container (max-width: 600px) {
+    .semana { grid-template-columns: 30px repeat(6, minmax(0, 1fr)); font-size: 10px; }
+    .bq { padding: 2px 3px; left: 1px; right: 1px; }
+    .bq .st-l { display: none; }
+    .bq .st-c { display: inline; }
+    .op { grid-template-columns: 18px 40px minmax(0, 1fr) auto; padding: 9px 10px; }
+  }
 }

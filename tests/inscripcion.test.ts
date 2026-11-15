@@ -32,7 +32,7 @@ vi.mock('../src/lib/supabase', () => ({
   }),
 }));
 
-const { POST } = await import('../src/pages/api/inscripcion');
+const { POST } = await import('../src/pages/api/inscripcion/index');
 const { idsDeTexto } = await import('../src/lib/inscripcion');
 
 const pedir = async (body: unknown) => {
