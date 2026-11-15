@@ -53,7 +53,7 @@ const ruta = `/dictado/${dictadoId}`;
 const codigo = await codigoDe(user.id).catch(() => null);
 const rutaCompartida = codigo ? `${ruta}?de=${codigo}` : ruta;
 const nombre = `${materia?.nombre || 'la materia'}, ${curso?.identificador || 'tu curso'}`;
-const mensaje = `Escribí una reseña de ${nombre} en UTN REP. Si cursaste, sumá la tuya así la próxima camada elige mejor 👉`;
+const mensaje = `Escribí una reseña de ${nombre} en UTN REP. Si cursaste, sumá la tuya así los que la cursan después eligen mejor 👉`;
 ---
 
 <Layout title="Reseña publicada - UTN REP" crumbs={[{ label: materia?.nombre || 'Materia', href: `/materia/${materia?.id}` }, { label: curso?.identificador || 'Curso', href: ruta }, { label: 'Reseña publicada' }]}>
@@ -64,6 +64,7 @@ const mensaje = `Escribí una reseña de ${nombre} en UTN REP. Si cursaste, sum�
         <div>
           <h1>¡Listo! Tu reseña ya está publicada</h1>
           <p>Es de <b>{materia?.nombre}</b>, curso <b>{curso?.identificador}</b>{curso?.turno ? `, turno ${turnoLabel(curso.turno).toLowerCase()}` : ''}. Ya la puede leer cualquiera que busque ese curso.</p>
+          <p class="cafe-linea en-aviso"><Icon name="cup" /> ¿Te sirvió UTN REP? <a href="https://cafecito.app/utnrep" target="_blank" rel="noopener noreferrer">Invitame un cafecito</a></p>
         </div>
       </div>
 

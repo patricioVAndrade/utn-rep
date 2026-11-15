@@ -13,6 +13,7 @@ import { PREFERENCIAS_EDITABLES } from '../lib/avisos';
 import { MAIL_POR_DEFECTO } from '../lib/mail';
 import { telegramListo } from '../lib/telegram';
 
+import { isAdmin } from '../lib/admin';
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/');
 
@@ -68,6 +69,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
         <div>
           <h1>Mi cuenta</h1>
         </div>
+        {isAdmin(user.id) && <div class="actions"><a class="btn quiet" href="/admin"><Icon name="gear" /> Panel de admin</a></div>}
       </div>
 
       <form class="form" id="como-te-ven" onsubmit="return false">

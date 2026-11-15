@@ -1067,3 +1067,22 @@ html[data-theme="dark"] { --wa-bg: #14301f; }
 .horario > div { display: flex; justify-content: space-between; gap: 6px; }
 
 }
+@layer components {
+  .foro .cafe-linea { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--muted); }
+  .foro .cafe-linea svg { width: 16px; height: 16px; color: var(--cafe); }
+  .foro .cafe-linea a { color: var(--cafe); font-weight: bold; }
+}
+@layer components {
+  .foro .cafe-linea.en-aviso { margin: 6px 0 0; padding: 0; border: 0; }
+}
+@layer components {
+  .anuncio-sim { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px 12px; align-items: center; padding: 10px 12px; margin-bottom: 10px; background: var(--box); border: 1px solid var(--line); border-left: 4px solid var(--amber); font-size: 12.5px; }
+  .anuncio-sim > svg { width: 20px; height: 20px; color: var(--navy); align-self: start; margin-top: 1px; }
+  html[data-theme="dark"] .anuncio-sim > svg { color: var(--amber); }
+  .anuncio-sim b { display: block; font-size: 13.5px; margin-bottom: 2px; }
+  .anuncio-sim .acts { display: flex; gap: 12px; align-items: center; }
+  @container (max-width: 600px) { .anuncio-sim { grid-template-columns: 22px minmax(0,1fr); } .anuncio-sim .acts { grid-column: 1 / -1; } }
+  .foro .btn.cafe-suave { color: var(--cafe); border-color: var(--cafe); background: var(--box); justify-self: start; }
+  .foro .cafe-a { display: inline-flex; align-items: center; gap: 6px; color: var(--cafe); font-weight: bold; }
+  .foro .cafe-a svg { width: 15px; height: 15px; }
+}

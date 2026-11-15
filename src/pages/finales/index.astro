@@ -115,6 +115,16 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
         </div>
       </div>
 
+      {Astro.url.searchParams.get('publicada') === '1' && (
+        <div class="notice ok publicada" role="status">
+          <Icon name="check" />
+          <div>
+            <b>Tu experiencia ya está publicada.</b>
+            <p class="cafe-linea en-aviso"><Icon name="cup" /> ¿Te sirvió UTN REP? <a href="https://cafecito.app/utnrep" target="_blank" rel="noopener noreferrer">Invitame un cafecito</a></p>
+          </div>
+        </div>
+      )}
+
       <div id="borrador-final" class="notice soft hidden" role="status">
         <Icon name="pen" />
         <span>Tenés una experiencia sin publicar<span data-materia></span>. <a href="/finales/nuevo">Seguirla</a> · <button type="button" class="linklike" data-borrar-borrador>Borrarla</button></span>
