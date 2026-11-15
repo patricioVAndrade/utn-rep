@@ -15,6 +15,7 @@ import ShareButton from '../components/ShareButton.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { idsDeTexto } from '../lib/inscripcion';
 import { materiasSim, periodoInscripcion } from '../lib/simulador';
+import { leerPerfil } from '../lib/perfil';
 
 const user = Astro.locals.user;
 const params = Astro.url.searchParams;
@@ -26,6 +27,13 @@ const compartida = deLink && !mia;
 
 let ids: number[] = [];
 let sinTabla = false;
+// Tus años (Mi cuenta): son las materias que se sugieren al agregar sin escribir
+let misAnios: number[] = [];
+if (user && !compartida) {
+  const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+  const perfil = await leerPerfil(client, user.id);
+  if (perfil.guardado) misAnios = (perfil.anios_cursada || []).map(Number).filter((n: number) => n >= 1 && n <= 5);
+}
 if (deLink) {
   ids = idsDeTexto(params.get('c'));
 } else if (user) {
@@ -62,7 +70,7 @@ const cursos = new Map<number, number>();
 (cuentaRaw || []).forEach((d: any) => cursos.set(d.materia_id, (cursos.get(d.materia_id) || 0) + 1));
 const catalogo = (catalogoRaw || []).map((m: any) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel, cursos: cursos.get(m.id) || 0 })).filter((m) => m.cursos > 0);
 
-const datos = { modo: compartida ? 'compartida' : user ? 'cuenta' : 'local', cuatri: periodo.cuatri, materias: elegidas, catalogo };
+const datos = { modo: compartida ? 'compartida' : user ? 'cuenta' : 'local', cuatri: periodo.cuatri, materias: elegidas, catalogo, misAnios };
 const json = JSON.stringify(datos).replace(/</g, '\\u003c');
 const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
 ---
@@ -151,7 +159,7 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
 
   type Opcion = { id: number; curso: string; turno: string | null; periodo: string | null; promedio: number | null; cantidad: number; bloques: Bloque[]; enPeriodo: boolean };
   type Materia = { id: number; nombre: string; nivel: number; sigla: string; opciones: Opcion[]; pensados: number[]; elegido: number | null };
-  type Datos = { modo: 'cuenta' | 'local' | 'compartida'; cuatri: 1 | 2; materias: Materia[]; catalogo: { id: number; nombre: string; nivel: number; cursos: number }[] };
+  type Datos = { modo: 'cuenta' | 'local' | 'compartida'; cuatri: 1 | 2; materias: Materia[]; catalogo: { id: number; nombre: string; nivel: number; cursos: number }[]; misAnios: number[] };
 
   const raiz = document.getElementById('mi-inscripcion')!;
   const datos: Datos = JSON.parse(document.getElementById('sim-datos')!.textContent || '{}');
@@ -401,22 +409,25 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
     const ya = new Set(datos.materias.map((m) => m.id));
     const libres = datos.catalogo.filter((m) => !ya.has(m.id));
     let lista: typeof libres;
-    let titulo = '';
     if (!q) {
-      // Sin escribir: las de tu año (el de las materias que ya tenés; si no, 1.º)
-      const niveles = datos.materias.map((m) => m.nivel);
-      const nivel = niveles.length ? niveles.sort((a, b) => niveles.filter((x) => x === b).length - niveles.filter((x) => x === a).length)[0] : 1;
-      lista = libres.filter((m) => m.nivel === nivel);
-      titulo = `Materias de ${nivel}.º año`;
+      // Sin escribir: las de tus años de Mi cuenta (sin sesión, los de este navegador);
+      // si no marcaste ninguno, los de las materias que ya agregaste; si tampoco, todas
+      let anios = datos.misAnios;
+      if (!anios.length && modo === 'local') { try { anios = (JSON.parse(localStorage.getItem('misAnios') || '[]') as unknown[]).map(Number).filter(Boolean); } catch {} }
+      if (!anios.length) anios = [...new Set(datos.materias.map((m) => m.nivel))];
+      lista = anios.length ? libres.filter((m) => anios.includes(m.nivel)) : libres;
+      lista.sort((a, b) => a.nivel - b.nivel || a.nombre.localeCompare(b.nombre, 'es'));
     } else {
       const pal = palabrasDe(q);
       lista = libres.filter((m) => coincide(pal, m.nombre));
       if (!lista.length) lista = libres.map((m) => ({ m, d: parecido(pal, m.nombre) })).filter((x) => x.d !== null).sort((a, b) => a.d! - b.d!).map((x) => x.m);
     }
-    lista = lista.slice(0, 8);
+    if (q) lista = lista.slice(0, 8);
     activa = 0;
-    sug.innerHTML = (titulo ? `<div class="t">${titulo}</div>` : '')
-      + (lista.length ? lista.map((m, k) => `<button type="button" role="option" class="${k === 0 ? 'act' : ''}" data-agregar="${m.id}"><span class="yr y${m.nivel}">${m.nivel}.º</span><span>${esc(m.nombre)}</span><span class="sub">${m.cursos} curso${m.cursos !== 1 ? 's' : ''}</span></button>`).join('') : '<div class="nada">No encontramos esa materia.</div>');
+    let anio = 0;
+    sug.innerHTML = lista.length
+      ? lista.map((m, k) => (!q && m.nivel !== anio ? `<div class="t">${(anio = m.nivel)}.º año</div>` : '') + `<button type="button" role="option" class="${k === 0 ? 'act' : ''}" data-agregar="${m.id}">${q ? `<span class="yr y${m.nivel}">${m.nivel}.º</span>` : ''}<span>${esc(m.nombre)}</span><span class="sub">${m.cursos} curso${m.cursos !== 1 ? 's' : ''}</span></button>`).join('')
+      : '<div class="nada">No encontramos esa materia.</div>';
     sug.classList.remove('hidden');
     buscar.setAttribute('aria-expanded', 'true');
   }
