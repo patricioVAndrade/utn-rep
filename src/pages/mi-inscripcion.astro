@@ -254,7 +254,7 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
         const st = b.o.promedio !== null && alto >= 44
           ? `<span class="st"><span class="st-l">★ ${nota(b.o.promedio)} (${b.o.cantidad})</span><span class="st-c">★ ${nota(b.o.promedio)}</span></span>` : '';
         html += `<button type="button" data-toque="${b.m.id}" class="bq m${(b.i % 6) + 1}${conChoque.has(b) ? ' pisa' : ''}${toque === b.m.id ? ' tocado' : ''}" style="top:${y(b.desde)}px;height:${alto - 2}px;${ancho}" aria-label="${esc(`${b.m.nombre}, ${b.o.curso}, ${DIAS[b.dia]} ${horaTexto(b.desde)} a ${horaTexto(b.hasta)}`)}">`
-          + `<b>${esc(b.o.curso)}</b><span>${esc(b.m.sigla)}</span>${st}</button>`;
+          + `<b${b.o.curso.length > 5 ? ' class="largo"' : ''}>${esc(b.o.curso)}</b><span>${esc(b.m.sigla)}</span>${st}</button>`;
       });
       html += '</div>';
     }
@@ -289,7 +289,7 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
       const lista = m.opciones.filter((o) => o === elegido || (!soloMirar && abierta && o.enPeriodo && (!turno || letraTurno(o.turno) === turno)));
       const filas = lista.map((o) => {
         const con = [...new Set(o.bloques.flatMap((b) => otros.filter((x) => pisan(x, b)).map((x) => nombreCurso(x.m, x.o))))];
-        const extra = [textoTurno(o.turno), o.periodo].filter(Boolean).join(' · ');
+        const extra = [textoTurno(o.turno), o.periodo?.replace('cuatrimestre', 'cuatri')].filter(Boolean).join(' · ');
         return `<label class="op${o === elegido ? ' sel' : ''}">${soloMirar ? '<span></span>' : `<input type="radio" name="m-${m.id}" value="${o.id}" ${o === elegido ? 'checked' : ''}>`}`
           + `<a class="cod" href="/dictado/${o.id}">${esc(o.curso)}</a><span>${esc(extra)}</span>`
           + `<span class="nota">${o.promedio !== null ? `${estrellas(o.promedio)} ${nota(o.promedio)} <span class="sub">· ${o.cantidad}</span>` : '<span class="sub">Sin reseñas</span>'}</span>`
@@ -298,7 +298,9 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
       }).join('');
       const resto = m.opciones.filter((o) => o.enPeriodo && o !== elegido).length;
       const vacia = !elegido ? `<div class="vacia">No hay cursos de esta materia en el ${datos.cuatri === 1 ? 'primer' : 'segundo'} cuatrimestre.</div>` : '';
-      return `<section class="sim-m m${(i % 6) + 1}" data-materia="${m.id}"><div class="plan-h"><span class="cuad"></span><b>${esc(m.nombre)}</b>${soloMirar ? '' : `<button type="button" class="linklike quitar" data-quitar="${m.id}">Quitar</button>`}</div>${vacia}${filas}`
+      // La columna del curso, del ancho del más largo (1H10/50)
+      const largo = Math.max(3, ...lista.map((o) => o.curso.length));
+      return `<section class="sim-m m${(i % 6) + 1}" data-materia="${m.id}" style="--cw:calc(${largo}ch + 6px)"><div class="plan-h"><span class="cuad"></span><b>${esc(m.nombre)}</b>${soloMirar ? '' : `<button type="button" class="linklike quitar" data-quitar="${m.id}">Quitar</button>`}</div>${vacia}${filas}`
         + (!soloMirar && resto > 0 ? `<button type="button" class="linklike mas" data-abrir="${m.id}">${abierta ? 'Ver menos' : `Ver ${resto === 1 ? 'el otro curso' : `los otros ${resto} cursos`}`}</button>` : '') + '</section>';
     }).join('');
 
