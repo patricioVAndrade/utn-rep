@@ -29,8 +29,8 @@ export const LOGROS: Logro[] = [
   { id: 'L15', clase: 'l15', nombre: 'Búho', como: 'Tres reseñas de cursos del turno noche', svg: '<path d="M5 4l3 2h8l3-2v9a7 7 0 01-14 0z" stroke-linejoin="round"/><circle cx="9" cy="11" r="2"/><circle cx="15" cy="11" r="2"/><path d="M11 15l1 1 1-1" stroke-linecap="round"/>' },
   { id: 'L17', clase: 'l17', nombre: 'Detallista', como: 'Una reseña de más de 400 caracteres con 5 "Me sirvió"', svg: '<path d="M4 6h16M4 10h16M4 14h10M4 18h7" stroke-linecap="round"/><circle cx="18" cy="17" r="3"/>' },
   { id: 'L18', clase: 'l18', nombre: 'La más útil del curso', como: 'Tu reseña es la más votada de su curso (con 3 votos o más)', svg: '<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z" stroke-linejoin="round"/>' },
-  { id: 'L19', clase: 'l19', nombre: 'Ayudante de cátedra', como: 'Tus reseñas ayudaron a 50 personas', svg: '<path d="M3 9l9-5 9 5-9 5z" stroke-linejoin="round"/><path d="M7 11.5V16c3 2 7 2 10 0v-4.5" stroke-linejoin="round"/>' },
-  { id: 'L20', clase: 'l20', nombre: 'Titular de cátedra', como: 'Tus reseñas ayudaron a 100 personas', svg: '<path d="M3 9l9-5 9 5-9 5z" stroke-linejoin="round"/><path d="M7 11.5V16c3 2 7 2 10 0v-4.5M21 9v6" stroke-linejoin="round" stroke-linecap="round"/>' },
+  { id: 'L19', clase: 'l19', nombre: 'Ayudante de cátedra', como: 'Tus reseñas ayudaron a 50 estudiantes', svg: '<path d="M3 9l9-5 9 5-9 5z" stroke-linejoin="round"/><path d="M7 11.5V16c3 2 7 2 10 0v-4.5" stroke-linejoin="round"/>' },
+  { id: 'L20', clase: 'l20', nombre: 'Titular de cátedra', como: 'Tus reseñas ayudaron a 100 estudiantes', svg: '<path d="M3 9l9-5 9 5-9 5z" stroke-linejoin="round"/><path d="M7 11.5V16c3 2 7 2 10 0v-4.5M21 9v6" stroke-linejoin="round" stroke-linecap="round"/>' },
 ];
 
 export const logroPorId = (id: string) => LOGROS.find((l) => l.id === id);

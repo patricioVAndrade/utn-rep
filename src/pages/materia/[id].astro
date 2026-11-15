@@ -104,12 +104,14 @@ const filas = lista
       ...d,
       count: c?.count || 0,
       promedio: c ? c.suma / c.count : null,
-      promo: c && c.conCond ? pct(c.prom, c.conCond) : null,
+      // Sobre todas las reseñas del curso (1 de 5 que promocionó es 1 de 5), si alguien contó cómo le fue
+      promo: c && c.conCond ? pct(c.prom, c.count) : null,
+      nPromo: c?.prom || 0,
       ultima: c?.ultima || null,
       profes: (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)).filter(Boolean),
     };
   })
-  .sort((a: any, b: any) => (b.promedio ?? -1) - (a.promedio ?? -1) || compararCursos(a.cursos?.identificador, b.cursos?.identificador));
+  .sort((a: any, b: any) => (b.promedio ?? -1) - (a.promedio ?? -1) || b.count - a.count || compararCursos(a.cursos?.identificador, b.cursos?.identificador));
 const conResenas = filas.filter((f: any) => f.count > 0);
 const sinResenas = filas.filter((f: any) => f.count === 0);
 
@@ -218,7 +220,7 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
                   <td>{d.profes.length ? d.profes.map((p: any, i: number) => <>{i > 0 && ', '}<a href={`/profesor/${p.id}`}>{p.nombre_completo}</a></>) : <span class="sub">Sin cargar</span>}</td>
                   <td style="white-space:nowrap"><Stars value={d.promedio} /> {nota(d.promedio)}</td>
                   <td class="c num">{d.count}</td>
-                  <td style="white-space:nowrap">{d.promo !== null ? <><span class="mini-bar"><b style={`width:${d.promo}%`}></b></span>{d.promo} %</> : <span class="sub">—</span>}</td>
+                  <td style="white-space:nowrap" title={d.promo !== null ? `${d.promo} %` : undefined}>{d.promo !== null ? <><span class="mini-bar"><b style={`width:${d.promo}%`}></b></span>{d.nPromo} de {d.count}</> : <span class="sub">—</span>}</td>
                   <td style="white-space:nowrap">{fecha(d.ultima)}</td>
                 </tr>
               ))}
@@ -245,7 +247,7 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
                   <CursoChips mini turno={d.cursos?.turno} />
                 </div>
                 <span class="sub">{d.profes.length ? d.profes.map((p: any) => p.nombre_completo).join(', ') : 'Sin profesores cargados'}</span>
-                <span>{d.count ? <><Stars value={d.promedio} /> <b>{nota(d.promedio)}</b> <span class="sub">· {d.count} reseña{d.count !== 1 ? 's' : ''}{d.promo !== null ? ` · ${d.promo} % promocionó` : ''}</span></> : <span class="sub">Sin reseñas todavía</span>}</span>
+                <span>{d.count ? <><Stars value={d.promedio} /> <b>{nota(d.promedio)}</b> <span class="sub">· {d.count} reseña{d.count !== 1 ? 's' : ''}{d.promo !== null ? ` · ${d.nPromo} de ${d.count} promocionó` : ''}</span></> : <span class="sub">Sin reseñas todavía</span>}</span>
               </div>
             ))}
           </div>
@@ -265,7 +267,7 @@ const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
           <div class="in">
             <span class="sub"><Stars value={masUtil.calificacion_general} /> por <Quien nombre={masUtil.es_anonima ? 'Anónimo' : masUtil.nombre_usuario || 'Estudiante'} anonimo={masUtil.es_anonima} ficha={masUtilFicha} />{masUtilCurso && <>, del curso <a href={`/dictado/${masUtil.dictado_id}`}>{masUtilCurso}</a></>}</span>
             <blockquote class="quote-mini">"{recortar(masUtil.comentario || '')}"</blockquote>
-            <span class="sub">Le sirvió a <b>{masUtil.votos_utilidad} personas</b>. <a href={`/dictado/${masUtil.dictado_id}#resena-${masUtil.id}`}>Leerla entera</a></span>
+            <span class="sub">Le sirvió a <b>{masUtil.votos_utilidad} estudiante{masUtil.votos_utilidad !== 1 ? 's' : ''}</b>. <a href={`/dictado/${masUtil.dictado_id}#resena-${masUtil.id}`}>Leerla entera</a></span>
           </div>
         </section>
       )}

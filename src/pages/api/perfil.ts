@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '../../lib/supabase';
 import { supabaseAdmin } from '../../lib/supabase-admin';
 import { json, readJson, esBloqueo, cuentaBloqueada } from '../../lib/http';
 import { parseBody, perfilSchema } from '../../lib/validation';
+import { encontrarPalabra } from '../../lib/palabras';
 
 const DIAS_30 = 30 * 24 * 60 * 60 * 1000;
 
@@ -21,6 +22,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (!parsed.ok) return json({ error: parsed.error }, 400);
 
   const { pausar_como_te_fue, ...campos } = parsed.data;
+  // Un nombre con una palabra marcada (insultos) no se guarda
+  if (campos.nombre_mostrar) {
+    const { data: lista } = await supabaseAdmin.from('palabras_marcadas').select('palabra');
+    if (encontrarPalabra(campos.nombre_mostrar, (lista || []).map((p: any) => p.palabra))) {
+      return json({ error: 'Ese nombre no se puede usar. Probá con otro.' }, 400);
+    }
+  }
+  if (campos.color === 'azul') campos.color = null;
   const cambios: Record<string, unknown> = { ...campos };
   if (pausar_como_te_fue) cambios.como_te_fue_pausa_hasta = new Date(Date.now() + DIAS_30).toISOString();
   if (campos.foto && campos.foto !== 'dibujo') cambios.dibujo = null;

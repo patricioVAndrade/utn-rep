@@ -155,9 +155,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
         <div class="notice ok" role="status"><Icon name="check" /><div><b>Tu cuenta se borró.</b> Gracias por haber sumado a UTN REP.</div></div>
       )}
       {user && (
-        <p class="sub yr-hint hidden" id="anios-hint" data-mis-anios={misAnios ? JSON.stringify(misAnios.map(String)) : undefined}>
-          ¿Querés que tus años vengan abiertos? Elegilos en <a href="/mi-cuenta#tus-anios">Mi cuenta</a>.
-        </p>
+        <div hidden id="anios-hint" data-mis-anios={misAnios ? JSON.stringify(misAnios.map(String)) : undefined}></div>
       )}
       {preguntas.length > 0 && (
         <section class="comofue hidden" id="comofue" aria-label="¿Cómo te fue?">
@@ -270,6 +268,18 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
         </div>
       </section>
 
+      <section class="panel">
+        <h3>¿Primera vez acá?</h3>
+        <div class="in">
+          <ol class="steps">
+            <li>Buscá tu materia o elegí el año.</li>
+            <li>Entrá al curso que te interesa (por ejemplo 1K3).</li>
+            <li>Leé las reseñas y votá las que te sirvieron.</li>
+          </ol>
+          <a href="/sobre">¿Cómo funciona UTN REP?</a>
+        </div>
+      </section>
+
       {destacada && (
         <section class="panel destacada">
           <h3><Icon name="thumb" /> Reseña destacada</h3>
@@ -277,7 +287,7 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
             <a href={`/dictado/${destacada.dictado_id}#resena-${destacada.id}`}><b>{destMateria}{destCurso ? `, ${destCurso}` : ''}</b></a>
             <span class="sub"><Stars value={destacada.calificacion_general} /> por <Quien nombre={autor(destacada)} anonimo={destacada.es_anonima} ficha={autores.get(destacada.id)?.ficha} /></span>
             <blockquote class="quote-mini">"{recortar(destacada.comentario || '')}"</blockquote>
-            <span class="sub">Le sirvió a <b>{destacada.votos_utilidad} personas</b>. Es la más votada del sitio: si otra la supera, toma su lugar.</span>
+            <span class="sub">Le sirvió a <b>{destacada.votos_utilidad} estudiante{destacada.votos_utilidad !== 1 ? 's' : ''}</b>.</span>
           </div>
         </section>
       )}
@@ -303,20 +313,8 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
       <section class="panel">
         <h3>Experiencias de finales</h3>
         <div class="in">
-          <span>¿Vas a rendir? Fijate cómo toman en cada mesa. ¿Ya rendiste? Contalo.</span>
+          <span><b>¿Vas a rendir?</b> Fijate cómo toman en cada mesa. <b>¿Ya rendiste?</b> Contalo.</span>
           <a class="btn secondary" href="/finales"><Icon name="final" /> Ver los finales</a>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h3>¿Primera vez acá?</h3>
-        <div class="in">
-          <ol class="steps">
-            <li>Buscá tu materia o elegí el año.</li>
-            <li>Entrá al curso que te interesa (por ejemplo 1K3).</li>
-            <li>Leé las reseñas y votá las que te sirvieron.</li>
-          </ol>
-          <a href="/sobre">¿Cómo funciona UTN REP?</a>
         </div>
       </section>
 
@@ -394,7 +392,6 @@ const fmt = (n: number | null | undefined) => (n || 0).toLocaleString('es-AR');
     const deCuenta = document.getElementById('anios-hint')?.dataset.misAnios;
     if (deCuenta) { try { localStorage.setItem('misAnios', deCuenta); } catch {} }
     try { mios = (JSON.parse(deCuenta || localStorage.getItem('misAnios') || '[]') as unknown[]).map(String); } catch {}
-    if (!mios.length) document.getElementById('anios-hint')?.classList.remove('hidden');
   }
   const abiertos = new Set(mios.length ? mios : ['1']);
   anios.forEach((d) => { if (abiertos.has(d.id.replace('anio-', '')) || location.hash === `#${d.id}`) d.open = true; });

@@ -110,6 +110,8 @@ WITH pruebas(migracion, prueba, esperado, resultado) AS (VALUES
   ('19 inscripción', 'sin la columna elegido', 'falta', pg_temp.col('inscripcion_cursos', 'elegido')),
   ('19 inscripción', 'reseña nueva avisa a quien piensa el curso', 'true', pg_temp.contiene('avisos_resena_nueva()', 'inscripcion_cursos')),
   ('19 inscripción', 'y va en el mail del día', 'true', pg_temp.contiene('mails_pendientes(integer,integer)', 'inscripcion_cursos')),
+  ('20 color', 'columna perfiles.color', 'está', pg_temp.col('perfiles', 'color')),
+  ('20 color', 'cada uno cambia su color', 'true', pg_temp.colpriv('authenticated', 'perfiles', 'color', 'UPDATE')),
   ('12 horarios', 'horarios que terminan antes de empezar', '0', pg_temp.contar('horarios', 'SELECT count(*) FROM public.horarios WHERE hasta <= desde')),
   -- 13. Sumar el final a tu reseña
   ('13 final en reseña', 'columna final_id', 'está', pg_temp.col('resenas', 'final_id')),

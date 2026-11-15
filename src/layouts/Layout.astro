@@ -138,13 +138,13 @@ const mia = (href: string) => (ruta === href ? 'page' : undefined);
     <div class:list={['forum', forumClass]}>
       <header class="banner">
         <div class="holes" aria-hidden="true"><i></i><i></i><i></i></div>
-        <a class="logo" href="/" aria-label="UTN REP, ver todas las materias">
-          <LogoRep class="logo-rep" />
+        <div class="logo">
+          <a href="/" aria-label="UTN REP, ver todas las materias"><LogoRep class="logo-rep" /></a>
           <span class="lema">
             <span class="l1">Reseñas de estudiantes, para estudiantes</span>
             <span class="l2"><span class="larga">Ingeniería en Sistemas de Información</span><span class="corta">Ing. en Sistemas</span> · UTN-<span class="frc">FRC</span></span>
           </span>
-        </a>
+        </div>
         <div class="search" id="search-container">
           <form role="search" action="/buscar" method="get" id="search-form">
             <label class="sr" for="search-input">Buscar materia, curso o profesor</label>

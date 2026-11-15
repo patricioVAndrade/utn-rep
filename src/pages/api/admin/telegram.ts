@@ -31,7 +31,7 @@ export const POST: APIRoute = async ({ request, cookies, url }) => {
       { command: 'start', description: 'Cómo conectar tu cuenta de UTN REP' },
       { command: 'stop', description: 'Dejar de recibir avisos acá' },
     ] });
-    await llamar('setMyDescription', { description: 'Avisos de UTN REP: reseñas y finales nuevos de las materias que seguís, respuestas de la moderación y más. Se conecta desde Mi cuenta en el sitio.' });
+    await llamar('setMyDescription', { description: 'Avisos de UTN REP: reseñas y finales nuevos de las materias que seguís, respuestas de los moderadores y más. Se conecta desde Mi cuenta en el sitio.' });
     await llamar('setMyShortDescription', { short_description: 'Avisos de UTN REP, reseñas de estudiantes para estudiantes.' });
     const { error } = await supabaseAdmin.from('ajustes_sitio').upsert({ clave: 'url_sitio', valor: url.origin });
     return json({ success: true, url_sitio: error ? null : url.origin });

@@ -115,7 +115,7 @@ const todosIds = grupos.flatMap((g) => g.cursos.map((c) => c.id));
           {compartida
             ? <button type="button" class="btn primary" data-sumar><Icon name="check" /> Sumar a mi lista</button>
             : <a class="btn quiet" href="/">+ Agregar materia</a>}
-          {grupos.length > 0 && !compartida && <ShareButton titulo="Mirá los cursos que estoy pensando para la inscripción" ruta={`/mi-inscripcion?c=${todosIds.join(',')}`} label="Mandársela a un amigo" />}
+          {grupos.length > 0 && !compartida && <ShareButton titulo="Mirá los cursos que estoy pensando para la inscripción" ruta={`/mi-inscripcion?c=${todosIds.join(',')}`} label="Compartir mi inscripción" />}
         </div>
       </div>
 
@@ -149,7 +149,7 @@ const todosIds = grupos.flatMap((g) => g.cursos.map((c) => c.id));
                       ? <span><Stars value={c.promedio} /> {nota(c.promedio)} <span class="sub">· {c.cantidad} reseña{c.cantidad !== 1 ? 's' : ''}</span></span>
                       : <span class="sub">Sin reseñas</span>}
                     <span class="sub pc-hor">{c.horario || 'Sin horario cargado'}</span>
-                    {!compartida && <button type="button" class="linklike sub pc-x" data-sacar={c.id} aria-label={`Sacar ${c.curso}`}>Sacar</button>}
+                    {!compartida && <button type="button" class="linklike quitar pc-x" data-sacar={c.id} aria-label={`Quitar ${c.curso}`}>Quitar</button>}
                   </div>
                 ))}
               </div>

@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request, url }) => {
     if (texto.startsWith('/start')) {
       const codigo = texto.slice(6).trim();
       if (!codigo) {
-        await responder('Hola, soy el bot de <b>UTN REP</b>. Te aviso acá de lo nuevo en las materias que seguís, de las respuestas de la moderación y más.\n\nPara conectarte, entrá a Mi cuenta en el sitio y tocá <b>Conectar Telegram</b>.', botonSitio(origen));
+        await responder('Hola, soy el bot de <b>UTN REP</b>. Te aviso acá de lo nuevo en las materias que seguís, de las respuestas de los moderadores y más.\n\nPara conectarte, entrá a Mi cuenta en el sitio y tocá <b>Conectar Telegram</b>.', botonSitio(origen));
         return json({ ok: true });
       }
       const { data: user, error } = await supabaseAdmin.rpc('vincular_telegram', {

@@ -213,6 +213,16 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261111000000_inscripcion_avisos.sql` (necesita la 7, la 12, la 15, la 17 y la 18). Vuelta atrás: `supabase/rollback/20261111000000_inscripcion_avisos.sql`.
 - **Verificación esperada:** `true · true · true · true`.
 
+### 20. Color de la inicial o del dibujo (lo pediste el 14/11) — **lista para correr en prueba, código subido**
+
+- Columna `perfiles.color` (azul, verde, rojo, violeta, naranja o gris; vacío es el azul de siempre). Se elige en Mi cuenta > Foto y se ve en tus reseñas y finales con nombre.
+- El freno a cuentas bloqueadas también cubre el color.
+- Sin la migración el sitio anda igual: no guarda el color y todo sale azul.
+- **Archivo:** `supabase/migrations/20261115000000_perfil_color.sql` (necesita la 5 y la 9). Vuelta atrás: `supabase/rollback/20261115000000_perfil_color.sql`.
+- **Verificación esperada:** `true · true · true`.
+
+**Lista inicial de palabras marcadas** (no es migración): `supabase/pruebas/palabras-marcadas-iniciales.sql` carga unas 50 palabras para que la moderación y los nombres de Mi cuenta las frenen. No pisa las que ya tenés. Va también en producción.
+
 ---
 
 ## Lo que ya está hecho sin base (7/11, tarde)

@@ -26,9 +26,10 @@ const materiaParam = Number(Astro.url.searchParams.get('materia'));
 const materiaInicial = listaMaterias.find((m: any) => m.id === materiaParam) || null;
 const etiqueta = (m: any) => `${m.nombre} (${m.nivel}.º año)`;
 
-// Este año, el anterior y "Antes" (abre la lista desde 2015)
+// Los últimos cuatro años y "Antes" (abre la lista desde 2015)
 const currentYear = new Date().getFullYear();
-const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => currentYear - 2 - i);
+const aniosRecientes = [0, 1, 2, 3].map((i) => currentYear - i);
+const aniosViejos = Array.from({ length: Math.max(0, currentYear - 4 - 2015 + 1) }, (_, i) => currentYear - 4 - i);
 ---
 
 <Layout
@@ -46,7 +47,7 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
       {bloqueada && (
         <div class="notice bad" role="alert">
           <Icon name="alert" />
-          <div><b>Tu cuenta está bloqueada</b><p>La moderación la bloqueó: podés leer el sitio, pero no escribir, votar ni reportar. Si creés que es un error, <a href="mailto:patriciovandrade@gmail.com?subject=Cuenta%20bloqueada">escribinos</a>.</p></div>
+          <div><b>Tu cuenta está bloqueada</b><p>Un moderador la bloqueó: podés leer el sitio, pero no escribir, votar ni reportar. Si creés que es un error, <a href="mailto:patriciovandrade@gmail.com?subject=Cuenta%20bloqueada">escribinos</a>.</p></div>
         </div>
       )}
       <form id="final-form" class="form" novalidate hidden={bloqueada}>
@@ -64,7 +65,7 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
           <div class="lab" id="lab-mesa">Mesa</div>
           <div class="field">
             <div class="seg" role="radiogroup" aria-labelledby="lab-mesa">
-              {[['Diciembre', 'Diciembre'], ['Febrero', 'Febrero / marzo'], ['Julio', 'Julio'], ['Especial', 'Especial']].map(([v, l]) => (
+              {[['Diciembre', 'Diciembre'], ['Febrero', 'Febrero / Marzo'], ['Julio', 'Julio'], ['Especial', 'Especial']].map(([v, l]) => (
                 <button type="button" role="radio" data-mesa={v} aria-checked="false" aria-pressed="false">{l}</button>
               ))}
             </div>
@@ -73,8 +74,7 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
           <div class="lab" id="lab-anio">Año</div>
           <div class="field">
             <div class="seg" role="radiogroup" aria-labelledby="lab-anio">
-              <button type="button" role="radio" data-anio={currentYear} aria-checked="true" aria-pressed="true">{currentYear}</button>
-              <button type="button" role="radio" data-anio={currentYear - 1} aria-checked="false" aria-pressed="false">{currentYear - 1}</button>
+              {aniosRecientes.map((a, i) => <button type="button" role="radio" data-anio={a} aria-checked={i === 0 ? 'true' : 'false'} aria-pressed={i === 0 ? 'true' : 'false'}>{a}</button>)}
               <button type="button" role="radio" data-anio="antes" aria-checked="false" aria-pressed="false">Antes</button>
             </div>
             <label class="sr" for="anio-viejo">Año</label>
@@ -89,18 +89,17 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
             <datalist id="lista-profes">
               {listaProfesores.map((p: any) => <option value={p.nombre_completo}></option>)}
             </datalist>
-            <span class="help">Si elegís un nombre de la lista, la experiencia queda enlazada a su página.</span>
           </div>
 
           <label for="comentario">Tu experiencia<small>Mínimo 10 caracteres</small></label>
           <div class="field">
             <textarea id="comentario" required rows="6" maxlength="1000" placeholder="¿Fue escrito, oral o en máquina? ¿Cuánto duró? ¿Qué temas entraron?"></textarea>
-            <span class="help">Ayuda contar: si fue escrito, oral o en máquina, cuánto duró, qué temas entraron y cómo corrigieron. <span id="contador">0</span>/1000</span>
+            <span class="help"><span id="contador">0</span>/1000</span>
           </div>
 
           <div class="lab">Privacidad</div>
           <div class="field">
-            <label class="check"><input type="checkbox" id="con-nombre" /> <span>Publicar con mi nombre. Si no lo marcás, se publica como <b>anónima</b>: tu nombre no se muestra a nadie; solo la moderación puede verlo.</span></label>
+            <label class="check"><input type="checkbox" id="con-nombre" /> <span>Publicar con mi nombre. Si no lo marcás, se publica como <b>anónima</b>: tu nombre no se muestra a nadie; solo un moderador puede verlo.</span></label>
           </div>
         </div>
         <div class="fbar">
@@ -118,9 +117,14 @@ const aniosViejos = Array.from({ length: currentYear - 1 - 2015 }, (_, i) => cur
             <li>Modalidad: escrito, oral o en máquina.</li>
             <li>Cuánto duró.</li>
             <li>Qué temas tomaron.</li>
-            <li>Cómo corrigieron y si hubo coloquio.</li>
+            <li>Cómo corrigieron.</li>
           </ol>
-          <span class="sub">No copies enunciados con datos personales.</span>
+        </div>
+      </section>
+      <section class="panel">
+        <h3>¿No te acordás de algo?</h3>
+        <div class="in">
+          <span>Dejala como está: se guarda como borrador y la seguís cuando quieras desde <a href="/mis-resenas#borradores">Mi espacio</a>.</span>
         </div>
       </section>
     </aside>

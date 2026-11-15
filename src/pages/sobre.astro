@@ -20,7 +20,7 @@ const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boo
   {
     titulo: 'Reseñas',
     preguntas: [
-      { p: '¿Puedo ser anónimo?', abierta: true, r: 'Sí. Marcás "Publicar como anónimo" y tu nombre no aparece en ningún lado. Solo la moderación puede verlo si la reseña es reportada.' },
+      { p: '¿Puedo ser anónimo?', abierta: true, r: 'Sí. Marcás "Publicar como anónimo" y tu nombre no aparece en ningún lado. Solo un moderador puede verlo si la reseña es reportada.' },
       { p: '¿Qué pasa si reportan mi reseña?', r: 'Sigue visible mientras la revisamos y en Mis reseñas vas a ver que está en revisión. Si rompe una regla, te avisamos por mail; en el peor caso, se oculta.' },
       { p: '¿Qué no se puede escribir?', r: 'Insultos, datos personales de profesores o compañeros, y cosas que no pasaron. Las críticas duras están bien si son sobre la cursada.' },
       { p: '¿Qué significa "Me sirvió"?', r: 'Es un voto para las reseñas que te ayudaron a elegir. Las más votadas aparecen primero en cada curso.' },
@@ -30,7 +30,7 @@ const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boo
     titulo: 'Experiencias de finales',
     preguntas: [
       { p: '¿Para qué sirven?', r: 'Para saber cómo toman en cada mesa: si es escrito, oral o en máquina, cuánto dura, qué temas entran y cómo corrigen. Las cuenta quien ya rindió.' },
-      { p: '¿Se ve quién la contó?', r: 'Solo si al compartirla marcás "Publicar con mi nombre". Si no, sale como anónima y tu nombre no se muestra; solo la moderación puede verlo.' },
+      { p: '¿Se ve quién la contó?', r: 'Solo si al compartirla marcás "Publicar con mi nombre". Si no, sale como anónima y tu nombre no se muestra; solo un moderador puede verlo.' },
     ],
   },
   {
@@ -86,8 +86,8 @@ const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boo
               </div>
             </details>
             <details class="faq">
-              <summary>¿Quién ve mi ficha?</summary>
-              <div>Cualquiera que toque tu nombre en una reseña con nombre ve tu rango, cuántas reseñas y finales contaste, los "Me sirvió" que juntaste y tus logros. Nunca qué materias ni qué cursos reseñaste. La podés ocultar desde <a href="/mi-cuenta">Mi cuenta</a>. En las reseñas anónimas no hay ficha.</div>
+              <summary>¿Quién ve mi perfil?</summary>
+              <div>Si tu perfil es público, cualquiera que toque tu nombre en una reseña o experiencia de final con nombre ve tu rango, cuántas reseñas y experiencias de finales escribiste, los "Me sirvió" que juntaste y tus logros. Nunca qué materias ni qué cursos reseñaste. Lo podés hacer privado desde <a href="/mi-cuenta">Mi cuenta</a>. En las anónimas no se ve.</div>
             </details>
           </section>
         )}
@@ -110,7 +110,7 @@ const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boo
         <div class="in">
           <span>Renovamos el diseño. Si buscás algo que estaba antes, te decimos dónde quedó.</span>
           <a href="/que-cambio">Qué cambió</a>
-          <button type="button" class="btn quiet" data-ver-recorrido>Ver el recorrido de 30 segundos</button>
+          <button type="button" class="btn secondary" data-ver-recorrido>Ver el recorrido de 30 segundos</button>
         </div>
       </section>
       <section class="panel">
@@ -127,8 +127,7 @@ const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boo
       <section class="panel">
         <h3>¿No encontraste tu respuesta?</h3>
         <div class="in">
-          <a href="mailto:patriciovandrade@gmail.com?subject=Consulta%20sobre%20UTN%20REP">Escribinos</a>
-          <span class="sub">Lo hizo Patricio Valentín Andrade, estudiante de Sistemas en la UTN FRC. <a href="https://github.com/patricioVAndrade" target="_blank" rel="noopener noreferrer">GitHub</a></span>
+          <span>Escribime a <a href="mailto:patriciovandrade@gmail.com?subject=Consulta%20sobre%20UTN%20REP">patriciovandrade@gmail.com</a>.</span>
         </div>
       </section>
     </aside>

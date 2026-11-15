@@ -70,7 +70,7 @@ const comparar = (a: number, b: number) => {
 };
 const kpis = [
   { label: 'Reseñas nuevas', n: semana.length, c: comparar(semana.length, anterior.length) },
-  { label: 'Finales contados', n: finalesSemana || 0, c: comparar(finalesSemana || 0, finalesAntes || 0) },
+  { label: 'Experiencias de finales', n: finalesSemana || 0, c: comparar(finalesSemana || 0, finalesAntes || 0) },
   { label: 'Personas que reseñaron', n: personas(semana), c: comparar(personas(semana), personas(anterior)) },
   { label: 'Links abiertos', n: linksSemana || 0, c: comparar(linksSemana || 0, linksAntes || 0) },
   { label: 'Reportes nuevos', n: nuevosReportes, c: { cls: '', txt: `${resenasReportadas} reseña${resenasReportadas !== 1 ? 's' : ''} sin revisar` } },

@@ -12,7 +12,7 @@ import Quien from './Quien.astro';
 import Escudo from './Escudo.astro';
 import LogroIcono from './LogroIcono.astro';
 import { COMO_TE_FUE, editadaEl, fechaHora, rindioTexto, tiempoRelativo } from '../lib/format';
-import { DIBUJOS } from '../lib/perfil';
+import { DIBUJOS, claseColor } from '../lib/perfil';
 import { rango } from '../lib/logros';
 import type { Autor } from '../lib/fichas';
 
@@ -86,7 +86,7 @@ const suRango = ficha ? rango(ficha.resenas) : null;
   <div class="post-main">
     <div class="author">
       <div class="avatar" aria-hidden="true">
-        <span class:list={{ draw: !!dibujo }}>{resena.es_anonima
+        <span class:list={[{ draw: !!dibujo }, resena.es_anonima || conAutor?.google ? '' : claseColor(conAutor?.color)]}>{resena.es_anonima
           ? <Icon name="user" />
           : conAutor?.google
             ? <img src={conAutor.google} alt="" referrerpolicy="no-referrer" loading="lazy" />

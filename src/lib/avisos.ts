@@ -6,7 +6,7 @@ export const CANALES_AVISO = ['sitio', 'mail', 'telegram', 'push'] as const;
 export const PREFERENCIAS_EDITABLES: { tipos: string[]; texto: string; detalle?: string }[] = [
   { tipos: ['resena_nueva', 'final_nuevo'], texto: 'Reseñas y finales nuevos', detalle: 'de las materias que seguís y los cursos de Mi inscripción' },
   { tipos: ['te_sirvio'], texto: 'Cuando tus reseñas le sirven a alguien', detalle: 'una vez por semana como máximo' },
-  { tipos: ['respuesta_moderador'], texto: 'Cuando la moderación responde lo que escribiste' },
+  { tipos: ['respuesta_moderador'], texto: 'Cuando un moderador responde lo que escribiste' },
   { tipos: ['recordatorio'], texto: 'Al terminar el cuatrimestre, cómo te fue en tus cursos', detalle: 'los de Mi inscripción' },
 ];
 

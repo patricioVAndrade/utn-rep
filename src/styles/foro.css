@@ -12,7 +12,8 @@
   --box: #ffffff;
   --ink: #1f2833;
   --muted: #566271;
-  --link: #0f4c8a;
+  --link: #0f4c8a; --link-claro: #1f7ac9;
+  --av-verde: #2c7a3b; --av-rojo: #b3322a; --av-violeta: #6b46c1; --av-naranja: #c26a0a; --av-gris: #5b6573;
   --hover: #b8540b;
   --navy: #133d68;
   --navy-deep: #0d2c4d;
@@ -52,7 +53,8 @@ html[data-theme="dark"] {
   --box: #151c25;
   --ink: #dce4ed;
   --muted: #95a3b3;
-  --link: #8cc2f7;
+  --link: #8cc2f7; --link-claro: #9fd0ff;
+  --av-verde: #7fd18a; --av-rojo: #ff8a80; --av-violeta: #b9a2ff; --av-naranja: #ffb35c; --av-gris: #aab4c0;
   --hover: #ffbf5e;
   --navy: #0e2d4d;
   --navy-deep: #091f36;
@@ -111,6 +113,8 @@ body.foro {
 .holes i { width: 14px; height: 14px; border-radius: 50%; background: var(--desk); box-shadow: inset 1px 1px 2px rgba(0,0,0,.45); }
 .foro .logo { grid-area: logo; color: #fff; display: flex; align-items: center; gap: 12px; }
 .foro .logo:hover { color: #fff; text-decoration: none; }
+.foro .logo > a { display: flex; color: #fff; }
+.foro .logo > a:hover { text-decoration: none; }
 .logo svg { width: 40px; height: auto; flex: none; filter: drop-shadow(1px 2px 0 rgba(0,0,0,.35)); }
 .logo b { display: block; font: italic bold 34px/1 var(--f-title); letter-spacing: -1px; text-shadow: 2px 2px 0 rgba(0,0,0,.45); }
 .logo b span { color: #ffc63f; }
@@ -159,6 +163,8 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .userbar form { display: inline; margin: 0; }
 .linklike { font: inherit; color: var(--link); background: none; border: 0; padding: 0; cursor: pointer; }
 .linklike:hover { color: var(--hover); text-decoration: underline; }
+/* Acciones chicas que tienen que verse tocables: Quitar, Dejar de seguir */
+.linklike.quitar { color: var(--link-claro); text-decoration: underline; text-underline-offset: 2px; font-size: 12px; }
 .me-link { font-weight: bold; }
 .mini-av { width: 20px; height: 20px; border: 1px solid var(--line); object-fit: cover; vertical-align: middle; }
 
@@ -418,6 +424,17 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .av img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .av.draw svg { width: 30px; height: 30px; }
 .av.sm { width: 36px; height: 36px; font-size: 16px; }
+/* Color de la inicial o del dibujo (migración 20) */
+.c-verde { color: var(--av-verde) !important; } .c-rojo { color: var(--av-rojo) !important; }
+.c-violeta { color: var(--av-violeta) !important; } .c-naranja { color: var(--av-naranja) !important; }
+.c-gris { color: var(--av-gris) !important; }
+.colores { display: flex; flex-wrap: wrap; gap: 6px; }
+.colores label { position: relative; cursor: pointer; }
+.colores input { position: absolute; opacity: 0; }
+.colores i { display: block; width: 24px; height: 24px; border-radius: 50%; background: currentColor; border: 2px solid var(--box); box-shadow: 0 0 0 1px var(--line); }
+.colores .c-azul { color: var(--link); }
+.colores input:checked + i { box-shadow: 0 0 0 2px var(--ink); }
+.colores input:focus-visible + i { outline: 2px solid var(--link); outline-offset: 2px; }
 .av.sm svg { width: 22px; height: 22px; }
 .avatar-pick label.off { opacity: .55; cursor: not-allowed; }
 .dibujos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -468,6 +485,7 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .fgrid > label, .fgrid > .lab { padding: 10px; background: var(--row-b); border-top: 1px solid var(--line-soft); border-right: 1px solid var(--line-soft); font-weight: bold; font-size: 11.5px; }
 .fgrid > label small, .fgrid > .lab small { display: block; font-weight: normal; color: var(--muted); font-size: 10.5px; margin-top: 2px; }
 .fgrid > .field { padding: 10px; border-top: 1px solid var(--line-soft); background: var(--box); display: grid; gap: 6px; min-width: 0; }
+.fgrid > .field > .seg { justify-self: start; }
 .field input[type="text"], .field input[type="email"], .field select { max-width: 520px; }
 .field select:disabled { opacity: .6; }
 .field textarea { min-height: 130px; resize: vertical; line-height: 1.6; }
@@ -570,6 +588,8 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 .seg button[aria-pressed="true"] { background: var(--navy); color: #fff; font-weight: bold; }
 .filters select.mini { padding: 6px 8px; font-size: 12px; max-width: 100%; }
 .filters .check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.filters .fmat { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.filters .fmat .ainput { width: 190px; max-width: 100%; }
 
 /* ======================================================================
    Pantallas angostas: se decide por el ancho del foro, no de la ventana
@@ -780,6 +800,8 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
   .field input[type="text"], .field input[type="email"], .field select, .field textarea { font-size: 16px; }
   .seg button { min-height: 40px; padding-inline: 9px; }
   .filters select.mini { width: 100%; min-height: 40px; font-size: 16px; }
+  .filters .fmat { width: 100%; }
+  .filters .fmat .ainput { width: 100%; min-height: 40px; font-size: 16px; }
   .paths { grid-template-columns: 1fr; }
   .admin-wrap { grid-template-columns: 1fr; }
   .anav { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 0; }

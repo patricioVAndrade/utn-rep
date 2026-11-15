@@ -116,7 +116,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
 
       <div class="ptabs" role="tablist" aria-label="Lo que escribiste">
         <button type="button" role="tab" aria-selected="true" aria-controls="tab-resenas" data-tab="resenas">Reseñas ({misResenas.length})</button>
-        <button type="button" role="tab" aria-selected="false" aria-controls="tab-finales" data-tab="finales">Finales contados ({misFinales.length})</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="tab-finales" data-tab="finales">Experiencias de finales ({misFinales.length})</button>
         <button type="button" role="tab" aria-selected="false" aria-controls="tab-borradores" data-tab="borradores">Borradores (<span id="n-borradores">0</span>)</button>
       </div>
 
@@ -139,7 +139,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
                 {r.pedido_edicion && (
                   <div class="notice pedido">
                     <Icon name="alert" />
-                    <div><b>La moderación te pide que la edites.</b> {r.pedido_edicion} <a href={`/dictado/${r.dictado_id}#resena-${r.id}`}>Editarla</a></div>
+                    <div><b>Un moderador te pide que la edites.</b> {r.pedido_edicion} <a href={`/dictado/${r.dictado_id}#resena-${r.id}`}>Editarla</a></div>
                   </div>
                 )}
                 {finalDe(r)?.sumado && (
@@ -229,7 +229,7 @@ const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\
           <div class="kpis">
             <div><b>{misResenas.length}</b><span>reseñas</span></div>
             <div><b>{votosTotales}</b><span>"me sirvió"</span></div>
-            <div><b>{misFinales.length}</b><span>finales contados</span></div>
+            <div><b>{misFinales.length}</b><span>experiencias de finales</span></div>
           </div>
         </div>
       </section>

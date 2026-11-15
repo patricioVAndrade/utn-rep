@@ -84,15 +84,21 @@ export const finalAccionSchema = z.discriminatedUnion('accion', [
 
 /** Returns the parsed data, or the first validation message. */
 // Mi cuenta (migración 5): cada campo es opcional, se guarda solo lo que llega
+/** Nombre a mostrar: letras de cualquier idioma, espacios, punto, guion y apóstrofo, con al menos dos letras. */
+export const NOMBRE_VALIDO = /^(?=(?:.*\p{L}){2})[\p{L}\p{M} .'’-]+$/u;
+
 export const perfilSchema = z.object({
   nombre_mostrar: z.string({ invalid_type_error: 'Nombre inválido.' }).trim()
     .max(40, 'El nombre puede tener hasta 40 caracteres.')
     .refine((v) => v === '' || v.length >= 2, 'El nombre tiene que tener al menos 2 caracteres.')
+    // Solo letras (con tildes), espacios, punto, guion y apóstrofo: nada de números ni símbolos
+    .refine((v) => v === '' || NOMBRE_VALIDO.test(v), 'Usá solo letras y espacios en tu nombre.')
     .transform((v) => (v ? v.replace(/\s+/g, ' ') : null))
     .nullable()
     .optional(),
   foto: z.enum(['inicial', 'google', 'dibujo'], { errorMap: () => ({ message: 'Foto inválida.' }) }).optional(),
   dibujo: z.number().int().min(1).max(12).nullable().optional(),
+  color: z.enum(['azul', 'verde', 'rojo', 'violeta', 'naranja', 'gris'], { errorMap: () => ({ message: 'Color inválido.' }) }).nullable().optional(),
   mostrar_ficha: z.boolean().optional(),
   anios_cursada: z.array(z.coerce.number().int().min(1).max(5), { invalid_type_error: 'Años inválidos.' })
     .max(5)

@@ -19,6 +19,8 @@ export type Ficha = {
 export type Autor = {
   foto: 'inicial' | 'google' | 'dibujo';
   dibujo: number | null;
+  /** Color de la inicial o del dibujo (migración 20) */
+  color: string | null;
   /** Foto de Google, solo si eligió mostrarla */
   google: string | null;
   ficha: Ficha;
@@ -27,13 +29,22 @@ export type Autor = {
 const ORDEN = new Map(LOGROS.map((l, i) => [l.id, i]));
 
 /** Datos públicos de cada autor, por id de reseña. Las anónimas no aparecen. */
-export async function autoresDeResenas(resenaIds: number[]): Promise<Map<number, Autor>> {
+export function autoresDeResenas(resenaIds: number[]): Promise<Map<number, Autor>> {
+  return autoresDe('resenas', resenaIds);
+}
+
+/** Lo mismo, por id de experiencia de final. */
+export function autoresDeFinales(finalIds: number[]): Promise<Map<number, Autor>> {
+  return autoresDe('experiencias_finales', finalIds);
+}
+
+async function autoresDe(tabla: 'resenas' | 'experiencias_finales', idsPedidos: number[]): Promise<Map<number, Autor>> {
   const out = new Map<number, Autor>();
-  const ids = [...new Set(resenaIds)].filter((x) => Number.isFinite(x));
+  const ids = [...new Set(idsPedidos)].filter((x) => Number.isFinite(x));
   if (ids.length === 0) return out;
   try {
     const { data: filas } = await supabaseAdmin
-      .from('resenas')
+      .from(tabla)
       .select('id, user_id, es_anonima')
       .in('id', ids);
     const deResena = new Map<number, string>();
@@ -41,8 +52,13 @@ export async function autoresDeResenas(resenaIds: number[]): Promise<Map<number,
     const usuarios = [...new Set(deResena.values())];
     if (usuarios.length === 0) return out;
 
+    const perfilesDe = async () => {
+      const r = await supabaseAdmin.from('perfiles').select('user_id, foto, dibujo, foto_url, mostrar_ficha, color').in('user_id', usuarios);
+      // Sin la migración 20 todavía no hay color
+      return r.error ? supabaseAdmin.from('perfiles').select('user_id, foto, dibujo, foto_url, mostrar_ficha').in('user_id', usuarios) : r;
+    };
     const [{ data: perfiles }, { data: resenas }, { data: finales }, { data: logros }] = await Promise.all([
-      supabaseAdmin.from('perfiles').select('user_id, foto, dibujo, foto_url, mostrar_ficha').in('user_id', usuarios),
+      perfilesDe(),
       supabaseAdmin.from('resenas').select('user_id, created_at, votos_utilidad').in('user_id', usuarios),
       supabaseAdmin.from('experiencias_finales').select('user_id, created_at').in('user_id', usuarios),
       supabaseAdmin.from('logros_usuario').select('user_id, logro').in('user_id', usuarios),
@@ -58,6 +74,7 @@ export async function autoresDeResenas(resenaIds: number[]): Promise<Map<number,
       porUsuario.set(u, {
         foto,
         dibujo: p.dibujo ?? null,
+        color: p.color ?? null,
         google: foto === 'google' ? p.foto_url : null,
         ficha: {
           privada: p.mostrar_ficha === false,

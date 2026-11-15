@@ -7,7 +7,8 @@ import LogroIcono from '../components/LogroIcono.astro';
 import { LOGROS, progresoRango, rango } from '../lib/logros';
 import { createSupabaseServerClient } from '../lib/supabase';
 import { supabaseAdmin } from '../lib/supabase-admin';
-import { DIBUJOS, leerPerfil } from '../lib/perfil';
+import { COLORES, DIBUJOS, claseColor, leerPerfil } from '../lib/perfil';
+import { NOMBRE_VALIDO } from '../lib/validation';
 import { PREFERENCIAS_EDITABLES } from '../lib/avisos';
 import { MAIL_POR_DEFECTO } from '../lib/mail';
 import { telegramListo } from '../lib/telegram';
@@ -45,7 +46,6 @@ const prendidoMail = (tipos: string[]) => {
   return fila ? fila.activo !== false : MAIL_POR_DEFECTO[tipos[0]] === true;
 };
 // Por Telegram (migración 18): sin fila, sí
-const prendidoTelegram = (tipos: string[]) => prendido(tipos, 'telegram');
 const seguidas = (seguidasRaw || [])
   .map((x: any) => ({ mail: x.mail, materia: Array.isArray(x.materias) ? x.materias[0] : x.materias }))
   .filter((x: any) => x.materia)
@@ -53,6 +53,9 @@ const seguidas = (seguidasRaw || [])
 const cuenta = auth?.user;
 const nombreGoogle = cuenta?.user_metadata?.full_name || cuenta?.user_metadata?.name || user.email.split('@')[0] || 'Usuario';
 const nombre = perfil.nombre_mostrar || nombreGoogle;
+const nombreValido = NOMBRE_VALIDO.test(nombre);
+// El mail se prende o apaga para todo junto: está prendido si algún aviso llega por mail
+const mailActivo = PREFERENCIAS_EDITABLES.some((p) => prendidoMail(p.tipos));
 const proveedor = ({ google: 'Google', github: 'GitHub', email: 'Link por mail' } as Record<string, string>)[cuenta?.app_metadata?.provider || ''] || 'Link por mail';
 const desde = cuenta?.created_at ? new Date(cuenta.created_at).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) : null;
 const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pausa_hasta).getTime() > Date.now();
@@ -64,37 +67,47 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
       <div class="topic">
         <div>
           <h1>Mi cuenta</h1>
-          <p>Lo que ven los demás de vos y cómo querés usar el sitio. Se guarda solo, y te sigue en el celular y en la compu.</p>
         </div>
       </div>
 
       <form class="form" id="como-te-ven" onsubmit="return false">
         <div class="fhead"><span>Cómo te ven</span><span class="draft-note" data-estado aria-live="polite"></span></div>
         <div class="fgrid">
-          <label for="nombre">Nombre a mostrar<small>Sale de tu cuenta de {proveedor === 'Link por mail' ? 'mail' : proveedor}. Podés cambiarlo</small></label>
+          <label for="nombre">Nombre a mostrar</label>
           <div class="field">
+            {!nombreValido && <div class="notice bad" id="nombre-aviso"><Icon name="alert" /><span>Tu nombre tiene números o símbolos. Elegí uno con letras para que salga en tus reseñas.</span></div>}
             <input type="text" id="nombre" maxlength="40" value={perfil.nombre_mostrar || ''} placeholder={nombreGoogle} autocomplete="nickname" />
-            <span class="help">Sale en tus reseñas con nombre, también en las que ya publicaste. En las anónimas no se muestra nunca. Dejalo vacío para usar "{nombreGoogle}".</span>
+            <span class="help">Dejalo vacío para usar "{nombreGoogle}".</span>
           </div>
 
-          <div class="lab" id="lab-foto">Foto<small>Se ve en tus reseñas con nombre</small></div>
+          <div class="lab" id="lab-foto">Foto</div>
           <div class="field">
             <div class="avatar-pick" role="radiogroup" aria-labelledby="lab-foto">
-              <label><input type="radio" name="foto" value="inicial" checked={perfil.foto === 'inicial'} /><Avatar nombre={nombre} /><b>Tu inicial</b><small>Recomendada</small></label>
-              <label class:list={{ off: !user.avatar }}><input type="radio" name="foto" value="google" checked={perfil.foto === 'google'} disabled={!user.avatar} /><Avatar nombre={nombre} foto="google" google={user.avatar} /><b>Tu foto de {proveedor === 'GitHub' ? 'GitHub' : 'Google'}</b><small>{user.avatar ? 'Te reconocen' : 'No hay foto'}</small></label>
-              <label><input type="radio" name="foto" value="dibujo" checked={perfil.foto === 'dibujo'} /><span class="av set">{DIBUJOS.map((d) => <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" set:html={d.svg} /></i>)}</span><b>Un dibujo</b><small>Elegís uno de {DIBUJOS.length}</small></label>
+              <label><input type="radio" name="foto" value="inicial" checked={perfil.foto === 'inicial'} /><Avatar nombre={nombre} color={perfil.color} /><b>Tu inicial</b></label>
+              {user.avatar && <label><input type="radio" name="foto" value="google" checked={perfil.foto === 'google'} /><Avatar nombre={nombre} foto="google" google={user.avatar} /><b>Tu foto de {proveedor === 'GitHub' ? 'GitHub' : 'Google'}</b></label>}
+              <label><input type="radio" name="foto" value="dibujo" checked={perfil.foto === 'dibujo'} /><span class:list={['av set', claseColor(perfil.color)]}>{DIBUJOS.slice(0, 9).map((d) => <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" set:html={d.svg} /></i>)}</span><b>Un dibujo</b></label>
             </div>
             <div class:list={['dibujos', { hidden: perfil.foto !== 'dibujo' }]} role="radiogroup" aria-label="Dibujo">
               {DIBUJOS.map((d) => (
-                <label title={d.nombre}><input type="radio" name="dibujo" value={d.id} checked={(perfil.dibujo || 1) === d.id} /><Avatar nombre={nombre} foto="dibujo" dibujo={d.id} class="sm" /><span class="sr">{d.nombre}</span></label>
+                <label title={d.nombre}><input type="radio" name="dibujo" value={d.id} checked={(perfil.dibujo || 1) === d.id} /><Avatar nombre={nombre} foto="dibujo" dibujo={d.id} color={perfil.color} class="sm" /><span class="sr">{d.nombre}</span></label>
               ))}
             </div>
-            {!user.avatar && <span class="help">Si entraste con el link por mail no hay foto: quedan la inicial o un dibujo.</span>}
+            <div class:list={['colores', { hidden: perfil.foto === 'google' && !!user.avatar }]} role="radiogroup" aria-label="Color">
+              {COLORES.map((c) => (
+                <label title={c.nombre}><input type="radio" name="color" value={c.id} checked={(perfil.color || 'azul') === c.id} /><i class={`c-${c.id}`}></i><span class="sr">{c.nombre}</span></label>
+              ))}
+            </div>
           </div>
 
-          <div class="lab">Tu ficha</div>
+          <div class="lab" id="lab-privacidad">Privacidad</div>
           <div class="field">
-            <label class="toggle"><input type="checkbox" id="mostrar-ficha" checked={perfil.mostrar_ficha} /><span class="tg"></span><span>Mostrar mi ficha cuando tocan mi nombre <small class="sub">(rango, cantidad de reseñas y logros, nunca qué materias reseñaste)</small></span></label>
+            <div class="seg" role="radiogroup" aria-labelledby="lab-privacidad">
+              <button type="button" role="radio" data-privacidad="publico" aria-checked={perfil.mostrar_ficha ? 'true' : 'false'} aria-pressed={perfil.mostrar_ficha ? 'true' : 'false'}>Perfil público</button>
+              <button type="button" role="radio" data-privacidad="privado" aria-checked={perfil.mostrar_ficha ? 'false' : 'true'} aria-pressed={perfil.mostrar_ficha ? 'false' : 'true'}>Perfil privado</button>
+            </div>
+            <span class="help" id="privacidad-help">{perfil.mostrar_ficha
+              ? 'Quien toque tu nombre ve tu rango, cuántas reseñas y experiencias de finales escribiste y tus logros. Nunca qué materias reseñaste.'
+              : 'Quien toque tu nombre ve solo tu nombre.'}</span>
           </div>
         </div>
       </form>
@@ -125,7 +138,43 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
               );
             })}
           </div>
-          <span class="sub">Los logros se ganan solos y no se pierden. Van a sumarse más.</span>
+        </div>
+      </section>
+
+      <section class="panel" id="avisos">
+        <h2>Notificaciones</h2>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>Por dónde</b></div>
+          <div class="acct-val">
+            <span class="sub">En <a href="/avisos">Avisos</a>, siempre.</span>
+            {telegram ? (
+              <div id="telegram">
+                <span><Icon name="check" /> Por Telegram{telegram.usuario ? <>, como <b>{telegram.usuario}</b></> : null}. Mientras esté conectado no te mandamos mails.</span>
+                <div class="acts-row"><button type="button" class="btn quiet" id="tg-desconectar">Desconectar Telegram</button></div>
+              </div>
+            ) : (
+              <>
+                <label class="toggle"><input type="checkbox" id="por-mail" checked={mailActivo} /><span class="tg"></span><span>Por mail <small class="sub">(un resumen por día como máximo, solo de lo que no viste)</small></span></label>
+                {hayTelegram && (
+                  <div id="telegram">
+                    <div class="acts-row"><button type="button" class="btn quiet" id="tg-conectar">Conectar Telegram</button></div>
+                    <span class="sub">Te llegan al momento, con el link directo. Se abre el bot: tocá <b>Iniciar</b> y volvé a esta página.</span>
+                  </div>
+                )}
+              </>
+            )}
+            <p class="sub" id="tg-ok" aria-live="polite"></p>
+          </div>
+        </div>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>Qué te avisamos</b></div>
+          <div class="acct-val">
+            {PREFERENCIAS_EDITABLES.map((p) => (
+              <label class="toggle"><input type="checkbox" data-tipos={p.tipos.join(',')} checked={prendido(p.tipos)} /><span class="tg"></span><span>{p.texto}{p.detalle && <small class="sub"> ({p.detalle})</small>}</span></label>
+            ))}
+            <span class="sub">Si un moderador te pide que edites una reseña, te avisamos siempre.</span>
+            <p class="sub" id="avisos-ok" aria-live="polite"></p>
+          </div>
         </div>
       </section>
 
@@ -137,86 +186,31 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
               <div class="follow" data-materia={x.materia.id}>
                 <span class:list={['yr', `y${x.materia.nivel}`]}>{x.materia.nivel}.º</span>
                 <a href={`/materia/${x.materia.id}`}>{x.materia.nombre}</a>
-                <label class="toggle sm"><input type="checkbox" data-mail checked={x.mail} /><span class="tg"></span><span>Mail</span></label>
-                <button type="button" class="linklike sub" data-dejar>Dejar de seguir</button>
+                <button type="button" class="linklike quitar" data-dejar>Dejar de seguir</button>
               </div>
             ))
-            : <span class="sub" id="sin-seguidas">Todavía no seguís ninguna. En cada materia y en cada curso hay un botón "Seguir materia".</span>}
-          {seguidas.length > 0 && <span class="sub">Te avisamos en <a href="/avisos">Avisos</a> cuando hay reseñas o finales nuevos. Con "Mail" prendido también te llega por mail, si no lo viste antes en el sitio.</span>}
+            : <span class="sub" id="sin-seguidas">Todavía no seguís ninguna. Cada materia tiene el botón "Seguir materia".</span>}
+          {seguidas.length > 0 && <span class="sub" data-canales>Las reseñas y los finales nuevos te llegan en Avisos{telegram ? ' y por Telegram' : mailActivo ? ' y por mail' : ''}.</span>}
         </div>
       </section>
 
       <section class="panel" id="tus-anios">
-        <h2>Tus años de cursada</h2>
+        <h2>Preferencias</h2>
         <div class="acct-row">
-          <div class="acct-lbl">
-            <b>¿Qué años cursás?</b>
-            <span class="sub">Podés elegir más de uno.</span>
-          </div>
+          <div class="acct-lbl"><b>Años desplegados en el inicio</b></div>
           <div class="acct-val">
             <div class="yr-pick" id="mis-anios" data-guardados={JSON.stringify(perfil.anios_cursada)} data-perfil={perfil.guardado ? '1' : ''}>
               {[1, 2, 3, 4, 5].map((n) => <label><input type="checkbox" value={n} checked={perfil.anios_cursada.includes(n)} /> {n}.º año</label>)}
             </div>
-            <p class="sub">Para qué sirve:</p>
-            <ul class="acct-list sub">
-              <li>En <a href="/">Materias</a>, esos años vienen abiertos y los demás cerrados. Si no elegís ninguno, viene abierto solo 1.º.</li>
-              <li>En <a href="/mis-resenas">Mis reseñas</a> te mostramos las materias de esos años que todavía no reseñaste.</li>
-            </ul>
+            <span class="sub">En <a href="/mis-resenas">Mis reseñas</a> te mostramos las materias de esos años que todavía no reseñaste.</span>
             <p class="sub" id="anios-ok" aria-live="polite"></p>
           </div>
         </div>
-      </section>
-
-      <section class="panel" id="avisos">
-        <h2>Avisos</h2>
         <div class="acct-row">
-          <div class="acct-lbl"><b>Qué te avisamos</b><span class="sub">En <a href="/avisos">Avisos</a>, arriba de todo, y si querés también {telegram ? 'por Telegram' : 'por mail'}</span></div>
+          <div class="acct-lbl"><b>¿Cómo te fue?</b></div>
           <div class="acct-val">
-            {PREFERENCIAS_EDITABLES.map((p) => (
-              <div class="pref">
-                <label class="toggle"><input type="checkbox" data-tipos={p.tipos.join(',')} checked={prendido(p.tipos)} /><span class="tg"></span><span>{p.texto}{p.detalle && <small class="sub"> ({p.detalle})</small>}</span></label>
-                {telegram
-                  ? <label class="toggle sm"><input type="checkbox" data-tipos={p.tipos.join(',')} data-canal="telegram" checked={prendidoTelegram(p.tipos)} /><span class="tg"></span><span>Telegram</span></label>
-                  : <label class="toggle sm"><input type="checkbox" data-tipos={p.tipos.join(',')} data-canal="mail" checked={prendidoMail(p.tipos)} /><span class="tg"></span><span>Mail</span></label>}
-              </div>
-            ))}
-            <span class="sub">Si la moderación te pide que edites una reseña, te avisamos siempre.</span>
-            {telegram
-              ? <span class="sub">Con Telegram conectado, los avisos te llegan por ahí al momento, con el link directo, y no por mail. Si apagás un aviso, tampoco te llega por Telegram.</span>
-              : <span class="sub">Por mail va solo lo que todavía no viste en el sitio, todo junto y como mucho una vez por día. Si apagás un aviso, tampoco te llega por mail. Las reseñas y los finales nuevos llegan por mail solo de las materias que tienen "Mail" prendido en Materias que seguís.</span>}
-            <p class="sub" id="avisos-ok" aria-live="polite"></p>
-          </div>
-        </div>
-        {(hayTelegram || telegram) && (
-          <div class="acct-row" id="telegram">
-            <div class="acct-lbl"><b>Telegram</b><span class="sub">Avisos al momento, sin mails</span></div>
-            <div class="acct-val">
-              {telegram ? (
-                <>
-                  <span><Icon name="check" /> Conectado{telegram.usuario ? <> como <b>{telegram.usuario}</b></> : null}. Tus avisos te llegan por Telegram.</span>
-                  <div class="acts-row"><button type="button" class="btn quiet" id="tg-desconectar">Desconectar Telegram</button></div>
-                </>
-              ) : (
-                <>
-                  <span>Recibí tus avisos al momento en Telegram, con el link directo a la reseña o al curso. Mientras esté conectado, no te mandamos mails.</span>
-                  <ol class="tg-pasos sub">
-                    <li>Tocá <b>Conectar Telegram</b>: se abre el bot de UTN REP.</li>
-                    <li>En Telegram, tocá <b>Iniciar</b> (o "Start").</li>
-                    <li>Listo: el bot te confirma y acá vas a ver "Conectado".</li>
-                  </ol>
-                  <div class="acts-row"><button type="button" class="btn primary" id="tg-conectar">Conectar Telegram</button></div>
-                  <span class="sub">Si no tenés Telegram, bajalo gratis de tu tienda de apps. El link sirve por 30 minutos.</span>
-                </>
-              )}
-              <p class="sub" id="tg-ok" aria-live="polite"></p>
-            </div>
-          </div>
-        )}
-        <div class="acct-row">
-          <div class="acct-lbl"><b>"¿Cómo te fue?"</b><span class="sub">En el inicio</span></div>
-          <div class="acct-val">
-            <label class="toggle"><input type="checkbox" id="preguntar" checked={perfil.preguntar_como_te_fue} /><span class="tg"></span><span>Preguntarme cómo me fue en las materias que reseñé sin decirlo</span></label>
-            {pausada && perfil.preguntar_como_te_fue && <span class="sub" id="pausa">Lo pausaste con "Ahora no": vuelve a aparecer el {new Date(perfil.como_te_fue_pausa_hasta!).toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' })}.</span>}
+            <label class="toggle"><input type="checkbox" id="preguntar" checked={perfil.preguntar_como_te_fue} /><span class="tg"></span><span>Recordarme contar cómo me fue en las materias que reseñé</span></label>
+            {pausada && perfil.preguntar_como_te_fue && <span class="sub" id="pausa">Lo pausaste con "Ahora no": vuelve el {new Date(perfil.como_te_fue_pausa_hasta!).toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' })}.</span>}
             <p class="sub" id="preguntar-ok" aria-live="polite"></p>
           </div>
         </div>
@@ -258,10 +252,10 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
         <h3>Así te ven los demás</h3>
         <div class="in">
           <div class="author preview" id="vista-previa">
-            <Avatar nombre={nombre} foto={perfil.foto} dibujo={perfil.dibujo} google={user.avatar} />
+            <Avatar nombre={nombre} foto={perfil.foto} dibujo={perfil.dibujo} google={user.avatar} color={perfil.color} />
             <span class="uname" id="vista-nombre">{nombre}</span>
           </div>
-          <span class="sub">Así salís en tus reseñas con nombre. En las anónimas sale "Anónimo" y nadie ve tu foto ni tu nombre, salvo la moderación.</span>
+          <span class="sub">En las anónimas sale "Anónimo".</span>
         </div>
       </section>
     </aside>
@@ -269,7 +263,8 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
 </Layout>
 
 <script>
-  import { DIBUJOS } from '../lib/perfil';
+  import { DIBUJOS, claseColor } from '../lib/perfil';
+  import { NOMBRE_VALIDO } from '../lib/validation';
   const $ = (id: string) => document.getElementById(id)!;
   const estado = document.querySelector<HTMLElement>('#como-te-ven [data-estado]')!;
 
@@ -295,8 +290,10 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
     $('vista-nombre').textContent = nombre;
     const foto = document.querySelector<HTMLInputElement>('input[name="foto"]:checked')?.value || 'inicial';
     const dibujo = Number(document.querySelector<HTMLInputElement>('input[name="dibujo"]:checked')?.value || 1);
+    const color = claseColor(document.querySelector<HTMLInputElement>('input[name="color"]:checked')?.value);
     const av = document.querySelector<HTMLElement>('#vista-previa .av')!;
     av.className = 'av';
+    if (color && !(foto === 'google' && google)) av.classList.add(color);
     av.replaceChildren();
     if (foto === 'google' && google) {
       av.classList.add('photo');
@@ -318,8 +315,10 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
     const v = nombreInput.value.trim();
     if (v === ultimoNombre) return;
     if (v && v.length < 2) { estado.textContent = 'El nombre tiene que tener al menos 2 caracteres.'; return; }
+    if (v && !NOMBRE_VALIDO.test(v)) { estado.textContent = 'Usá solo letras y espacios en tu nombre.'; return; }
     if (await guardar({ nombre_mostrar: v }, estado, v ? 'Nombre guardado' : `Vuelve a salir "${nombreInput.placeholder}"`)) {
       ultimoNombre = v;
+      if (!v || NOMBRE_VALIDO.test(v)) document.getElementById('nombre-aviso')?.remove();
       const saludo = document.querySelector('.me-link');
       if (saludo) saludo.textContent = v || nombreInput.placeholder;
     }
@@ -331,6 +330,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
   // Foto
   document.querySelectorAll<HTMLInputElement>('input[name="foto"]').forEach((r) => r.addEventListener('change', () => {
     document.querySelector('.dibujos')!.classList.toggle('hidden', r.value !== 'dibujo');
+    document.querySelector('.colores')!.classList.toggle('hidden', r.value === 'google');
     pintar();
     const dibujo = Number(document.querySelector<HTMLInputElement>('input[name="dibujo"]:checked')?.value || 1);
     guardar(r.value === 'dibujo' ? { foto: 'dibujo', dibujo } : { foto: r.value }, estado, 'Foto guardada');
@@ -340,10 +340,30 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
     guardar({ foto: 'dibujo', dibujo: Number(r.value) }, estado, 'Dibujo guardado');
   }));
 
-  ($('mostrar-ficha') as HTMLInputElement).addEventListener('change', (e) => {
-    const on = (e.target as HTMLInputElement).checked;
-    guardar({ mostrar_ficha: on }, estado, on ? 'Tu ficha se muestra' : 'Tu ficha queda oculta');
-  });
+  // Color de la inicial o del dibujo (migración 20)
+  document.querySelectorAll<HTMLInputElement>('input[name="color"]').forEach((r) => r.addEventListener('change', () => {
+    const clase = claseColor(r.value);
+    document.querySelectorAll<HTMLElement>('.avatar-pick .av:not(.photo), .dibujos .av').forEach((av) => {
+      av.classList.remove('c-verde', 'c-rojo', 'c-violeta', 'c-naranja', 'c-gris');
+      if (clase) av.classList.add(clase);
+    });
+    pintar();
+    guardar({ color: r.value }, estado, 'Color guardado');
+  }));
+
+  // Privacidad: perfil público o privado
+  const ayudaPrivacidad = $('privacidad-help');
+  document.querySelectorAll<HTMLButtonElement>('[data-privacidad]').forEach((b) => b.addEventListener('click', () => {
+    const publico = b.dataset.privacidad === 'publico';
+    document.querySelectorAll<HTMLButtonElement>('[data-privacidad]').forEach((o) => {
+      o.setAttribute('aria-checked', String(o === b));
+      o.setAttribute('aria-pressed', String(o === b));
+    });
+    ayudaPrivacidad.textContent = publico
+      ? 'Quien toque tu nombre ve tu rango, cuántas reseñas y experiencias de finales escribiste y tus logros. Nunca qué materias reseñaste.'
+      : 'Quien toque tu nombre ve solo tu nombre.';
+    guardar({ mostrar_ficha: publico }, estado, publico ? 'Tu perfil es público' : 'Tu perfil es privado');
+  }));
 
   // Años de cursada: en tu cuenta y, para que el inicio abra rápido, también en este navegador
   const CLAVE = 'misAnios';
@@ -364,7 +384,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
   caja.querySelectorAll<HTMLInputElement>('input').forEach((cb) => cb.addEventListener('change', () => {
     const lista = marcados();
     espejo(lista);
-    guardar({ anios_cursada: lista }, okAnios, lista.length ? `Listo: ${lista.map((a) => `${a}.º`).join(', ')} vienen abiertos en Materias.` : 'Listo: en Materias viene abierto solo 1.º.');
+    guardar({ anios_cursada: lista }, okAnios, 'Guardado');
   }));
 
   // "¿Cómo te fue?"
@@ -372,7 +392,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
     const on = (e.target as HTMLInputElement).checked;
     try { localStorage.removeItem('comoTeFue'); } catch {}
     document.getElementById('pausa')?.remove();
-    guardar(on ? { preguntar_como_te_fue: true, pausar_como_te_fue: false } : { preguntar_como_te_fue: false }, $('preguntar-ok'), on ? 'Te vamos a preguntar en el inicio.' : 'No te preguntamos más.');
+    guardar(on ? { preguntar_como_te_fue: true, pausar_como_te_fue: false } : { preguntar_como_te_fue: false }, $('preguntar-ok'), on ? 'Te lo vamos a recordar.' : 'No te lo recordamos más.');
   });
 
   // Materias que seguís
@@ -382,15 +402,28 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
       const res = await fetch('/api/seguir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ materia_id, ...cuerpo }) });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo.');
     };
-    fila.querySelector<HTMLInputElement>('[data-mail]')!.addEventListener('change', async (e) => {
-      const cb = e.target as HTMLInputElement;
-      try { await enviar({ mail: cb.checked }); } catch (err) { cb.checked = !cb.checked; alert((err as Error).message); }
-    });
     fila.querySelector<HTMLButtonElement>('[data-dejar]')!.addEventListener('click', async (e) => {
       const b = e.currentTarget as HTMLButtonElement;
       b.disabled = true;
       try { await enviar({ seguir: false }); fila.remove(); } catch (err) { b.disabled = false; alert((err as Error).message); }
     });
+  });
+
+  // Mail: se prende o apaga para todos los avisos y todas las materias que seguís
+  document.getElementById('por-mail')?.addEventListener('change', async (e) => {
+    const cb = e.target as HTMLInputElement;
+    const ok = $('avisos-ok');
+    ok.textContent = 'Guardando…';
+    try {
+      const res = await fetch('/api/avisos/preferencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ todos: true, canal: 'mail', activo: cb.checked }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo guardar.');
+      ok.textContent = cb.checked ? 'Listo, también te llegan por mail.' : 'Listo, ya no te llegan por mail.';
+      const linea = document.querySelector('[data-canales]');
+      if (linea) linea.textContent = `Las reseñas y los finales nuevos te llegan en Avisos${cb.checked ? ' y por mail' : ''}.`;
+    } catch (err) {
+      cb.checked = !cb.checked;
+      ok.textContent = (err as Error).message;
+    }
   });
 
   // Qué avisos querés
@@ -400,10 +433,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
     try {
       const res = await fetch('/api/avisos/preferencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipos: cb.dataset.tipos!.split(','), canal: cb.dataset.canal || 'sitio', activo: cb.checked }) });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo guardar.');
-      const canal = cb.dataset.canal === 'mail' ? 'mail' : cb.dataset.canal === 'telegram' ? 'Telegram' : '';
-      ok.textContent = canal
-        ? (cb.checked ? `Listo, también te llega por ${canal}.` : `Listo, ya no te llega por ${canal}.`)
-        : (cb.checked ? 'Listo, te lo avisamos.' : 'Listo, no te lo avisamos más.');
+      ok.textContent = cb.checked ? 'Listo, te lo avisamos.' : 'Listo, no te lo avisamos más.';
     } catch (e) {
       cb.checked = !cb.checked;
       ok.textContent = (e as Error).message;

@@ -53,6 +53,7 @@ if (ids.length > 0) {
   });
 }
 
+// Sobre todas las reseñas del curso: si 1 de 5 dijo que promocionó, es 1 de 5 (20 %)
 const pct = (n: number, t: number) => (t > 0 ? Math.round((n / t) * 100) : null);
 const filas = lista
   .map((d: any) => {
@@ -65,12 +66,17 @@ const filas = lista
       profes: (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)).filter(Boolean),
       promedio: s?.promedio ?? null,
       count: s?.count ?? 0,
-      prom: c ? pct(c.prom, c.total) : null,
-      reg: c ? pct(c.reg, c.total) : null,
-      libre: c ? pct(c.libre, c.total) : null,
+      // Sin nadie que haya contado cómo le fue, no hay dato
+      prom: c?.total ? pct(c.prom, s?.count ?? 0) : null,
+      reg: c?.total ? pct(c.reg, s?.count ?? 0) : null,
+      libre: c?.total ? pct(c.libre, s?.count ?? 0) : null,
+      nProm: c?.prom ?? 0,
+      nReg: c?.reg ?? 0,
+      nLibre: c?.libre ?? 0,
     };
   })
-  .sort((a, b) => (b.promedio ?? -1) - (a.promedio ?? -1) || compararCursos(a.curso, b.curso));
+  // A igual nota, primero el que tiene más reseñas
+  .sort((a, b) => (b.promedio ?? -1) - (a.promedio ?? -1) || b.count - a.count || compararCursos(a.curso, b.curso));
 
 // Lo mejor de cada columna, solo entre cursos con suficientes reseñas
 const confiables = filas.filter((f) => f.count >= MIN_RESENAS);
@@ -85,7 +91,6 @@ const esMejor = (f: (typeof filas)[number], k: keyof typeof best) => f.count >= 
 const desde = Number(Astro.url.searchParams.get('desde')) || null;
 const nivel = materia.nivel || 1;
 const label = anioLabel(nivel).replace(/^./, (c) => c.toUpperCase());
-const hayPocas = filas.some((f) => f.count > 0 && f.count < MIN_RESENAS);
 ---
 
 <Layout
@@ -106,7 +111,6 @@ const hayPocas = filas.some((f) => f.count > 0 && f.count < MIN_RESENAS);
         <div>
           <a class:list={['yr', `y${nivel}`]} href={`/nivel/${nivel}`}>{label}</a>
           <h1 style="margin-top:6px">Comparar cursos de {materia.nombre}</h1>
-          <p>Todo sale de las reseñas de cada curso. Lo verde es lo mejor de cada columna.</p>
         </div>
         <div class="actions">
           <ShareButton titulo={`Compará los cursos de ${materia.nombre} en UTN REP`} />
@@ -116,10 +120,10 @@ const hayPocas = filas.some((f) => f.count > 0 && f.count < MIN_RESENAS);
       <div class="filters">
         <span class="sub" id="turno-label">Turno:</span>
         <div class="seg" role="group" aria-labelledby="turno-label">
-          <button type="button" data-turno="" aria-pressed="true">Todos</button>
-          <button type="button" data-turno="m" aria-pressed="false"><Icon name="sun" /> Mañana</button>
-          <button type="button" data-turno="t" aria-pressed="false"><Icon name="sunset" /> Tarde</button>
-          <button type="button" data-turno="n" aria-pressed="false"><Icon name="moon" /> Noche</button>
+          <button type="button" data-filtro-turno="" aria-pressed="true">Todos</button>
+          <button type="button" data-filtro-turno="m" aria-pressed="false"><Icon name="sun" /> Mañana</button>
+          <button type="button" data-filtro-turno="t" aria-pressed="false"><Icon name="sunset" /> Tarde</button>
+          <button type="button" data-filtro-turno="n" aria-pressed="false"><Icon name="moon" /> Noche</button>
         </div>
         <label class="check"><input type="checkbox" id="ocultar-pocas" /> Ocultar los cursos con menos de {MIN_RESENAS} reseñas</label>
       </div>
@@ -162,9 +166,9 @@ const hayPocas = filas.some((f) => f.count > 0 && f.count < MIN_RESENAS);
                     {f.promedio !== null ? <><Stars value={f.promedio} /> <b>{nota(f.promedio)}</b></> : <span class="sub">Sin reseñas</span>}
                   </td>
                   <td class="c num">{f.count}</td>
-                  <td class:list={['nowrap', { best: esMejor(f, 'prom') }]}>{f.prom !== null ? <><i class="pbar"><b style={`width:${f.prom}%`}></b></i> {f.prom} %</> : <span class="sub">—</span>}</td>
-                  <td class="nowrap">{f.reg !== null ? <>{f.reg} %</> : <span class="sub">—</span>}</td>
-                  <td class:list={['nowrap', { best: esMejor(f, 'libre') }]}>{f.libre !== null ? <>{f.libre} %</> : <span class="sub">—</span>}</td>
+                  <td class:list={['nowrap', { best: esMejor(f, 'prom') }]} title={f.prom !== null ? `${f.prom} %` : undefined}>{f.prom !== null ? <><i class="pbar"><b style={`width:${f.prom}%`}></b></i> {f.nProm} de {f.count}</> : <span class="sub">—</span>}</td>
+                  <td class="nowrap" title={f.reg !== null ? `${f.reg} %` : undefined}>{f.reg !== null ? <>{f.nReg} de {f.count}</> : <span class="sub">—</span>}</td>
+                  <td class:list={['nowrap', { best: esMejor(f, 'libre') }]} title={f.libre !== null ? `${f.libre} %` : undefined}>{f.libre !== null ? <>{f.nLibre} de {f.count}</> : <span class="sub">—</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -178,10 +182,9 @@ const hayPocas = filas.some((f) => f.count > 0 && f.count < MIN_RESENAS);
       )}
       <div id="comparar-vacio" class="empty hidden"><span>Ningún curso coincide con esos filtros.</span></div>
 
-      <p class="sub">
-        Los porcentajes salen de las reseñas que contaron cómo les fue.
-        {hayPocas && <> Con menos de {MIN_RESENAS} reseñas el promedio todavía no es confiable, por eso no compite por el verde.</>}
-      </p>
+      {filas.some((f) => esMejor(f, 'promedio') || esMejor(f, 'prom') || esMejor(f, 'libre')) && (
+        <p class="sub">En verde, lo mejor de cada columna entre los cursos con {MIN_RESENAS} reseñas o más.</p>
+      )}
       <div><a class="btn quiet" href={`/materia/${materia.id}`}><Icon name="back" /> Volver a {materia.nombre}</a></div>
     </div>
   </div>
@@ -191,7 +194,8 @@ const hayPocas = filas.some((f) => f.count > 0 && f.count < MIN_RESENAS);
   const tabla = document.getElementById('tabla-comparar');
   const tbody = tabla?.querySelector('tbody');
   const filas = Array.from(tbody?.querySelectorAll<HTMLTableRowElement>('tr') || []);
-  const botonesTurno = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-turno]'));
+  // Ojo: las filas también tienen data-turno; los botones del filtro son data-filtro-turno
+  const botonesTurno = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filtro-turno]'));
   const ocultarPocas = document.getElementById('ocultar-pocas') as HTMLInputElement | null;
   const vacio = document.getElementById('comparar-vacio');
   let turno = '';
@@ -207,7 +211,7 @@ const hayPocas = filas.some((f) => f.count > 0 && f.count < MIN_RESENAS);
   }
 
   botonesTurno.forEach((b) => b.addEventListener('click', () => {
-    turno = b.dataset.turno || '';
+    turno = b.dataset.filtroTurno || '';
     botonesTurno.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
     filtrar();
   }));
@@ -231,7 +235,7 @@ const hayPocas = filas.some((f) => f.count > 0 && f.count < MIN_RESENAS);
         if (va === null && vb === null) return 0;
         if (va === null) return 1;
         if (vb === null) return -1;
-        return signo * (va - vb);
+        return signo * (va - vb) || Number(b.dataset.count) - Number(a.dataset.count);
       });
       sorted.forEach((tr) => tbody!.appendChild(tr));
     });

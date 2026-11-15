@@ -2,9 +2,12 @@
 import Layout from '../../layouts/Layout.astro';
 import Icon from '../../components/Icon.astro';
 import ShareButton from '../../components/ShareButton.astro';
+import Quien from '../../components/Quien.astro';
+import { DIBUJOS, claseColor } from '../../lib/perfil';
+import { autoresDeFinales } from '../../lib/fichas';
 import { supabase, createSupabaseServerClient } from '../../lib/supabase';
 import { isAdmin } from '../../lib/admin';
-import { anioLabel, fechaHora, mesaTexto, tiempoRelativo } from '../../lib/format';
+import { fechaHora, mesaTexto, tiempoRelativo } from '../../lib/format';
 import { buscarProfesor, indexar } from '../../lib/importar';
 
 const user = Astro.locals.user;
@@ -57,22 +60,18 @@ if (user) {
 const { data: respuestasRaw } = await supabase.from('respuestas_moderador').select('final_id, texto').not('final_id', 'is', null);
 const respuestaDe = new Map((respuestasRaw || []).map((r: any) => [String(r.final_id), r.texto as string]));
 
+const autores = await autoresDeFinales((experiencias || []).filter((e: any) => !e.es_anonima).map((e: any) => e.id));
 const listaExperiencias = (experiencias || []).map((exp: any) => ({
   ...exp,
   respuesta: respuestaDe.get(String(exp.id)) || null,
   materia: Array.isArray(exp.materias) ? exp.materias[0] : exp.materias,
   profesor_id: profesorId(exp.profesor_nombre),
 }));
-const linkOrden = (u: boolean) => {
-  const url = new URL(Astro.url);
-  u ? url.searchParams.set('orden', 'utiles') : url.searchParams.delete('orden');
-  return url.pathname + url.search;
-};
 
 // Mesas para filtrar (lo guardado es "Diciembre", "Febrero", "Julio" o "Especial")
 const MESAS = [
   { valor: 'diciembre', label: 'Diciembre' },
-  { valor: 'febrero', label: 'Febrero / marzo' },
+  { valor: 'febrero', label: 'Febrero / Marzo' },
   { valor: 'julio', label: 'Julio' },
   { valor: 'especial', label: 'Especial' },
 ];
@@ -90,7 +89,10 @@ listaExperiencias.forEach((exp: any) => {
   conteo.set(exp.materia.id, c);
 });
 const materiasConFinales = [...conteo.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-const masContadas = [...conteo.values()].sort((a, b) => b.n - a.n).slice(0, 5);
+// Experiencia destacada: la más votada, desde 3 votos (como la reseña destacada del inicio)
+const destacada = [...listaExperiencias].sort((a: any, b: any) => (b.votos_utilidad || 0) - (a.votos_utilidad || 0))[0];
+const hayDestacada = !!destacada && (destacada.votos_utilidad || 0) >= 3;
+const recortar = (t: string, n = 140) => (t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t);
 
 const materiaParam = Astro.url.searchParams.get('materia') || '';
 const mesaParam = (Astro.url.searchParams.get('mesa') || '').toLowerCase();
@@ -113,6 +115,11 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
         </div>
       </div>
 
+      <div id="borrador-final" class="notice soft hidden" role="status">
+        <Icon name="pen" />
+        <span>Tenés una experiencia sin publicar<span data-materia></span>. <a href="/finales/nuevo">Seguirla</a> · <button type="button" class="linklike" data-borrar-borrador>Borrarla</button></span>
+      </div>
+
       <div id="finales-nuevas" class="notice soft hidden" role="status">
         <Icon name="info" />
         <span><b></b> desde tu última visita (<span data-desde></span>). Están marcadas con "Nueva".</span>
@@ -126,14 +133,18 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
             {MESAS.map((m) => <button type="button" data-mesa={m.valor} aria-pressed={mesaInicial === m.valor ? 'true' : 'false'}>{m.label}</button>)}
           </div>
           <span class="seg orden" role="group" aria-label="Orden">
-            <a href={linkOrden(false)} aria-current={utiles ? undefined : 'true'} data-orden>Más recientes</a>
-            <a href={linkOrden(true)} aria-current={utiles ? 'true' : undefined} data-orden>Más útiles</a>
+            <button type="button" data-orden="recientes" aria-pressed={utiles ? 'false' : 'true'}>Más recientes</button>
+            <button type="button" data-orden="utiles" aria-pressed={utiles ? 'true' : 'false'}>Más útiles</button>
           </span>
-          <label class="sr" for="filtro-materia">Materia</label>
-          <select id="filtro-materia" class="mini">
-            <option value="">Todas las materias</option>
-            {materiasConFinales.map((m) => <option value={m.id} selected={materiaInicial === String(m.id)}>{m.nombre} ({m.n})</option>)}
-          </select>
+          <span class="fmat">
+            <label class="sr" for="filtro-materia">Materia</label>
+            <select id="filtro-materia" class="mini">
+              <option value="">Todas las materias</option>
+              {materiasConFinales.map((m) => <option value={m.id} selected={materiaInicial === String(m.id)}>{m.nombre} ({m.n})</option>)}
+            </select>
+            <label class="sr" for="buscar-materia">Buscar materia</label>
+            <input type="search" id="buscar-materia" class="ainput sm" placeholder="Buscar materia" autocomplete="off" />
+          </span>
         </div>
       )}
 
@@ -143,12 +154,14 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
             const isOwner = mias.has(String(exp.id));
             return (
               <article
-                class:list={['post exp final-card', { 'final-extra': idx >= 10 }, { hidden: idx >= 10 || (materiaInicial && String(exp.materia?.id) !== materiaInicial) || (mesaInicial && claveMesa(exp.mesa) !== mesaInicial) }]}
+                class:list={['post exp final-card', { hidden: idx >= 10 || (materiaInicial && String(exp.materia?.id) !== materiaInicial) || (mesaInicial && claveMesa(exp.mesa) !== mesaInicial) }]}
                 id={`final-${exp.id}`}
                 data-materia-id={exp.materia?.id}
                 data-mesa={claveMesa(exp.mesa)}
                 data-id={exp.id}
                 data-creado={exp.created_at}
+                data-votos={exp.votos_utilidad || 0}
+                data-materia-nombre={exp.materia?.nombre || ''}
               >
                 <div class="post-head">
                   <span>
@@ -160,10 +173,22 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
                 </div>
                 <div class="post-main">
                   <div class="author">
-                    <div class="avatar" aria-hidden="true"><span><Icon name="user" /></span></div>
-                    {exp.es_anonima === false && exp.nombre_usuario
-                      ? <span class="uname">{exp.nombre_usuario}</span>
-                      : <span class="uname anon">Anónimo</span>}
+                    {(() => {
+                      const a = exp.es_anonima === false && exp.nombre_usuario ? autores.get(exp.id) : undefined;
+                      const dib = a?.foto === 'dibujo' ? DIBUJOS.find((d) => d.id === a.dibujo) || DIBUJOS[0] : null;
+                      return (
+                        <div class="avatar" aria-hidden="true">
+                          <span class:list={[{ draw: !!dib }, a && !a.google ? claseColor(a.color) : '']}>{!a
+                            ? <Icon name="user" />
+                            : a.google
+                              ? <img src={a.google} alt="" referrerpolicy="no-referrer" loading="lazy" />
+                              : dib
+                                ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" set:html={dib.svg} />
+                                : exp.nombre_usuario.charAt(0).toUpperCase()}</span>
+                        </div>
+                      );
+                    })()}
+                    <Quien nombre={exp.nombre_usuario || 'Anónimo'} anonimo={exp.es_anonima !== false || !exp.nombre_usuario} ficha={autores.get(exp.id)?.ficha} />
                     <time class="sub" datetime={exp.created_at} title={tiempoRelativo(exp.created_at)}>{fechaHora(exp.created_at)}</time>
                   </div>
                   <div class="message">
@@ -195,7 +220,7 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
                         <Icon name="thumb" /> Me sirvió <span class="votos-count">{exp.votos_utilidad || 0}</span>
                       </button>
                     )}
-                    {isOwner && (exp.votos_utilidad || 0) > 0 && <span class="sub">Le sirvió a {exp.votos_utilidad} persona{exp.votos_utilidad !== 1 ? 's' : ''}</span>}
+                    {isOwner && (exp.votos_utilidad || 0) > 0 && <span class="sub">Le sirvió a {exp.votos_utilidad} estudiante{exp.votos_utilidad !== 1 ? 's' : ''}</span>}
                     {!isOwner && <button type="button" class="btn quiet reportar" data-reportar-final data-login={user ? undefined : ''} title="Reportar esta experiencia"><Icon name="flag" /> Reportar</button>}
                     <ShareButton mini titulo="Mirá cómo tomaron este final en UTN REP" ruta={`/finales?materia=${exp.materia?.id}#final-${exp.id}`} />
                   </div>
@@ -232,33 +257,56 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
       <section class="panel cta">
         <h3>¿Ya rendiste?</h3>
         <div class="in">
-          <span>Contá cómo fue la mesa: qué tomaron, si fue más difícil el práctico o el teórico y cómo te preparaste.</span>
+          <span>Contá cómo fue la mesa.</span>
           {user
             ? <a class="btn primary big" href="/finales/nuevo"><Icon name="pen" /> Compartir mi experiencia</a>
             : <button type="button" class="btn primary big" data-login><Icon name="user" /> Iniciar sesión para contarlo</button>}
         </div>
       </section>
 
-      {masContadas.length > 0 && (
-        <section class="panel">
-          <h3>Materias con más experiencias</h3>
-          <div class="in feed">
-            {masContadas.map((m) => (
-              <div>
-                <a href={`/finales?materia=${m.id}`} data-filtrar-materia={m.id}>{m.nombre}</a>
-                <span class="sub">{m.n} experiencia{m.n !== 1 ? 's' : ''}</span>
-              </div>
-            ))}
+      {hayDestacada && (
+        <section class="panel destacada">
+          <h3><Icon name="thumb" /> Experiencia destacada</h3>
+          <div class="in">
+            <a href={`#final-${destacada.id}`} data-ir-final={destacada.id}><b>{destacada.materia?.nombre}</b></a>
+            <span class="sub">{mesaTexto(destacada.mesa, destacada.anio)}</span>
+            <blockquote class="quote-mini">"{recortar(destacada.comentario || '')}"</blockquote>
+            <span class="sub">Le sirvió a <b>{destacada.votos_utilidad} estudiante{destacada.votos_utilidad !== 1 ? 's' : ''}</b>.</span>
           </div>
         </section>
       )}
+
+      <section class="panel cafe">
+        <h3>Bancá UTN REP</h3>
+        <div class="in">
+          <span>¿Te sirvió para preparar el final? Ayudá a mantener UTN REP online.</span>
+          <a class="btn cafe big" href="https://cafecito.app/utnrep" target="_blank" rel="noopener noreferrer"><Icon name="cup" /> Invitame un cafecito</a>
+        </div>
+      </section>
     </aside>
   </div>
 </Layout>
 
 <script>
   import { visitaAnterior, textoVisita } from '../../scripts/visitas';
+  import { coincide, palabrasDe, parecido } from '../../lib/buscar';
   const cards = Array.from(document.querySelectorAll<HTMLElement>('.final-card'));
+
+  // Borrador sin publicar (se guarda en este navegador mientras escribís)
+  const avisoBorrador = document.getElementById('borrador-final');
+  try {
+    const b = JSON.parse(localStorage.getItem('borradorFinal') || 'null');
+    if (avisoBorrador && b && (b.comentario || b.materia)) {
+      const m = String(b.materia || '').replace(/\s*\(\d\.º año\)$/, '');
+      if (m) avisoBorrador.querySelector('[data-materia]')!.textContent = ` de ${m}`;
+      avisoBorrador.classList.remove('hidden');
+      avisoBorrador.querySelector('[data-borrar-borrador]')?.addEventListener('click', () => {
+        if (!confirm('¿Borrar el borrador?')) return;
+        try { localStorage.removeItem('borradorFinal'); } catch {}
+        avisoBorrador.classList.add('hidden');
+      });
+    }
+  } catch { /* sin almacenamiento */ }
 
   // "Nueva": contadas después de tu visita anterior
   const anterior = visitaAnterior();
@@ -272,56 +320,79 @@ const mesaInicial = MESAS.some((m) => m.valor === mesaParam) ? mesaParam : '';
       aviso.classList.remove('hidden');
     }
   }
-  // Link directo a una experiencia que estaba plegada
-  const destino = location.hash.startsWith('#final-') ? document.getElementById(location.hash.slice(1)) : null;
-  if (destino?.classList.contains('final-extra')) { destino.classList.remove('hidden', 'final-extra'); destino.scrollIntoView(); }
+  const cont = document.getElementById('finales-container')!;
   const showMoreBtn = document.getElementById('show-more-btn') as HTMLButtonElement | null;
   const vacio = document.getElementById('finales-vacio');
   const selMateria = document.getElementById('filtro-materia') as HTMLSelectElement | null;
+  const buscarMateria = document.getElementById('buscar-materia') as HTMLInputElement | null;
   const botonesMesa = Array.from(document.querySelectorAll<HTMLButtonElement>('.seg [data-mesa]'));
+  const botonesOrden = Array.from(document.querySelectorAll<HTMLButtonElement>('.seg [data-orden]'));
   let mesa = botonesMesa.find((b) => b.getAttribute('aria-pressed') === 'true')?.dataset.mesa || '';
+  let orden = botonesOrden.find((b) => b.getAttribute('aria-pressed') === 'true')?.dataset.orden || 'recientes';
+  let mostrar = 10;
+  // Link directo a una experiencia: que se vea aunque esté más abajo
+  const destino = location.hash.startsWith('#final-') ? document.getElementById(location.hash.slice(1)) : null;
 
-  // Filtros por mesa y materia (también quedan en la dirección, para compartir el link)
+  function ordenar() {
+    const creado = (c: HTMLElement) => c.dataset.creado || '';
+    [...cards]
+      .sort((a, b) => (orden === 'utiles' ? Number(b.dataset.votos) - Number(a.dataset.votos) : 0) || creado(b).localeCompare(creado(a)))
+      .forEach((c) => cont.insertBefore(c, vacio));
+  }
+
+  // Mesa, orden, materia y buscador se combinan (y quedan en la dirección, para compartir el link)
   function aplicar() {
     const materia = selMateria?.value || '';
-    const filtrando = !!(materia || mesa);
-    let coinciden = 0;
-    cards.forEach((card) => {
-      const ok = (!materia || card.dataset.materiaId === materia) && (!mesa || card.dataset.mesa === mesa);
-      if (ok) coinciden++;
-      card.classList.toggle('hidden', !ok || (!filtrando && card.classList.contains('final-extra')));
-    });
-    if (showMoreBtn) showMoreBtn.style.display = filtrando || !document.querySelector('.final-extra.hidden') ? 'none' : '';
-    vacio?.classList.toggle('hidden', coinciden > 0 || cards.length === 0);
+    const palabras = palabrasDe(buscarMateria?.value || '');
+    const deMateria = (nombre: string) => !palabras.length || coincide(palabras, nombre) || parecido(palabras, nombre) !== null;
+    const enOrden = Array.from(cont.querySelectorAll<HTMLElement>('.final-card'));
+    const coinciden = enOrden.filter((c) =>
+      (!materia || c.dataset.materiaId === materia) && (!mesa || c.dataset.mesa === mesa) && deMateria(c.dataset.materiaNombre || ''));
+    if (destino && coinciden.indexOf(destino) >= mostrar) mostrar = coinciden.indexOf(destino) + 1;
+    const visibles = new Set(coinciden.slice(0, mostrar));
+    enOrden.forEach((c) => c.classList.toggle('hidden', !visibles.has(c)));
+    if (showMoreBtn) showMoreBtn.style.display = coinciden.length > mostrar ? '' : 'none';
+    vacio?.classList.toggle('hidden', coinciden.length > 0 || cards.length === 0);
     const url = new URL(location.href);
     materia ? url.searchParams.set('materia', materia) : url.searchParams.delete('materia');
     mesa ? url.searchParams.set('mesa', mesa) : url.searchParams.delete('mesa');
+    orden === 'utiles' ? url.searchParams.set('orden', 'utiles') : url.searchParams.delete('orden');
     history.replaceState(null, '', url);
   }
 
   botonesMesa.forEach((b) => b.addEventListener('click', () => {
     mesa = b.dataset.mesa || '';
     botonesMesa.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    mostrar = 10;
     aplicar();
   }));
-  selMateria?.addEventListener('change', aplicar);
-  document.querySelectorAll<HTMLAnchorElement>('[data-filtrar-materia]').forEach((a) => a.addEventListener('click', (e) => {
-    if (!selMateria) return;
+  botonesOrden.forEach((b) => b.addEventListener('click', () => {
+    orden = b.dataset.orden || 'recientes';
+    botonesOrden.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    ordenar();
+    mostrar = 10;
+    aplicar();
+  }));
+  selMateria?.addEventListener('change', () => { mostrar = 10; aplicar(); });
+  buscarMateria?.addEventListener('input', () => { mostrar = 10; aplicar(); });
+  document.querySelectorAll<HTMLAnchorElement>('[data-ir-final]').forEach((a) => a.addEventListener('click', (e) => {
+    const card = document.getElementById(`final-${a.dataset.irFinal}`);
+    if (!card) return;
     e.preventDefault();
-    selMateria.value = a.dataset.filtrarMateria || '';
+    if (selMateria) selMateria.value = '';
+    if (buscarMateria) buscarMateria.value = '';
+    mesa = '';
+    botonesMesa.forEach((o) => o.setAttribute('aria-pressed', String(!o.dataset.mesa)));
+    const i = Array.from(cont.querySelectorAll('.final-card')).indexOf(card);
+    mostrar = Math.max(10, i + 1);
     aplicar();
-    document.querySelector('.filters')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
-  if (selMateria?.value || mesa) aplicar();
+  aplicar();
+  if (destino) destino.scrollIntoView();
 
   // Ver más, de a 10
-  showMoreBtn?.addEventListener('click', () => {
-    const ocultas = document.querySelectorAll('.final-extra.hidden');
-    for (let i = 0; i < 10 && i < ocultas.length; i++) {
-      ocultas[i].classList.remove('hidden', 'final-extra');
-    }
-    if (!document.querySelector('.final-extra.hidden')) showMoreBtn.style.display = 'none';
-  });
+  showMoreBtn?.addEventListener('click', () => { mostrar += 10; aplicar(); });
 
   // Me sirvió y Reportar (sin sesión, data-login abre la ventana de ingreso)
   cards.forEach((card) => {
