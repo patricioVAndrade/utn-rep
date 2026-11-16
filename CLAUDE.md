@@ -33,6 +33,10 @@ Objetivo: publicarlo a mediados de diciembre de 2026, cuando terminan las cursad
 - Logo: F2, elegido el 9/11 (símbolo con la barra amarilla y REP adentro; favicon con la barra oficial amarilla; bajada "Reseñas de estudiantes, para estudiantes" + "Ingeniería en Sistemas de Información · UTN-FRC" con FRC en serif). Trazos en `src/lib/logo.ts` (de `propuestas/logos/v2/fuente/svgs2.py`), componente `LogoRep.astro`; también en la imagen al compartir y el mail. Logros votados y hechos (migración 16). Cartel de bienvenida, "Qué cambió", Términos e imagen por página: aprobados y hechos.
 - Cambios de profesores (F22 a F27): después de marzo de 2027.
 
+## Pase a producción (16/11)
+
+Todo lo necesario está en la carpeta del proyecto `pase-a-produccion/` (empezá por `00-EMPEZA-ACA.md`): claves, los 25 SQL de producción en orden con lo que tiene que dar cada uno, Telegram, pruebas (Postman en `docs/postman/`) y el merge. El pedido de merge es el PR #2 (`claude/project-thread-5a6dr5` a `main`). Si cambia algo que afecte el pase (una migración nueva, una clave nueva), actualizá esa carpeta.
+
 ## Cómo está armado el diseño
 
 - Estilos en `src/styles/foro.css`, todo dentro de `@layer components`, con variables de color en `:root` y `html[data-theme="dark"]`. Las utilidades de Tailwind (`hidden`, etc.) le ganan a estas clases.

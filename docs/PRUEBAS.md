@@ -52,7 +52,7 @@ con "TODO OK".
 
 ## 2. Pruebas automáticas: `npm test`
 
-Corren sin base (la base se simula con `vi.mock`). Hoy: 193 pruebas en 18 archivos. Las de endpoints usan `tests/base-falsa.ts`, una base de mentira que anota cada consulta y contesta lo que pida la prueba.
+Corren sin base (la base se simula con `vi.mock`). Hoy: 187 pruebas en 18 archivos. Las de endpoints usan `tests/base-falsa.ts`, una base de mentira que anota cada consulta y contesta lo que pida la prueba.
 
 | Archivo | Qué prueba |
 |---|---|
@@ -76,6 +76,8 @@ Corren sin base (la base se simula con `vi.mock`). Hoy: 193 pruebas en 18 archiv
 | `tests/format-request.test.ts` | Fechas relativas, estrellas, colores por año, IP del cliente, "Editada el". |
 
 ## 3. Endpoints (base para Postman)
+
+**La colección está hecha (16/11):** `docs/postman/utn-rep.postman_collection.json`, con los entornos de Preview y Producción, 117 pedidos en 6 carpetas (preparación, público, escrituras sin sesión, con sesión, admin y producción). Se arma con `python3 docs/postman/armar-coleccion.py`: si sumás un endpoint, agregalo ahí y volvé a correrlo. Cómo usarla: `pase-a-produccion/5-pruebas/COMO-PROBAR.md` (carpeta del proyecto).
 
 ### Cómo autenticarse
 
