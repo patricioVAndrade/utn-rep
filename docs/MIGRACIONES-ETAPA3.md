@@ -221,6 +221,15 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261115000000_perfil_color.sql` (necesita la 5 y la 9). Vuelta atrás: `supabase/rollback/20261115000000_perfil_color.sql`.
 - **Verificación esperada:** `true · true · true`.
 
+### 21. Nombres controlados por la base (auditoría del 16/11) — **lista para correr en prueba, código subido**
+
+- Hasta ahora la regla del nombre (solo letras, sin palabras marcadas) la controlaba solo `/api/perfil`. Alguien con su sesión podía escribir directo en `perfiles` o cambiar el nombre de su cuenta de Google o GitHub y saltearla. Ahora la base frena el nombre nuevo que no cumple (error `NM001`).
+- Los nombres que ya están no se tocan: solo se controla uno nuevo o cambiado (el aviso de "Cambialo en Mi cuenta" sigue igual).
+- El nombre que viene de Google o GitHub se usa solo si cumple; si no, la parte del mail antes de la @.
+- El nombre del autor de un final lo pone la base, no el navegador.
+- **Archivo:** `supabase/migrations/20261116000000_nombres_seguros.sql` (necesita la 1, la 4 y la 5). Vuelta atrás: `supabase/rollback/20261116000000_nombres_seguros.sql`.
+- **Verificación esperada:** `true · true · false · false · false · 1 · 1`.
+
 **Lista inicial de palabras marcadas** (no es migración): `supabase/pruebas/palabras-marcadas-iniciales.sql` carga unas 50 palabras para que la moderación y los nombres de Mi cuenta las frenen. No pisa las que ya tenés. Va también en producción.
 
 ---
