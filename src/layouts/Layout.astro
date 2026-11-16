@@ -9,6 +9,7 @@ import Bienvenida from '../components/Bienvenida.astro';
 import { textoAuthError } from '../lib/auth-error';
 import { createSupabaseServerClient } from '../lib/supabase';
 import { avisosSinLeer } from '../lib/avisos';
+import { NOMBRE_VALIDO } from '../lib/validation';
 
 /** 'mis' es "Mi espacio": Mis reseñas, Mi inscripción y Mi cuenta. */
 export type Tab = 'materias' | 'finales' | 'mis' | 'avisos' | 'ayuda' | 'escribir';
@@ -53,6 +54,8 @@ const user = Astro.locals.user;
 const de = (Astro.url.searchParams.get('de') || '').toLowerCase();
 const llegoPorLink = /^[a-z0-9]{4,8}$/.test(de);
 // No se pudo entrar: el motivo viene en ?auth_error= (src/lib/auth-error.ts)
+// Nombre que no cumple las reglas del 14/11 (números o símbolos): se avisa en todas las páginas menos en Mi cuenta (Pato, 16/11)
+const nombreACambiar = !!user && !NOMBRE_VALIDO.test(user.name) && !Astro.url.pathname.startsWith('/mi-cuenta');
 const errorIngreso = user ? null : textoAuthError(Astro.url.searchParams.get('auth_error'));
 const canonicalURL = Astro.url.href;
 const siteURL = Astro.url.origin;
@@ -194,6 +197,11 @@ const mia = (href: string) => (ruta === href ? 'page' : undefined);
         {errorIngreso && (
           <div class="de-wrap" id="auth-error">
             <div class="notice bad" role="alert"><Icon name="alert" /><div>{errorIngreso}</div></div>
+          </div>
+        )}
+        {nombreACambiar && (
+          <div class="de-wrap" id="nombre-a-cambiar">
+            <div class="notice"><Icon name="alert" /><div>Tu nombre tiene números o símbolos. Cambialo en <a href="/mi-cuenta#nombre">Mi cuenta</a>.</div></div>
           </div>
         )}
         {llegoPorLink && !legacy && (

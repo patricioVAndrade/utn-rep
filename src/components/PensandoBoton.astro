@@ -19,12 +19,30 @@ if (user) {
   esta = !!data;
 }
 ---
-<button type="button" class:list={['btn', esta ? 'pressed' : 'quiet']} aria-pressed={esta ? 'true' : 'false'} data-pensando={dictadoId}>
-  <Icon name="check" /> <span>{esta ? 'En Mi inscripción' : 'Lo estoy pensando'}</span>
-</button>
+<span class="pensando-w">
+  <button type="button" class:list={['btn', esta ? 'pressed' : 'quiet']} aria-pressed={esta ? 'true' : 'false'} data-pensando={dictadoId} aria-describedby={`pensando-ayuda-${dictadoId}`}>
+    <Icon name="check" /> <span>{esta ? 'En Mi inscripción' : 'Lo estoy pensando'}</span>
+  </button>
+  <button type="button" class="ayuda-q" aria-label="¿Para qué sirve?" aria-expanded="false" data-ayuda>?</button>
+  <span class="ayuda-pop" role="tooltip" id={`pensando-ayuda-${dictadoId}`}>Suma este curso a tu simulador de Mi inscripción, para armar tu semana y ver si se pisan los horarios. Además te avisamos cuando haya reseñas nuevas de este curso.</span>
+</span>
 
 <script>
   import { api, conSesion, guardarLocal, leerLocal, traerLocal } from '../scripts/inscripcion';
+
+  // "?": en la compu se ve al pasar el mouse; en el celular, al tocarlo
+  document.querySelectorAll<HTMLButtonElement>('.pensando-w [data-ayuda]').forEach((q) => {
+    q.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const abierta = q.getAttribute('aria-expanded') !== 'true';
+      q.setAttribute('aria-expanded', String(abierta));
+      q.parentElement?.classList.toggle('abierta', abierta);
+    });
+  });
+  document.addEventListener('click', () => document.querySelectorAll('.pensando-w.abierta').forEach((w) => {
+    w.classList.remove('abierta');
+    w.querySelector('[data-ayuda]')?.setAttribute('aria-expanded', 'false');
+  }));
 
   document.querySelectorAll<HTMLButtonElement>('[data-pensando]').forEach(async (b) => {
     const id = Number(b.dataset.pensando);

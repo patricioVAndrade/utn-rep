@@ -1141,6 +1141,11 @@ html[data-theme="dark"] { --wa-bg: #14301f; }
   .op .nota { white-space: nowrap; }
   .sim-m .mas { display: block; width: 100%; padding: 6px 10px; border-top: 1px solid var(--line-soft); background: var(--row-a); font-size: 12px; text-align: left; }
   .sim-m .vacia { padding: 8px 10px; font-size: 12px; color: var(--muted); background: var(--box); }
+  /* Elegida en el otro cuatrimestre: queda abajo, más apagada */
+  .sim-m.fuera .op.sel { opacity: .6; }
+  .sim-cuatri { display: flex; width: fit-content; max-width: 100%; margin: 0 0 12px; }
+  .sim-cuatri button { padding: 7px 14px; font-size: 13px; }
+  @container (max-width: 600px) { .sim-cuatri { flex-wrap: nowrap; width: 100%; } .sim-cuatri button { flex: 1; justify-content: center; padding: 7px 6px; font-size: 12px; white-space: nowrap; } }
 
   .sim-agregar { position: relative; }
   .sim-sumar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px dashed var(--line); background: var(--row-a); }
@@ -1161,4 +1166,14 @@ html[data-theme="dark"] { --wa-bg: #14301f; }
     .op { grid-template-columns: 18px minmax(var(--cw, 40px), max-content) minmax(0, 1fr) auto; padding: 9px 10px; }
     .bq b.largo { font-size: 9px; letter-spacing: -.2px; }
   }
+}
+
+/* "?" de ayuda al lado de "Lo estoy pensando" (Pato, 16/11) */
+@layer components {
+  .pensando-w { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+  .ayuda-q { width: 20px; height: 20px; flex: none; border: 1px solid var(--line); border-radius: 50%; background: var(--box); color: var(--muted); font: bold 11px var(--f-body); line-height: 1; cursor: pointer; }
+  .ayuda-q:hover, .pensando-w.abierta .ayuda-q { color: var(--ink); border-color: var(--muted); }
+  .ayuda-pop { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; width: 260px; max-width: calc(100vw - 32px); padding: 8px 10px; border: 1px solid var(--line); background: var(--box); color: var(--ink); box-shadow: 0 4px 14px var(--shadow); font-size: 12px; line-height: 1.4; font-weight: normal; text-align: left; white-space: normal; visibility: hidden; opacity: 0; transition: opacity .12s; }
+  .pensando-w.abierta .ayuda-pop { visibility: visible; opacity: 1; }
+  @media (hover: hover) { .pensando-w:has(.ayuda-q:hover) .ayuda-pop { visibility: visible; opacity: 1; } }
 }

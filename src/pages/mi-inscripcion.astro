@@ -43,7 +43,13 @@ if (deLink) {
   ids = (data || []).map((r: any) => r.dictado_id);
 }
 
+// El cuatrimestre que se simula: el de la próxima inscripción, o el que eligieron arriba
 const periodo = periodoInscripcion();
+const pedido = Number(params.get('cuatri'));
+const cuatri = pedido === 1 || pedido === 2 ? pedido : periodo.cuatri;
+// De marzo a julio se simula el 2.º de este año; el 1.º ya es del año que viene
+const anioDe = (c: number) => (c === 1 && periodo.cuatri === 2 ? periodo.anio + 1 : periodo.anio);
+const cuatris = [1, 2].map((c) => ({ c, texto: `${c === 1 ? '1.er' : '2.º'} cuatrimestre ${anioDe(c)}` }));
 
 // Materias de los cursos de la lista
 let materiaDe = new Map<number, number>();
@@ -54,7 +60,7 @@ if (ids.length) {
 const materiaIds = [...new Set(ids.map((i) => materiaDe.get(i)).filter((x): x is number => !!x))];
 
 const [materias, { data: catalogoRaw }, { data: cuentaRaw }] = await Promise.all([
-  materiasSim(materiaIds, periodo.cuatri),
+  materiasSim(materiaIds),
   compartida ? Promise.resolve({ data: [] as any[] }) : supabase.from('materias').select('id, nombre, nivel').order('nivel'),
   compartida ? Promise.resolve({ data: [] as any[] }) : supabase.from('dictados').select('materia_id').range(0, 9999),
 ]);
@@ -70,7 +76,7 @@ const cursos = new Map<number, number>();
 (cuentaRaw || []).forEach((d: any) => cursos.set(d.materia_id, (cursos.get(d.materia_id) || 0) + 1));
 const catalogo = (catalogoRaw || []).map((m: any) => ({ id: m.id, nombre: m.nombre, nivel: m.nivel, cursos: cursos.get(m.id) || 0 })).filter((m) => m.cursos > 0);
 
-const datos = { modo: compartida ? 'compartida' : user ? 'cuenta' : 'local', cuatri: periodo.cuatri, materias: elegidas, catalogo, misAnios };
+const datos = { modo: compartida ? 'compartida' : user ? 'cuenta' : 'local', cuatri, porDefecto: periodo.cuatri, cuatris, materias: elegidas, catalogo, misAnios };
 const json = JSON.stringify(datos).replace(/</g, '\\u003c');
 const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
 ---
@@ -80,14 +86,18 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
     <div class="main" id="mi-inscripcion" data-modo={datos.modo}>
       <div class="topic">
         <div>
-          <h1>{compartida ? 'La inscripción que te pasaron' : `Mi inscripción: ${periodo.texto}`}</h1>
-          <p>{compartida ? `${periodo.texto.charAt(0).toUpperCase()}${periodo.texto.slice(1)}` : 'La inscripción se hace en Autogestión.'}</p>
+          <h1>{compartida ? 'La inscripción que te pasaron' : 'Mi inscripción'}</h1>
+          {!compartida && <p>La inscripción se hace en Autogestión.</p>}
         </div>
         <div class="actions">
           {compartida
             ? <button type="button" class="btn primary" data-copiar><Icon name="check" /> Copiar a mi inscripción</button>
-            : <span data-compartir class:list={{ hidden: !elegidosIds.length }}><ShareButton titulo="Mirá los cursos que elegí para la inscripción" ruta={`/mi-inscripcion?c=${elegidosIds.join(',')}`} label="Compartir mi inscripción" /></span>}
+            : <span data-compartir class:list={{ hidden: !elegidosIds.length }}><ShareButton titulo="Mirá los cursos que elegí para la inscripción" ruta={`/mi-inscripcion?c=${elegidosIds.join(',')}&cuatri=${cuatri}`} label="Compartir mi inscripción" /></span>}
         </div>
+      </div>
+
+      <div class="seg sim-cuatri" role="group" aria-label="Cuatrimestre">
+        {cuatris.map((x) => <button type="button" data-cuatri={x.c} aria-pressed={x.c === cuatri ? 'true' : 'false'}>{x.texto}</button>)}
       </div>
 
       {sinTabla && <div class="notice"><Icon name="info" /><div>Mi inscripción todavía no está lista en esta base (falta la migración 12).</div></div>}
@@ -133,7 +143,7 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
           <h3>Cómo funciona</h3>
           <div class="in">
             <ol class="steps">
-              <li>Agregá las materias que querés cursar.</li>
+              <li>Elegí el cuatrimestre y agregá las materias que querés cursar.</li>
               <li>Elegí un curso de cada una. Están ordenados por puntaje: tocá el curso para ver sus reseñas.</li>
               <li>Si dos cursos se pisan, se marcan en rojo. Probá con otro.</li>
               <li>Compartí tu inscripción con tu grupo.</li>
@@ -157,9 +167,9 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
   import { DIAS, DIAS_CORTOS, horaTexto, superposiciones, textoChoque, type Bloque } from '../lib/horarios';
   import { coincide, palabrasDe, parecido } from '../lib/buscar';
 
-  type Opcion = { id: number; curso: string; turno: string | null; periodo: string | null; promedio: number | null; cantidad: number; bloques: Bloque[]; enPeriodo: boolean };
+  type Opcion = { id: number; curso: string; turno: string | null; periodo: string | null; promedio: number | null; cantidad: number; bloques: Bloque[]; cuatris: (1 | 2)[]; anual: boolean; contra: boolean };
   type Materia = { id: number; nombre: string; nivel: number; sigla: string; opciones: Opcion[]; pensados: number[]; elegido: number | null };
-  type Datos = { modo: 'cuenta' | 'local' | 'compartida'; cuatri: 1 | 2; materias: Materia[]; catalogo: { id: number; nombre: string; nivel: number; cursos: number }[]; misAnios: number[] };
+  type Datos = { modo: 'cuenta' | 'local' | 'compartida'; cuatri: 1 | 2; porDefecto: 1 | 2; cuatris: { c: 1 | 2; texto: string }[]; materias: Materia[]; catalogo: { id: number; nombre: string; nivel: number; cursos: number }[]; misAnios: number[] };
 
   const raiz = document.getElementById('mi-inscripcion')!;
   const datos: Datos = JSON.parse(document.getElementById('sim-datos')!.textContent || '{}');
@@ -179,6 +189,7 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
   })();
 
   let turno = '';
+  let cuatri = datos.cuatri;
   let toque: number | null = null;
   const abiertas = new Set<number>();
 
@@ -188,7 +199,15 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
   const estrellas = (p: number) => { const n = Math.min(Math.max(Math.round(p), 0), 5); return `<span class="stars" role="img" aria-label="${nota(p)} de 5 estrellas">${'★'.repeat(n)}<span class="off">${'★'.repeat(5 - n)}</span></span>`; };
   const letraTurno = (t: string | null) => (t ? t.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().charAt(0).toUpperCase() : '');
   const textoTurno = (t: string | null) => (t ? t.trim().charAt(0).toUpperCase() + t.trim().slice(1).toLowerCase() : '');
-  const horario = (o: Opcion) => (o.bloques.length ? o.bloques.map((b) => `${DIAS_CORTOS[b.dia]} ${horaTexto(b.desde)} a ${horaTexto(b.hasta)}`).join(' · ') : 'Sin horario cargado');
+  // El cuatrimestre que se mira: los anuales ocupan los dos, pero se eligen en el 1.º
+  const seCursa = (o: Opcion) => o.cuatris.includes(cuatri);
+  const sePuede = (o: Opcion) => seCursa(o) && !(cuatri === 2 && o.anual);
+  const bloquesDe = (o: Opcion) => o.bloques.filter((b) => b.cuatri === null || b.cuatri === cuatri);
+  const nombreCuatri = (c: number) => (c === 1 ? '1.er cuatrimestre' : '2.º cuatrimestre');
+  const horario = (o: Opcion) => {
+    const bs = seCursa(o) ? bloquesDe(o) : o.bloques;
+    return bs.length ? bs.map((b) => `${DIAS_CORTOS[b.dia]} ${horaTexto(b.desde)} a ${horaTexto(b.hasta)}`).join(' · ') : 'Sin horario cargado';
+  };
   const elegidoDe = (m: Materia) => m.opciones.find((o) => o.id === m.elegido) || null;
   const pisan = (x: Bloque, y: Bloque) => x.dia === y.dia && Math.max(x.desde, y.desde) < Math.min(x.hasta, y.hasta);
   const nombreCurso = (m: Materia, o: Opcion) => `${m.nombre} (${o.curso})`;
@@ -197,17 +216,18 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
     if (modo !== 'local') return;
     const l = { c: datos.materias.flatMap((m) => m.pensados) };
     guardarLocal(l);
-    history.replaceState(null, '', l.c.length ? linkDe(l, '&mia=1') : '/mi-inscripcion');
+    history.replaceState(null, '', l.c.length ? linkDe(l, `&mia=1&cuatri=${cuatri}`) : `/mi-inscripcion?cuatri=${cuatri}`);
   }
 
   // ── Dibujo ──
   function render() {
     const ms = datos.materias;
-    const elegidos = ms.map((m, i) => ({ m, i, o: elegidoDe(m) })).filter((e): e is { m: Materia; i: number; o: Opcion } => !!e.o);
-    const todos = elegidos.flatMap((e) => e.o.bloques.map((b) => ({ ...b, m: e.m, o: e.o, i: e.i })));
+    // En la semana, solo lo que se cursa en el cuatrimestre elegido
+    const elegidos = ms.map((m, i) => ({ m, i, o: elegidoDe(m) })).filter((e): e is { m: Materia; i: number; o: Opcion } => !!e.o && seCursa(e.o));
+    const todos = elegidos.flatMap((e) => bloquesDe(e.o).map((b) => ({ ...b, m: e.m, o: e.o, i: e.i })));
 
     // Choques
-    const choques = superposiciones(elegidos.map((e) => ({ id: e.o.id, materia: e.m.id, nombre: nombreCurso(e.m, e.o), bloques: e.o.bloques.map((b) => ({ ...b, cuatri: null })) })));
+    const choques = superposiciones(elegidos.map((e) => ({ id: e.o.id, materia: e.m.id, nombre: nombreCurso(e.m, e.o), bloques: bloquesDe(e.o).map((b) => ({ ...b, cuatri: null })) })));
     const cb = document.getElementById('sim-choques')!;
     cb.classList.toggle('hidden', !choques.length);
     cb.querySelector('div')!.innerHTML = choques.map((c) => `<div>${esc(textoChoque(c))}</div>`).join('');
@@ -282,42 +302,53 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
     const et = elegidos.find((e) => e.m.id === toque);
     tc.className = et ? `sim-toque m${(et.i % 6) + 1}` : 'sim-toque hidden';
     tc.innerHTML = et
-      ? `<i></i><div><span><b>${esc(et.m.nombre)}</b>, ${esc(et.o.curso)}${et.o.turno ? ` · ${esc(textoTurno(et.o.turno))}` : ''}</span>`
+      ? `<i></i><div><span><b>${esc(et.m.nombre)}</b>, ${esc(et.o.curso)}${et.o.turno ? ` · ${esc(textoTurno(et.o.turno))}` : ''}${et.o.contra ? ' · Contracuatrimestral' : ''}</span>`
         + (et.o.promedio !== null ? `<span>${estrellas(et.o.promedio)} ${nota(et.o.promedio)} <span class="sub">· ${et.o.cantidad} reseña${et.o.cantidad !== 1 ? 's' : ''}</span></span>` : '<span class="sub">Sin reseñas</span>')
-        + `<span class="sub">${et.o.bloques.map((b) => `${DIAS[b.dia]} ${horaTexto(b.desde)} a ${horaTexto(b.hasta)}`).join(' · ')}</span>`
+        + `<span class="sub">${bloquesDe(et.o).map((b) => `${DIAS[b.dia]} ${horaTexto(b.desde)} a ${horaTexto(b.hasta)}`).join(' · ')}</span>`
         + `<span class="acc"><a href="/dictado/${et.o.id}">Ver las reseñas</a>${soloMirar ? '' : `<button type="button" class="linklike" data-cambiar="${et.m.id}">Cambiar de curso</button>`}</span></div>`
       : '';
 
     // Materias y sus cursos
     const cont = document.getElementById('sim-materias')!;
-    cont.innerHTML = ms.map((m, i) => {
+    // Primero las de este cuatrimestre; las elegidas en el otro, al final
+    const orden = ms.map((m, i) => ({ m, i, aca: !elegidoDe(m) || seCursa(elegidoDe(m)!) })).sort((a, b) => Number(b.aca) - Number(a.aca));
+    cont.innerHTML = orden.map(({ m, i, aca }) => {
       const elegido = elegidoDe(m);
       const otros = todos.filter((b) => b.m !== m);
       const abierta = abiertas.has(m.id);
-      const lista = m.opciones.filter((o) => o === elegido || (!soloMirar && abierta && o.enPeriodo && (!turno || letraTurno(o.turno) === turno)));
+      const lista = m.opciones.filter((o) => o === elegido || (!soloMirar && abierta && sePuede(o) && (!turno || letraTurno(o.turno) === turno)));
       const filas = lista.map((o) => {
-        const con = [...new Set(o.bloques.flatMap((b) => otros.filter((x) => pisan(x, b)).map((x) => nombreCurso(x.m, x.o))))];
-        const extra = [textoTurno(o.turno), o.periodo?.replace('cuatrimestre', 'cuatri')].filter(Boolean).join(' · ');
+        const con = seCursa(o) ? [...new Set(bloquesDe(o).flatMap((b) => otros.filter((x) => pisan(x, b)).map((x) => nombreCurso(x.m, x.o))))] : [];
+        const extra = [textoTurno(o.turno), o.periodo?.replace('cuatrimestre', 'cuatri'), o.contra ? 'Contracuatrimestral' : ''].filter(Boolean).join(' · ');
         return `<label class="op${o === elegido ? ' sel' : ''}">${soloMirar ? '<span></span>' : `<input type="radio" name="m-${m.id}" value="${o.id}" ${o === elegido ? 'checked' : ''}>`}`
           + `<a class="cod" href="/dictado/${o.id}">${esc(o.curso)}</a><span>${esc(extra)}</span>`
           + `<span class="nota">${o.promedio !== null ? `${estrellas(o.promedio)} ${nota(o.promedio)} <span class="sub">· ${o.cantidad}</span>` : '<span class="sub">Sin reseñas</span>'}</span>`
-          + `<span class="hor">${esc(horario(o))}${o.enPeriodo ? '' : ` (no se cursa en el ${datos.cuatri === 1 ? 'primer' : 'segundo'} cuatrimestre)`}</span>`
+          + `<span class="hor">${esc(horario(o))}</span>`
           + (con.length ? `<span class="pisa-txt">Se pisa con ${esc(con.join(' y '))}</span>` : '') + '</label>';
       }).join('');
-      const resto = m.opciones.filter((o) => o.enPeriodo && o !== elegido).length;
-      const vacia = !elegido ? `<div class="vacia">No hay cursos de esta materia en el ${datos.cuatri === 1 ? 'primer' : 'segundo'} cuatrimestre.</div>` : '';
+      const posibles = m.opciones.filter(sePuede);
+      const resto = posibles.filter((o) => o !== elegido).length;
+      let aviso = '';
+      if (!elegido) aviso = `No hay cursos de esta materia en el ${nombreCuatri(cuatri)}.`;
+      else if (!aca) aviso = posibles.length && !soloMirar ? `La elegiste en el ${nombreCuatri(3 - cuatri)}. Si la querés cursar en el ${nombreCuatri(cuatri)}, elegí otro curso.` : `Se cursa en el ${nombreCuatri(3 - cuatri)}.`;
+      else if (posibles.length && posibles.every((o) => o.contra)) {
+        // IA en 5K3: en ese cuatrimestre solo está el contracuatrimestral, los demás son del otro
+        const delOtro = m.opciones.filter((o) => !o.contra && o.cuatris.includes((3 - cuatri) as 1 | 2)).length;
+        if (delOtro) aviso = `En el ${nombreCuatri(cuatri)} solo ${posibles.length === 1 ? 'está el curso contracuatrimestral' : 'están los cursos contracuatrimestrales'}. ${delOtro === 1 ? 'El otro curso es' : `Los otros ${delOtro} cursos son`} del ${nombreCuatri(3 - cuatri)}.`;
+      }
+      const vacia = aviso ? `<div class="vacia">${esc(aviso)}</div>` : '';
       // La columna del curso, del ancho del más largo (1H10/50)
       const largo = Math.max(3, ...lista.map((o) => o.curso.length));
-      return `<section class="sim-m m${(i % 6) + 1}" data-materia="${m.id}" style="--cw:calc(${largo}ch + 6px)"><div class="plan-h"><span class="cuad"></span><b>${esc(m.nombre)}</b>${soloMirar ? '' : `<button type="button" class="linklike quitar" data-quitar="${m.id}">Quitar</button>`}</div>${vacia}${filas}`
+      return `<section class="sim-m m${(i % 6) + 1}${aca ? '' : ' fuera'}" data-materia="${m.id}" style="--cw:calc(${largo}ch + 6px)"><div class="plan-h"><span class="cuad"></span><b>${esc(m.nombre)}</b>${soloMirar ? '' : `<button type="button" class="linklike quitar" data-quitar="${m.id}">Quitar</button>`}</div>${vacia}${filas}`
         + (!soloMirar && resto > 0 ? `<button type="button" class="linklike mas" data-abrir="${m.id}">${abierta ? 'Ver menos' : `Ver ${resto === 1 ? 'el otro curso' : `los otros ${resto} cursos`}`}</button>` : '') + '</section>';
     }).join('');
 
-    // Compartir: los elegidos
-    const ids = elegidos.map((e) => e.o.id);
+    // Compartir: los elegidos de los dos cuatrimestres
+    const ids = ms.map((m) => m.elegido).filter((x): x is number => !!x);
     const share = raiz.querySelector<HTMLElement>('[data-compartir]');
     share?.classList.toggle('hidden', !ids.length);
     const btn = share?.querySelector<HTMLElement>('[data-share]');
-    if (btn) btn.dataset.ruta = `/mi-inscripcion?c=${ids.join(',')}`;
+    if (btn) btn.dataset.ruta = `/mi-inscripcion?c=${ids.join(',')}&cuatri=${cuatri}`;
   }
 
   // ── Acciones ──
@@ -354,9 +385,9 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
       m = { ...data.materia, pensados: [], elegido: null };
     } catch (e) { alert((e as Error).message); return; }
     // El de mejor puntaje que no se pise con lo que ya elegiste (si no hay, el de mejor puntaje)
-    const ocupados = datos.materias.flatMap((x) => elegidoDe(x)?.bloques || []);
-    const posibles = m.opciones.filter((o) => o.enPeriodo);
-    const mejor = posibles.find((o) => o.bloques.length && !o.bloques.some((b) => ocupados.some((x) => pisan(x, b)))) || posibles[0] || m.opciones[0];
+    const ocupados = datos.materias.flatMap((x) => { const o = elegidoDe(x); return o && seCursa(o) ? bloquesDe(o) : []; });
+    const posibles = m.opciones.filter(sePuede);
+    const mejor = posibles.find((o) => bloquesDe(o).length && !bloquesDe(o).some((b) => ocupados.some((x) => pisan(x, b)))) || posibles[0] || m.opciones[0];
     if (!mejor) { alert('Esa materia todavía no tiene cursos cargados.'); return; }
     m.pensados = [mejor.id]; m.elegido = mejor.id;
     datos.materias.push(m);
@@ -375,8 +406,16 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
 
   raiz.addEventListener('click', (e) => {
     const el = e.target as HTMLElement;
-    const b = el.closest<HTMLElement>('[data-abrir],[data-turno],[data-toque],[data-quitar],[data-cambiar]');
+    const b = el.closest<HTMLElement>('[data-abrir],[data-turno],[data-toque],[data-quitar],[data-cambiar],[data-cuatri]');
     if (!b) return;
+    if (b.dataset.cuatri) {
+      cuatri = Number(b.dataset.cuatri) as 1 | 2;
+      toque = null;
+      raiz.querySelectorAll('[data-cuatri]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      const u = new URL(location.href);
+      u.searchParams.set('cuatri', String(cuatri));
+      history.replaceState(null, '', u);
+    }
     if (b.dataset.toque) toque = toque === Number(b.dataset.toque) ? null : Number(b.dataset.toque);
     if (b.dataset.abrir) { const id = Number(b.dataset.abrir); abiertas.has(id) ? abiertas.delete(id) : abiertas.add(id); }
     if (b.dataset.cambiar) {

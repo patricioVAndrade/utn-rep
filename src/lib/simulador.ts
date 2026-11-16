@@ -13,10 +13,13 @@ export type Opcion = {
   periodo: string | null;
   promedio: number | null;
   cantidad: number;
-  /** Solo los del cuatrimestre de la inscripción. */
+  /** Todos, cada uno con su cuatrimestre (null: los dos). */
   bloques: Bloque[];
-  /** Si se cursa en el cuatrimestre de la inscripción. */
-  enPeriodo: boolean;
+  /** En qué cuatrimestres se cursa (anual: los dos). */
+  cuatris: Cuatri[];
+  anual: boolean;
+  /** Contracuatrimestral: se dicta en el cuatrimestre contrario al habitual. */
+  contra: boolean;
 };
 export type MateriaSim = { id: number; nombre: string; nivel: number; sigla: string; opciones: Opcion[] };
 
@@ -41,12 +44,12 @@ export function ordenarOpciones(a: Opcion, b: Opcion): number {
   return (b.promedio ?? -1) - (a.promedio ?? -1) || b.cantidad - a.cantidad || compararCursos(a.curso, b.curso);
 }
 
-/** Los cursos de esas materias, listos para el simulador. */
-export async function materiasSim(materiaIds: number[], cuatri: Cuatri): Promise<MateriaSim[]> {
+/** Los cursos de esas materias, listos para el simulador (de los dos cuatrimestres). */
+export async function materiasSim(materiaIds: number[]): Promise<MateriaSim[]> {
   if (!materiaIds.length) return [];
   const [{ data: materias }, { data: dictados }] = await Promise.all([
     supabase.from('materias').select('id, nombre, nivel').in('id', materiaIds),
-    supabase.from('dictados').select('id, materia_id, periodo_dictado, cursos ( identificador, turno )').in('materia_id', materiaIds).range(0, 9999),
+    supabase.from('dictados').select('id, materia_id, periodo_dictado, es_contracuatrimestral, cursos ( identificador, turno )').in('materia_id', materiaIds).range(0, 9999),
   ]);
   const ids = (dictados || []).map((d: any) => d.id);
   const [{ data: stats }, { data: horarios }] = ids.length
@@ -67,8 +70,12 @@ export async function materiasSim(materiaIds: number[], cuatri: Cuatri): Promise
     const unico = bloques.length && bloques.every((b) => b.cuatri !== null && b.cuatri === bloques[0].cuatri) ? bloques[0].cuatri : null;
     const per = PERIODOS[(d as any).periodo_dictado] || (unico ? PERIODOS[unico === 1 ? 'PRIMER_CUATRIMESTRE' : 'SEGUNDO_CUATRIMESTRE'] : null);
     if (per?.cuatri) bloques = bloques.map((b) => (b.cuatri === null ? { ...b, cuatri: per.cuatri } : b));
-    // Anuales: se inscriben en el primer cuatrimestre
-    const enPeriodo = per ? (per.cuatri === null ? cuatri === 1 : per.cuatri === cuatri) : !bloques.length || bloques.some((b) => b.cuatri === null || b.cuatri === cuatri);
+    // Un cuatrimestral puede tener días distintos en cada cuatrimestre (3K6): se cursa en los dos
+    const cs = new Set<Cuatri>();
+    if (per) (per.cuatri ? [per.cuatri] : [1, 2]).forEach((c) => cs.add(c as Cuatri));
+    for (const b of bloques) if (b.cuatri) cs.add(b.cuatri);
+    // Sin período ni cuatrimestre en el horario: puede ser cualquiera
+    if (!cs.size || (!per && bloques.some((b) => b.cuatri === null))) { cs.add(1); cs.add(2); }
     porMateria.set(d.materia_id, [...(porMateria.get(d.materia_id) || []), {
       id: d.id,
       curso: c?.identificador || 'Curso',
@@ -76,8 +83,10 @@ export async function materiasSim(materiaIds: number[], cuatri: Cuatri): Promise
       periodo: per?.texto ?? null,
       promedio: s?.cantidad ? Number(s.promedio) : null,
       cantidad: s?.cantidad || 0,
-      bloques: bloques.filter((b) => b.cuatri === null || b.cuatri === cuatri),
-      enPeriodo,
+      bloques,
+      cuatris: [...cs].sort((a, b) => a - b),
+      anual: (d as any).periodo_dictado === 'ANUAL',
+      contra: !!(d as any).es_contracuatrimestral && (d as any).periodo_dictado !== 'ANUAL',
     }]);
   }
   return (materias || [])
