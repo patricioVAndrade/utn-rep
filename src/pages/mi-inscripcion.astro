@@ -14,7 +14,7 @@ import Icon from '../components/Icon.astro';
 import ShareButton from '../components/ShareButton.astro';
 import { supabase, createSupabaseServerClient } from '../lib/supabase';
 import { idsDeTexto } from '../lib/inscripcion';
-import { materiasSim, periodoInscripcion } from '../lib/simulador';
+import { cuatrisInscripcion, materiasSim, periodoInscripcion } from '../lib/simulador';
 import { leerPerfil } from '../lib/perfil';
 
 const user = Astro.locals.user;
@@ -47,9 +47,7 @@ if (deLink) {
 const periodo = periodoInscripcion();
 const pedido = Number(params.get('cuatri'));
 const cuatri = pedido === 1 || pedido === 2 ? pedido : periodo.cuatri;
-// De marzo a julio se simula el 2.º de este año; el 1.º ya es del año que viene
-const anioDe = (c: number) => (c === 1 && periodo.cuatri === 2 ? periodo.anio + 1 : periodo.anio);
-const cuatris = [1, 2].map((c) => ({ c, texto: `${c === 1 ? '1.er' : '2.º'} cuatrimestre ${anioDe(c)}` }));
+const cuatris = cuatrisInscripcion();
 
 // Materias de los cursos de la lista
 let materiaDe = new Map<number, number>();
@@ -79,9 +77,20 @@ const catalogo = (catalogoRaw || []).map((m: any) => ({ id: m.id, nombre: m.nomb
 const datos = { modo: compartida ? 'compartida' : user ? 'cuenta' : 'local', cuatri, porDefecto: periodo.cuatri, cuatris, materias: elegidas, catalogo, misAnios };
 const json = JSON.stringify(datos).replace(/</g, '\\u003c');
 const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
+
+// Link compartido: la imagen al compartir es la semana (6.4, Pato 16/11)
+const enCuatri = elegidas.filter((m) => m.opciones.find((o) => o.id === m.elegido)?.cuatris.includes(cuatri as 1 | 2)).length;
+const textoCuatri = cuatris.find((x) => x.c === cuatri)!.texto;
+const og = compartida && enCuatri
+  ? {
+      ogImage: `/og/inscripcion.png?c=${elegidosIds.join(',')}&cuatri=${cuatri}`,
+      ogTitle: 'Mirá los cursos que elegí para la inscripción',
+      description: `${textoCuatri.charAt(0).toUpperCase()}${textoCuatri.slice(1)} · ${enCuatri} materia${enCuatri === 1 ? '' : 's'}. Tocá para verla y copiarla a la tuya.`,
+    }
+  : { description: 'Simulá tu inscripción: elegí un curso de cada materia mirando sus reseñas y fijate si se pisan los horarios.' };
 ---
 
-<Layout title="Mi inscripción" tab="mis" crumbs={[{ label: 'Mi inscripción' }]} description="Simulá tu inscripción: elegí un curso de cada materia mirando sus reseñas y fijate si se pisan los horarios.">
+<Layout title="Mi inscripción" tab="mis" crumbs={[{ label: 'Mi inscripción' }]} {...og}>
   <div class:list={['layout', { single: compartida }]}>
     <div class="main" id="mi-inscripcion" data-modo={datos.modo}>
       <div class="topic">
@@ -166,6 +175,7 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
   import { api, guardarLocal, leerLocal, linkDe, traerLocal } from '../scripts/inscripcion';
   import { DIAS, DIAS_CORTOS, horaTexto, superposiciones, textoChoque, type Bloque } from '../lib/horarios';
   import { coincide, palabrasDe, parecido } from '../lib/buscar';
+  import { carriles, escalaSemana } from '../lib/semana';
 
   type Opcion = { id: number; curso: string; turno: string | null; periodo: string | null; promedio: number | null; cantidad: number; bloques: Bloque[]; cuatris: (1 | 2)[]; anual: boolean; contra: boolean };
   type Materia = { id: number; nombre: string; nivel: number; sigla: string; opciones: Opcion[]; pensados: number[]; elegido: number | null };
@@ -239,26 +249,10 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
     // Semana
     const sem = document.getElementById('sim-semana')!;
     sem.classList.toggle('hidden', !ms.length);
-    const desde = todos.length ? Math.floor(Math.min(...todos.map((b) => b.desde)) / 60) * 60 : 480;
-    const hasta = todos.length ? Math.ceil(Math.max(...todos.map((b) => b.hasta)) / 60) * 60 : 780;
     const angosta = sem.getBoundingClientRect().width < 500;
     const ppm = angosta ? 0.62 : 0.8;
-    // Dos horas o más sin ninguna clase (mañana y noche, por ejemplo) se achican a una franja
     const HUECO = 26;
-    const libre = (h: number) => !todos.some((b) => b.desde < h + 60 && b.hasta > h);
-    const huecos: [number, number][] = [];
-    for (let h = desde; h < hasta; h += 60) {
-      if (!libre(h)) continue;
-      const u = huecos[huecos.length - 1];
-      if (u && u[1] === h) u[1] = h + 60; else huecos.push([h, h + 60]);
-    }
-    const cortos = huecos.filter(([a, z]) => z - a >= 120);
-    const y = (t: number) => {
-      let v = (t - desde) * ppm;
-      for (const [a, z] of cortos) { if (t >= z) v -= (z - a) * ppm - HUECO; else if (t > a) v -= (t - a) * ppm - ((t - a) / (z - a)) * HUECO; }
-      return v;
-    };
-    const enHueco = (t: number) => cortos.some(([a, z]) => t > a && t < z);
+    const { desde, hasta, cortos, y, enHueco } = escalaSemana(todos, ppm, HUECO);
     sem.style.setProperty('--alto', `${y(hasta)}px`);
     let html = '<div class="dh"></div>' + DIAS_CORTOS.slice(1, 7).map((d) => `<div class="dh">${d}</div>`).join('');
     html += '<div class="horas">';
@@ -270,13 +264,9 @@ const elegidosIds = elegidas.map((m) => m.elegido).filter(Boolean);
       for (const [a] of cortos) html += `<i class="hueco" style="top:${y(a)}px;height:${HUECO}px"></i>`;
       const del = todos.filter((b) => b.dia === d).sort((a, b) => a.desde - b.desde);
       // Carriles: si dos se pisan, van uno al lado del otro
-      const carril = new Map<any, number>();
-      const fin: number[] = [];
-      del.forEach((b) => { let k = fin.findIndex((z) => z <= b.desde); if (k < 0) { k = fin.length; fin.push(0); } fin[k] = b.hasta; carril.set(b, k); });
+      const lugar = carriles(del);
       del.forEach((b) => {
-        const grupo = del.filter((o) => o === b || pisan(o, b));
-        const n = Math.max(...grupo.map((o) => carril.get(o)!)) + 1;
-        const k = carril.get(b)!;
+        const { k, n } = lugar.get(b)!;
         const ancho = n > 1 ? `left:calc(${(k * 100) / n}% + 1px);right:auto;width:calc(${100 / n}% - 2px);` : '';
         const alto = (b.hasta - b.desde) * ppm;
         const st = b.o.promedio !== null && alto >= 44

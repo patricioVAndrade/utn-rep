@@ -37,6 +37,13 @@ export function periodoInscripcion(hoy = new Date()): { cuatri: Cuatri; anio: nu
   return { cuatri, anio, texto: `${cuatri === 1 ? 'primer' : 'segundo'} cuatrimestre ${anio}` };
 }
 
+/** Los dos cuatrimestres que se pueden simular, con su año: de marzo a julio el 1.º ya es del año que viene. */
+export function cuatrisInscripcion(hoy = new Date()): { c: Cuatri; texto: string }[] {
+  const p = periodoInscripcion(hoy);
+  const anioDe = (c: Cuatri) => (c === 1 && p.cuatri === 2 ? p.anio + 1 : p.anio);
+  return ([1, 2] as Cuatri[]).map((c) => ({ c, texto: `${c === 1 ? '1.er' : '2.º'} cuatrimestre ${anioDe(c)}` }));
+}
+
 const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 
 /** Mejor nota primero; a igual nota, el de más reseñas; los sin reseñas al final. */
