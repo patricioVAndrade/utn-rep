@@ -20,8 +20,8 @@
     "@supabase/supabase-js": "^2.97.0",
     "@tailwindcss/vite": "^4.2.0",
     "@vercel/analytics": "^1.6.1",
-    "astro": "^5.17.1",
-    "satori": "^0.18.3",
+    "astro": "^5.18.2",
+    "satori": "^0.63.2",
     "tailwindcss": "^4.2.0"
   },
   "devDependencies": {

@@ -133,7 +133,7 @@ const mia = (href: string) => (ruta === href ? 'page' : undefined);
       }
     })} />
 
-    {schema && <script type="application/ld+json" set:html={schema} />}
+    {schema && <script type="application/ld+json" set:html={schema.replace(/</g, '\\u003c')} />}
   </head>
   <body class="foro" data-sesion={user ? '1' : undefined} data-de={llegoPorLink ? de : undefined}>
     <a class="skip" href="#contenido">Saltar al contenido</a>

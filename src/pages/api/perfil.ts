@@ -38,6 +38,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const { error } = await client.from('perfiles').upsert({ user_id: user.id, ...cambios }, { onConflict: 'user_id' });
   if (error) {
     if (esBloqueo(error)) return cuentaBloqueada();
+    // La base también controla el nombre (migración 21)
+    if (error.code === 'NM001') return json({ error: 'Ese nombre no se puede usar. Usá solo letras y probá con otro.' }, 400);
     console.error('Error guardando perfil:', error);
     return json({ error: 'No se pudo guardar. Probá de nuevo.' }, 500);
   }

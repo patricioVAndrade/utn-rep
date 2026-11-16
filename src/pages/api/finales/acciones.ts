@@ -3,7 +3,7 @@ import { supabaseAdmin } from '../../../lib/supabase-admin';
 import { createSupabaseServerClient } from '../../../lib/supabase';
 import { isAdmin } from '../../../lib/admin';
 import { registrar } from '../../../lib/moderacion';
-import { json, readJson } from '../../../lib/http';
+import { cuentaBloqueada, json, readJson } from '../../../lib/http';
 import { finalAccionSchema, parseBody } from '../../../lib/validation';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -46,6 +46,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (exp.user_id !== user.id) {
     return json({ error: 'Solo el autor puede editar la experiencia.' }, 403);
   }
+  // La edición va con la clave de servicio, que la base no frena: se controla acá el bloqueo
+  const { data: perfil } = await supabaseAdmin.from('perfiles').select('bloqueado_at').eq('user_id', user.id).maybeSingle();
+  if (perfil?.bloqueado_at) return cuentaBloqueada();
   const { error } = await supabaseAdmin
     .from('experiencias_finales')
     .update({ comentario: accion.comentario })

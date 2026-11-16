@@ -280,7 +280,8 @@ const crumbs = [
     dictadoLabel: dictadoInfo ? `${dictadoInfo.materias?.nombre}, ${dictadoInfo.cursos?.identificador}` : null,
     materiaInicial: materiaPreseleccionada ? String(materiaPreseleccionada.id) : '',
     yaResenados,
-    nombreUsuario: user?.name || '',
+    // Sin < ni >: define:vars de Astro 5 no escapa bien </script> (auditoría 16/11)
+    nombreUsuario: (user?.name || '').replace(/[<>]/g, ''),
     supabaseUrl: import.meta.env.PUBLIC_SUPABASE_URL,
     supabaseKey: import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
   }}>
