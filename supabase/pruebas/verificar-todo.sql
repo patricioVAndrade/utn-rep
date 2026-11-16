@@ -119,7 +119,25 @@ WITH pruebas(migracion, prueba, esperado, resultado) AS (VALUES
   ('13 final en reseña', 'trigger que controla el final', '1', pg_temp.trig(ARRAY['trg_resenas_controlar_final'])),
   ('13 final en reseña', 'la vista dice la mesa', 'está', pg_temp.col('resenas_publicas', 'final_mesa')),
   ('13 final en reseña', 'la vista NO dice cuál es el final', 'falta', pg_temp.col('resenas_publicas', 'final_id')),
-  ('13 final en reseña', 'finales de otra persona o materia', '0', CASE WHEN pg_temp.col('resenas', 'final_id') = 'falta' THEN 'falta' ELSE pg_temp.contar('resenas', 'SELECT count(*) FROM public.resenas r JOIN public.dictados d ON d.id = r.dictado_id JOIN public.experiencias_finales f ON f.id = r.final_id WHERE f.user_id IS DISTINCT FROM r.user_id OR f.materia_id <> d.materia_id') END)
+  ('13 final en reseña', 'finales de otra persona o materia', '0', CASE WHEN pg_temp.col('resenas', 'final_id') = 'falta' THEN 'falta' ELSE pg_temp.contar('resenas', 'SELECT count(*) FROM public.resenas r JOIN public.dictados d ON d.id = r.dictado_id JOIN public.experiencias_finales f ON f.id = r.final_id WHERE f.user_id IS DISTINCT FROM r.user_id OR f.materia_id <> d.materia_id') END),
+  -- 14 a 18 y 21
+  ('14 visitas', 'tabla visitas_dia', 'está', pg_temp.tabla('visitas_dia')),
+  ('14 visitas', 'el público NO lee las visitas', 'false', pg_temp.priv('anon', 'visitas_dia', 'SELECT')),
+  ('14 visitas', 'el público NO anota visitas directo', 'false', pg_temp.ejecuta('anon', 'latido(text)')),
+  ('15 recordatorio', 'quien tiene sesión pide su recordatorio', 'true', pg_temp.ejecuta('authenticated', 'recordar_fin_cuatri()')),
+  ('15 recordatorio', 'sin sesión NO', 'false', pg_temp.ejecuta('anon', 'recordar_fin_cuatri()')),
+  ('16 logros', 'nadie se da logros a mano', 'false', pg_temp.ejecuta('authenticated', 'dar_logro(uuid,text,boolean)')),
+  ('16 logros', 'triggers de logros', '4', pg_temp.trig(ARRAY['trg_logros_apertura', 'trg_logros_resena', 'trg_logros_voto_final', 'trg_logros_voto_resena'])),
+  ('17 mails', 'tabla mails_enviados', 'está', pg_temp.tabla('mails_enviados')),
+  ('17 mails', 'nadie lee a quién se mandó mail', 'false', pg_temp.priv('authenticated', 'mails_enviados', 'SELECT')),
+  ('17 mails', 'el público NO cuenta mails', 'false', pg_temp.ejecuta('anon', 'anotar_mail_login(integer)')),
+  ('18 telegram', 'tabla telegram_cuentas', 'está', pg_temp.tabla('telegram_cuentas')),
+  ('18 telegram', 'nadie ve el número de chat', 'false', pg_temp.colpriv('authenticated', 'telegram_cuentas', 'chat_id', 'SELECT')),
+  ('18 telegram', 'nadie vincula a mano', 'false', pg_temp.ejecuta('authenticated', 'vincular_telegram(text,bigint,text)')),
+  ('18 telegram', 'trigger que avisa al sitio', '1', pg_temp.trig(ARRAY['trg_avisar_telegram'])),
+  ('21 nombres', 'controla el nombre nuevo', '1', pg_temp.trig(ARRAY['trg_perfiles_controlar_nombre'])),
+  ('21 nombres', 'el autor del final lo pone la base', '1', pg_temp.trig(ARRAY['trg_finales_nombre_autor'])),
+  ('21 nombres', 'el público NO prueba nombres', 'false', pg_temp.ejecuta('authenticated', 'nombre_aceptable(text)'))
 )
 SELECT migracion, prueba, esperado, COALESCE(resultado, 'falta') AS resultado, COALESCE(resultado, 'falta') = esperado AS ok
 FROM pruebas
