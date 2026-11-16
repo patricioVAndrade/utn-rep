@@ -15,6 +15,8 @@
 --     Estructuras Discretas y Sistemas y Procesos de Negocio (2.º cuatri).
 --     Crea 4K1B con Experiencia e Interfaces de Usuario del 2.º cuatri, igual
 --     a 4K1A (1.º cuatri), con el mismo profesor.
+--     Saca Sistemas de Gestión de 5K3: la da 5K4 en los dos cuatrimestres
+--     (Pato, 16/11/2026).
 --  3. Pasa a minúscula "de", "y", "e", "la"... en los nombres de materias
 --     que quedaron Con Todas Mayúsculas (por ejemplo "Experiencia E
 --     Interfaces De Usuario").
@@ -137,6 +139,24 @@ JOIN public.dictado_profesores dp ON dp.dictado_id = d.id
 JOIN public.dictados b ON b.materia_id = d.materia_id
 JOIN public.cursos cb ON cb.id = b.curso_id AND upper(trim(cb.identificador)) = '4K1B'
 WHERE NOT EXISTS (SELECT 1 FROM public.dictado_profesores x WHERE x.dictado_id = b.id AND x.profesor_id = dp.profesor_id);
+
+-- Sistemas de Gestión en 5K3 (contracuatrimestral, sin horario) no existe:
+-- 5K4 la da en los dos cuatrimestres (Pato, 16/11/2026). Solo si no tiene reseñas.
+DELETE FROM public.dictado_profesores dp
+USING public.dictados d, public.cursos c, public.materias m
+WHERE dp.dictado_id = d.id AND c.id = d.curso_id AND upper(trim(c.identificador)) = '5K3'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'sistemas de gestion'
+  AND NOT EXISTS (SELECT 1 FROM public.resenas r WHERE r.dictado_id = d.id);
+DELETE FROM public.profesores_historial ph
+USING public.dictados d, public.cursos c, public.materias m
+WHERE ph.dictado_id = d.id AND c.id = d.curso_id AND upper(trim(c.identificador)) = '5K3'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'sistemas de gestion'
+  AND NOT EXISTS (SELECT 1 FROM public.resenas r WHERE r.dictado_id = d.id);
+DELETE FROM public.dictados d
+USING public.cursos c, public.materias m
+WHERE c.id = d.curso_id AND upper(trim(c.identificador)) = '5K3'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'sistemas de gestion'
+  AND NOT EXISTS (SELECT 1 FROM public.resenas r WHERE r.dictado_id = d.id);
 
 -- 3 y 4, con el resultado en una fila
 WITH arreglados AS (
@@ -912,9 +932,8 @@ datos(curso, materia, cuatri, dia, desde, hasta) AS (VALUES
   ('5K4', 'Seguridad en los Sistemas de Información', 2, 5, '18:15', '20:40'),
   ('5K4', 'Sistemas de Gestión', 1, 1, '19:55', '23:05'),
   ('5K4', 'Sistemas de Gestión', 1, 4, '19:55', '23:05'),
-  -- El PDF lo pone en 5K4, pero es el 5K3 contracuatrimestral (Pato, 16/11)
-  ('5K3', 'Sistemas de Gestión', 2, 3, '19:55', '23:05'),
-  ('5K3', 'Sistemas de Gestión', 2, 4, '19:55', '23:05'),
+  ('5K4', 'Sistemas de Gestión', 2, 3, '19:55', '23:05'),
+  ('5K4', 'Sistemas de Gestión', 2, 4, '19:55', '23:05'),
   ('5K5', 'Gestión Gerencial', 2, 1, '18:15', '20:40'),
   ('5K5', 'Gestión Gerencial', 2, 4, '18:15', '19:45')),
 grupos AS (
