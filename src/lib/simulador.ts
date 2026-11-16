@@ -80,7 +80,8 @@ export async function materiasSim(materiaIds: number[]): Promise<MateriaSim[]> {
       id: d.id,
       curso: c?.identificador || 'Curso',
       turno: c?.turno ?? null,
-      periodo: per?.texto ?? null,
+      // Cuatrimestral con horario en los dos (3K6): que lo diga, para no confundir
+      periodo: per?.cuatri && cs.size === 2 ? '1.er y 2.º cuatrimestre' : per?.texto ?? null,
       promedio: s?.cantidad ? Number(s.promedio) : null,
       cantidad: s?.cantidad || 0,
       bloques,

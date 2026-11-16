@@ -912,8 +912,9 @@ datos(curso, materia, cuatri, dia, desde, hasta) AS (VALUES
   ('5K4', 'Seguridad en los Sistemas de Información', 2, 5, '18:15', '20:40'),
   ('5K4', 'Sistemas de Gestión', 1, 1, '19:55', '23:05'),
   ('5K4', 'Sistemas de Gestión', 1, 4, '19:55', '23:05'),
-  ('5K4', 'Sistemas de Gestión', 2, 3, '19:55', '23:05'),
-  ('5K4', 'Sistemas de Gestión', 2, 4, '19:55', '23:05'),
+  -- El PDF lo pone en 5K4, pero es el 5K3 contracuatrimestral (Pato, 16/11)
+  ('5K3', 'Sistemas de Gestión', 2, 3, '19:55', '23:05'),
+  ('5K3', 'Sistemas de Gestión', 2, 4, '19:55', '23:05'),
   ('5K5', 'Gestión Gerencial', 2, 1, '18:15', '20:40'),
   ('5K5', 'Gestión Gerencial', 2, 4, '18:15', '19:45')),
 grupos AS (
