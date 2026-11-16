@@ -1,0 +1,21 @@
+---
+// La pantalla vieja de gestión se dividió en Reseñas, Materias y cursos y Profesores.
+// Se deja esta dirección para que los links guardados sigan andando.
+import { isAdmin } from '../../lib/admin';
+const user = Astro.locals.user;
+if (!user || !isAdmin(user.id)) return Astro.redirect('/');
+---
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Panel de admin</title>
+    <script is:inline>
+      var h = location.hash.slice(1);
+      var destino = { resenas: '/admin/resenas', dictados: '/admin/materias', profesores: '/admin/profesores', reportes: '/admin/reportes' }[h] || '/admin';
+      location.replace(destino);
+    </script>
+  </head>
+  <body><a href="/admin">Ir al panel de admin</a></body>
+</html>

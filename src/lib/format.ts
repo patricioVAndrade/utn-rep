@@ -12,6 +12,17 @@ export function tiempoRelativo(fecha: string, now = Date.now()): string {
   return `Hace ${anios} año${anios > 1 ? 's' : ''}`;
 }
 
+/** Fecha y hora exactas, como en los foros: "12/11/2026 02:11" (hora de Córdoba). */
+export function fechaHora(fecha: string): string {
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return '';
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Argentina/Cordoba' })
+      .formatToParts(d).map((x) => [x.type, x.value]),
+  );
+  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
+}
+
 export function estrellas(n: number): string {
   const llenas = Math.min(Math.max(Math.round(n), 0), 5);
   return '★'.repeat(llenas) + '☆'.repeat(5 - llenas);
@@ -36,3 +47,69 @@ export const NIVEL_COLORS: Record<number, NivelColor> = {
 export function nivelColor(nivel: number | null | undefined): NivelColor {
   return NIVEL_COLORS[nivel ?? 1] || NIVEL_COLORS[1];
 }
+
+/** "2.º año" */
+export function anioLabel(nivel: number | null | undefined): string {
+  return `${nivel ?? 1}.º año`;
+}
+
+/** Clase del chip de turno: m (mañana), t (tarde), n (noche). */
+export function turnoClase(turno: string | null | undefined): string {
+  const t = (turno || '').toUpperCase();
+  if (t.startsWith('MA')) return 'm';
+  if (t.startsWith('TA')) return 't';
+  if (t.startsWith('NO')) return 'n';
+  return '';
+}
+
+/** "Mañana", "Tarde", "Noche" */
+export function turnoLabel(turno: string | null | undefined): string {
+  if (!turno) return 'Sin turno';
+  const t = turno.trim().toLowerCase();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/** 4.25 → "4,3" */
+export function nota(n: number): string {
+  return n.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+/** Orden natural de cursos: 1K2 antes que 1K10. */
+export function compararCursos(a: string, b: string): number {
+  return (a || '').localeCompare(b || '', 'es', { numeric: true });
+}
+
+/** "Mesa de julio 2026", "Mesa de febrero / marzo 2026", "Mesa especial 2026" */
+export function mesaTexto(mesa: string | null | undefined, anio: number | string | null | undefined): string {
+  const m = (mesa || '').trim().toLowerCase();
+  const a = anio ? ` ${anio}` : '';
+  if (!m) return `Mesa${a}`;
+  if (m.startsWith('feb')) return `Mesa de febrero / marzo${a}`;
+  if (m.startsWith('esp')) return `Mesa especial${a}`;
+  return `Mesa de ${m}${a}`;
+}
+
+/** "Rindió en julio 2026" (F34): lo que dice la reseña que tiene sumado su final. */
+export function rindioTexto(mesa: string | null | undefined, anio: number | string | null | undefined): string {
+  const m = (mesa || '').trim().toLowerCase();
+  if (!m && !anio) return '';
+  const a = anio ? ` ${anio}` : '';
+  if (m.startsWith('feb')) return `Rindió en febrero / marzo${a}`;
+  if (m.startsWith('esp')) return `Rindió en una mesa especial${a}`;
+  return m ? `Rindió en ${m}${a}` : `Rindió el final${a}`;
+}
+
+/** "Editada el 12/11" (vacío si nunca se editó). La fecha la pone la base al cambiar texto, estrellas o "¿Cómo te fue?". */
+export function editadaEl(fecha: string | null | undefined): string {
+  if (!fecha) return '';
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return '';
+  return `Editada el ${d.toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric', timeZone: 'America/Argentina/Cordoba' })}`;
+}
+
+/** Cómo le fue, en primera persona (para quien escribió la reseña) */
+export const COMO_TE_FUE = [
+  { valor: 'PROMOCIONADO', texto: 'Promocioné', clase: 'prom' },
+  { valor: 'REGULAR', texto: 'Regularicé', clase: 'reg' },
+  { valor: 'LIBRE', texto: 'Quedé libre', clase: 'libre' },
+] as const;

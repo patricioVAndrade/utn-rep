@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../lib/supabase';
-import { json, readJson } from '../../lib/http';
+import { json, readJson, esBloqueo, cuentaBloqueada } from '../../lib/http';
 import { parseBody, resenaCreateSchema } from '../../lib/validation';
+import { revisarPalabras } from '../../lib/moderacion';
 
 /**
  * POST /api/resenas
@@ -45,7 +46,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   if (!dictado) return json({ error: 'El curso no existe.' }, 404);
 
-  const { error: insertError } = await supabase
+  const { data: nueva, error: insertError } = await supabase
     .from('resenas')
     .insert({
       dictado_id,
@@ -55,9 +56,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       user_id: user.id,
       es_anonima,
       condicion_final,
-    });
+    })
+    .select('id')
+    .single();
 
   if (insertError) {
+    if (esBloqueo(insertError)) return cuentaBloqueada();
     // 23505 = unique_violation (unique_user_dictado)
     if (insertError.code === '23505') {
       return json({ error: 'Ya escribiste una reseña para este curso. Solo se permite una por curso.' }, 409);
@@ -65,6 +69,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     console.error('Error inserting resena:', insertError);
     return json({ error: 'No se pudo guardar la reseña. Intentá de nuevo.' }, 500);
   }
+
+  // Palabras marcadas: si trae una, entra sola a Reportes (no frena la publicación)
+  if (nueva?.id) await revisarPalabras(nueva.id, comentario);
 
   return json({ success: true }, 201);
 };

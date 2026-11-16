@@ -1,0 +1,4607 @@
+{
+  "info": {
+    "_postman_id": "22a9ea37-5d44-4ecf-8983-f17ca47c756e",
+    "name": "UTN REP: pruebas antes de producción",
+    "description": "Todas las rutas del sitio (lo nuevo y lo de antes). Se corre entera con Run collection, en orden, contra la Preview (entorno 'UTN REP Preview'). La carpeta 6 es la única que se corre en producción, después del merge. Cómo usarla: 5-pruebas/COMO-PROBAR.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pasa la protección de Vercel en la Preview (si la variable está vacía, no hace nada)",
+          "const b = pm.environment.get('bypass');",
+          "if (b) { pm.request.headers.upsert({ key: 'x-vercel-protection-bypass', value: b }); pm.request.headers.upsert({ key: 'x-vercel-set-bypass-cookie', value: 'true' }); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "materia_id",
+      "value": "1"
+    },
+    {
+      "key": "dictado_id",
+      "value": "1"
+    },
+    {
+      "key": "csrf",
+      "value": ""
+    },
+    {
+      "key": "final_id",
+      "value": ""
+    },
+    {
+      "key": "visitante",
+      "value": "postman-visitante-0001"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Preparación",
+      "description": "Busca una materia y un curso de verdad en la base para usar en el resto.",
+      "item": [
+        {
+          "name": "Buscar una materia (AM1)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/buscar.json?q=am1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "buscar.json"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "am1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "const m = (pm.response.json().materias || [])[0];",
+                  "pm.test('encuentra una materia', () => pm.expect(m).to.be.an('object'));",
+                  "if (m) pm.collectionVariables.set('materia_id', m.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cursos de esa materia (simulador)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/inscripcion/opciones?materia={{materia_id}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "inscripcion",
+                "opciones"
+              ],
+              "query": [
+                {
+                  "key": "materia",
+                  "value": "{{materia_id}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "const o = (pm.response.json().materia || {}).opciones || [];",
+                  "pm.test('trae cursos con horario y período', () => { pm.expect(o.length).to.be.above(0); pm.expect(o[0]).to.have.property('periodo'); pm.expect(o[0]).to.have.property('cuatris'); });",
+                  "if (o[0]) pm.collectionVariables.set('dictado_id', o[0].id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Público (sin sesión)",
+      "description": "Lo que ve cualquiera.",
+      "item": [
+        {
+          "name": "Inicio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/",
+              "host": [
+                "{{base}}"
+              ],
+              "path": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('encabezados de seguridad', () => { ['content-security-policy','x-frame-options','x-content-type-options','referrer-policy'].forEach(h => pm.expect(pm.response.headers.has(h), h).to.be.true); });",
+                  "pm.test('no muestra errores de servidor', () => pm.expect(pm.response.text()).to.not.include('Internal Server Error'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Materia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/materia/{{materia_id}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "materia",
+                "{{materia_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comparar cursos de la materia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/materia/{{materia_id}}/comparar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "materia",
+                "{{materia_id}}",
+                "comparar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Curso",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/dictado/{{dictado_id}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "dictado",
+                "{{dictado_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Año 1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/nivel/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "nivel",
+                "1"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Experiencias de finales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/finales",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "finales"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/recientes",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "recientes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi inscripción (sin sesión)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/mi-inscripcion?cuatri=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "mi-inscripcion"
+              ],
+              "query": [
+                {
+                  "key": "cuatri",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi inscripción compartida (con imagen)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/mi-inscripcion?c={{dictado_id}}&cuatri=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "mi-inscripcion"
+              ],
+              "query": [
+                {
+                  "key": "c",
+                  "value": "{{dictado_id}}"
+                },
+                {
+                  "key": "cuatri",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('la vista previa usa la semana', () => pm.expect(pm.response.text()).to.include('/og/inscripcion.png'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Términos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/terminos",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "terminos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sobre",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/sobre",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "sobre"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Qué cambió",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/que-cambio",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "que-cambio"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar (página)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/buscar?q=paradignas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "buscar"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "paradignas"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('muestra lo parecido', () => pm.expect(pm.response.text()).to.include('Paradigmas'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página que no existe",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/esto-no-existe",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "esto-no-existe"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscador del banner",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/buscar.json?q=1k1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "buscar.json"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "1k1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('devuelve materias', () => pm.expect(pm.response.json()).to.have.property('materias'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Últimas experiencias de finales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/finales/ultimas.json",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "finales",
+                "ultimas.json"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Opciones del simulador: materia inválida",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/inscripcion/opciones?materia=abc",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "inscripcion",
+                "opciones"
+              ],
+              "query": [
+                {
+                  "key": "materia",
+                  "value": "abc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "En línea",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/en-linea",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "en-linea"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visitante\": \"{{visitante}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('devuelve número y texto', () => { const j = pm.response.json(); pm.expect(j.n).to.be.a('number'); pm.expect(j.texto).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "En línea: visitante inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/en-linea",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "en-linea"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visitante\": \"x\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi link sin sesión",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/links/mio",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "links",
+                "mio"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('sin código', () => pm.expect(pm.response.json().codigo).to.equal(null));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Abrir link: código inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/links/abrir",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "links",
+                "abrir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"\",\n  \"visitante\": \"{{visitante}}\",\n  \"ruta\": \"/\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Imagen al compartir: materia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/og/materia/{{materia_id}}.png",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "og",
+                "materia",
+                "{{materia_id}}.png"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('es una imagen PNG', () => pm.expect(pm.response.headers.get('content-type')).to.include('image/png'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Imagen al compartir: curso",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/og/curso/{{dictado_id}}.png",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "og",
+                "curso",
+                "{{dictado_id}}.png"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Imagen al compartir: Mi inscripción",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/og/inscripcion.png?c={{dictado_id}}&cuatri=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "og",
+                "inscripcion.png"
+              ],
+              "query": [
+                {
+                  "key": "c",
+                  "value": "{{dictado_id}}"
+                },
+                {
+                  "key": "cuatri",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('es una imagen PNG', () => pm.expect(pm.response.headers.get('content-type')).to.include('image/png'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Escrituras sin sesión (todas rechazadas)",
+      "description": "Nadie puede escribir sin iniciar sesión, ni entrar al admin, al cron o a Telegram sin su clave.",
+      "item": [
+        {
+          "name": "Escribir reseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/resenas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "resenas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dictado_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar reseña",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/resenas/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "resenas",
+                "1"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comentario\": \"Un texto cualquiera de prueba\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Borrar reseña",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/resenas/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "resenas",
+                "1"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Votar reseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/resenas/votar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "resenas",
+                "votar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resena_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rechazado', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reportar reseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/reportes",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "reportes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resena_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rechazado', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sumar final a reseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/resenas/final",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "resenas",
+                "final"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resena_id\": 1,\n  \"final_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Contar un final",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/finales/crear",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "finales",
+                "crear"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"materia_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar o borrar un final",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/finales/acciones",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "finales",
+                "acciones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"eliminar\",\n  \"id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Votar un final",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/finales/votar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "finales",
+                "votar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"final_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rechazado', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reportar un final",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/finales/reportar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "finales",
+                "reportar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"final_id\": 1,\n  \"motivo\": \"prueba\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rechazado', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi cuenta: perfil",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/perfil",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "perfil"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_mostrar\": \"Prueba\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Borrar cuenta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/cuenta/borrar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "cuenta",
+                "borrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resenas\": \"anonimas\",\n  \"confirmacion\": \"BORRAR\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seguir materia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/seguir",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "seguir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"materia_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avisos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/avisos",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "avisos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"leer\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preferencias de avisos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/avisos/preferencias",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "avisos",
+                "preferencias"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"todos\": true,\n  \"canal\": \"mail\",\n  \"activo\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi inscripción",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/inscripcion",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "inscripcion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"agregar\",\n  \"dictado_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logro Detective",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/logros/detective",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "logros",
+                "detective"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conectar Telegram",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/telegram/vincular",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "telegram",
+                "vincular"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"conectar\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rechazado', () => pm.expect(pm.response.code).to.be.oneOf([401, 503]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Telegram webhook sin el secreto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/telegram/webhook",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "telegram",
+                "webhook"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rechazado', () => pm.expect(pm.response.code).to.be.oneOf([401, 503]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cron de mails sin el secreto",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/cron/mails?prueba=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "cron",
+                "mails"
+              ],
+              "query": [
+                {
+                  "key": "prueba",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baja de mails con firma mala",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/avisos/baja",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "avisos",
+                "baja"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"u\": \"00000000-0000-0000-0000-000000000000\",\n  \"t\": \"mala\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin: estadísticas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/stats",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin: cursos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/dictados?materia_id=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dictados"
+              ],
+              "query": [
+                {
+                  "key": "materia_id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin: moderación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/moderacion",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "moderacion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"x\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin: bloquear usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/usuarios",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"bloquear\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página del admin sin sesión",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('no muestra el panel', () => pm.expect(pm.response.text()).to.not.include('admin-csrf'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Con sesión (cuenta de prueba común)",
+      "description": "Entra con la cuenta de prueba ({{email}}) y prueba lo que puede hacer cualquier estudiante. Crea y borra un final de prueba; no publica reseñas.",
+      "item": [
+        {
+          "name": "Ingreso de prueba: contraseña mala",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/prueba",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "prueba"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"clave\": \"esta-no-es\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ingreso de prueba",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/prueba",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "prueba"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"clave\": \"{{clave}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi link",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/links/mio",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "links",
+                "mio"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('tiene código', () => pm.expect(pm.response.json().codigo).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi cuenta (página)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/mi-cuenta",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "mi-cuenta"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis reseñas (página)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/mis-resenas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "mis-resenas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avisos (página)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/avisos",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "avisos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nombre con números",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/perfil",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "perfil"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_mostrar\": \"sofi_2004\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: Usá solo letras', () => pm.expect(pm.response.json().error || '').to.include('Usá solo letras'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nombre con símbolos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/perfil",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "perfil"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_mostrar\": \"<b>Hola</b>\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dato que no se puede cambiar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/perfil",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "perfil"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rol\": \"admin\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: no se puede cambiar', () => pm.expect(pm.response.json().error || '').to.include('no se puede cambiar'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Color inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/perfil",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "perfil"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"color\": \"fucsia\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: Color inválido', () => pm.expect(pm.response.json().error || '').to.include('Color inválido'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Guardar años de cursada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/perfil",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "perfil"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"anios_cursada\": [\n    1,\n    2\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reseña: datos inválidos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/resenas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "resenas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dictado_id\": \"x\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: Dictado inválido', () => pm.expect(pm.response.json().error || '').to.include('Dictado inválido'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reseña: comentario corto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/resenas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "resenas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dictado_id\": 1,\n  \"calificacion_general\": 4,\n  \"anio_cursado\": 2026,\n  \"comentario\": \"corto\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: al menos 10', () => pm.expect(pm.response.json().error || '').to.include('al menos 10'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reseña: ¿Cómo te fue? inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/resenas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "resenas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dictado_id\": 1,\n  \"calificacion_general\": 4,\n  \"anio_cursado\": 2026,\n  \"comentario\": \"Un comentario de prueba largo\",\n  \"condicion_final\": \"APROBADO\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: Condición final inválida', () => pm.expect(pm.response.json().error || '').to.include('Condición final inválida'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reseña: curso inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/resenas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "resenas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dictado_id\": 999999999,\n  \"calificacion_general\": 4,\n  \"anio_cursado\": 2026,\n  \"comentario\": \"Un comentario de prueba largo\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seguir la materia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/seguir",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "seguir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"materia_id\": {{materia_id}},\n  \"seguir\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dejar de seguir la materia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/seguir",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "seguir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"materia_id\": {{materia_id}},\n  \"seguir\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seguir: materia inválida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/seguir",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "seguir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"materia_id\": \"abc\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: Materia inválida', () => pm.expect(pm.response.json().error || '').to.include('Materia inválida'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi inscripción: agregar curso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/inscripcion",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "inscripcion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"agregar\",\n  \"dictado_id\": {{dictado_id}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi inscripción: elegir ese curso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/inscripcion",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "inscripcion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"elegir\",\n  \"dictado_id\": {{dictado_id}},\n  \"quitar\": []\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi inscripción (página con la semana)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/mi-inscripcion?cuatri=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "mi-inscripcion"
+              ],
+              "query": [
+                {
+                  "key": "cuatri",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi inscripción: quitar curso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/inscripcion",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "inscripcion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"quitar\",\n  \"dictado_id\": {{dictado_id}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi inscripción: acción inválida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/inscripcion",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "inscripcion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"otra\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avisos: marcar todos leídos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/avisos",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "avisos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"leer\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avisos: acción inválida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/avisos",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "avisos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"otra\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: Acción no válida', () => pm.expect(pm.response.json().error || '').to.include('Acción no válida'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Contar un final de prueba",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/finales/crear",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "finales",
+                "crear"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"materia_id\": {{materia_id}},\n  \"anio\": 2026,\n  \"mesa\": \"Postman\",\n  \"comentario\": \"Final de prueba creado por Postman. Se borra en el paso siguiente.\",\n  \"con_nombre\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "const id = pm.response.json().id; pm.test('devuelve el id', () => pm.expect(id).to.be.a('number'));",
+                  "pm.collectionVariables.set('final_id', id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar el final de prueba",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/finales/acciones",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "finales",
+                "acciones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"editar\",\n  \"id\": {{final_id}},\n  \"comentario\": \"Final de prueba editado por Postman. Se borra en el paso siguiente.\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Final: acción inválida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/finales/acciones",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "finales",
+                "acciones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"otra\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: Acción no válida', () => pm.expect(pm.response.json().error || '').to.include('Acción no válida'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Borrar el final de prueba",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/finales/acciones",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "finales",
+                "acciones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"eliminar\",\n  \"id\": {{final_id}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logro Detective",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/logros/detective",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "logros",
+                "detective"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('dice si es nuevo', () => pm.expect(pm.response.json().nuevo).to.be.a('boolean'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin con cuenta común",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/stats",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get('email') === pm.environment.get('email_admin')) { pm.test.skip('salteada: la cuenta común es la misma que la de admin', () => {}); }",
+                  "else { pm.test('responde 403', () => pm.response.to.have.status(403)); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Borrar cuenta sin escribir BORRAR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/cuenta/borrar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "cuenta",
+                "borrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resenas\": \"anonimas\",\n  \"confirmacion\": \"no\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: BORRAR', () => pm.expect(pm.response.json().error || '').to.include('BORRAR'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/logout",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('cierra', () => pm.expect(pm.response.code).to.be.oneOf([200, 302, 303]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Admin (cuenta de prueba admin)",
+      "description": "Entra con la cuenta admin de prueba ({{email_admin}}, que tiene que estar en ADMIN_IDS de Preview). Solo lee y prueba los controles: no cambia datos.",
+      "item": [
+        {
+          "name": "Ingreso de prueba (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/prueba",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "prueba"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email_admin}}\",\n  \"clave\": \"{{clave_admin}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Panel de admin (toma el código CSRF)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "const m = pm.response.text().match(/id=\"admin-csrf\"[^>]*data-t=\"([^\"]+)\"/) || pm.response.text().match(/data-t=\"([^\"]+)\"[^>]*id=\"admin-csrf\"/);",
+                  "const t = (m && m[1]) || pm.cookies.get('admin_csrf');",
+                  "pm.test('la página trae el código', () => pm.expect(t).to.be.a('string'));",
+                  "pm.collectionVariables.set('csrf', t);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página /admin/materias",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/materias",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "materias"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página /admin/profesores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/profesores",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "profesores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página /admin/resenas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/resenas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "resenas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página /admin/finales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/finales",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "finales"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página /admin/reportes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/reportes",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "reportes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página /admin/moderacion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/moderacion",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "moderacion"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página /admin/usuarios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/usuarios",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Página /admin/importar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/importar",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "importar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estadísticas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/stats",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cursos de una materia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/dictados?materia_id={{materia_id}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dictados"
+              ],
+              "query": [
+                {
+                  "key": "materia_id",
+                  "value": "{{materia_id}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('trae la lista', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profesores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/profesores",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "profesores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reportes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/reportes",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "reportes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sin el código CSRF",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/dictados",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dictados"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"nada\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('mensaje: código de seguridad', () => pm.expect(pm.response.json().error || '').to.include('código de seguridad'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desde otro sitio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrf}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/dictados",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dictados"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"nada\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.request.headers.upsert({ key: 'Origin', value: 'https://otro-sitio.example' });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));",
+                  "pm.test('mensaje: no salió de esta página', () => pm.expect(pm.response.json().error || '').to.include('no salió de esta página'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Acción inválida (con CSRF)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrf}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/dictados",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dictados"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"nada\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: Acción no válida', () => pm.expect(pm.response.json().error || '').to.include('Acción no válida'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Horario inválido (con CSRF)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrf}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/dictados",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dictados"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"set_horarios\",\n  \"dictado_id\": {{dictado_id}},\n  \"bloques\": [\n    {\n      \"cuatri\": 1,\n      \"dia\": 1,\n      \"desde\": 600,\n      \"hasta\": 500\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 400', () => pm.response.to.have.status(400));",
+                  "pm.test('mensaje: Revisá los horarios', () => pm.expect(pm.response.json().error || '').to.include('Revisá los horarios'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bot de Telegram: estado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrf}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/telegram",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "telegram"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"estado\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde', () => pm.expect(pm.response.code).to.be.oneOf([200, 400]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cron de mails en modo prueba (no manda nada)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cron_secret}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/cron/mails?prueba=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "cron",
+                "mails"
+              ],
+              "query": [
+                {
+                  "key": "prueba",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Solo si cargaste CRON_SECRET en Preview y lo pusiste en la variable cron_secret. Si no, da 401 y está bien."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde', () => pm.expect(pm.response.code).to.be.oneOf([200, 401]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/logout",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('cierra', () => pm.expect(pm.response.code).to.be.oneOf([200, 302, 303]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Producción, después del merge (solo lee)",
+      "description": "Correr SOLO esta carpeta con el entorno 'UTN REP Producción', el día del merge. No escribe nada.",
+      "item": [
+        {
+          "name": "Inicio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/",
+              "host": [
+                "{{base}}"
+              ],
+              "path": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('HSTS en producción', () => pm.expect(pm.response.headers.get('strict-transport-security') || '').to.include('max-age'));",
+                  "pm.test('encabezados de seguridad', () => { ['content-security-policy','x-frame-options','x-content-type-options'].forEach(h => pm.expect(pm.response.headers.has(h), h).to.be.true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar una materia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/buscar.json?q=am1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "buscar.json"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "am1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "const m = (pm.response.json().materias || [])[0]; if (m) pm.collectionVariables.set('materia_id', m.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cursos de esa materia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/inscripcion/opciones?materia={{materia_id}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "inscripcion",
+                "opciones"
+              ],
+              "query": [
+                {
+                  "key": "materia",
+                  "value": "{{materia_id}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));",
+                  "const o = (pm.response.json().materia || {}).opciones || []; pm.test('hay cursos con horario', () => pm.expect(o.length).to.be.above(0)); if (o[0]) pm.collectionVariables.set('dictado_id', o[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Materia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/materia/{{materia_id}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "materia",
+                "{{materia_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Curso",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/dictado/{{dictado_id}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "dictado",
+                "{{dictado_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Experiencias de finales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/finales",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "finales"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mi inscripción",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/mi-inscripcion",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "mi-inscripcion"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Imagen al compartir",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/og/materia/{{materia_id}}.png",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "og",
+                "materia",
+                "{{materia_id}}.png"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "El ingreso de prueba NO existe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/prueba",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "prueba"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"a@b.co\",\n  \"clave\": \"x\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('da 404 (no existe en producción)', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin sin sesión",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/admin/stats",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cron sin secreto",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "{{base}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/cron/mails?prueba=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "cron",
+                "mails"
+              ],
+              "query": [
+                {
+                  "key": "prueba",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

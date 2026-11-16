@@ -1,0 +1,1007 @@
+-- =====================================================================
+-- Cargar los horarios 2026 (de los PDF oficiales) y arreglar materias.
+-- Pegá TODO en el SQL Editor de Supabase y tocá Run. No hay que cambiar nada.
+-- Se puede correr más de una vez: lo que ya está no se repite. Sirve igual
+-- para la base de producción cuando Pato lo decida.
+--
+-- Qué hace (Pato, 11/11/2026):
+--  1. Crea la electiva "Creatividad y Desarrollo de Entornos Virtuales"
+--     (5.º año). Los cursos de 5K1 y 5K4 estaban cargados como "Creatividad
+--     e Innovación en Ingeniería": se pasan a la materia nueva con sus
+--     profesores y sus reseñas, y como 2.º cuatrimestre. La de 5K2 sí es
+--     Creatividad e Innovación y queda como está.
+--  2. Crea el curso 5K5 (noche) con Gestión Gerencial, contracuatrimestre
+--     del 2.º, con Shocron Benmuyal, Leon Elias. Y en 1K16 suma Lógica y
+--     Estructuras Discretas y Sistemas y Procesos de Negocio (2.º cuatri).
+--     Crea 4K1B con Experiencia e Interfaces de Usuario del 2.º cuatri, igual
+--     a 4K1A (1.º cuatri), con el mismo profesor.
+--     Saca Sistemas de Gestión de 5K3: la da 5K4 en los dos cuatrimestres
+--     (Pato, 16/11/2026).
+--  3. Pasa a minúscula "de", "y", "e", "la"... en los nombres de materias
+--     que quedaron Con Todas Mayúsculas (por ejemplo "Experiencia E
+--     Interfaces De Usuario").
+--  4. Carga los horarios: busca cada materia entre las que tiene ese curso
+--     (o un subgrupo, como 4K1A, si el curso no la tiene). "I" y "1" valen
+--     lo mismo. Lo que no encuentra no lo guarda y lo muestra en "no_encontre".
+-- Requiere la migración 12 (tabla horarios).
+-- Horarios generados desde datos/horarios-2026-pdf.csv (bloques juntados).
+-- =====================================================================
+
+-- Ayudantes que duran solo esta sesión (no quedan en la base)
+CREATE OR REPLACE FUNCTION pg_temp.norma(t text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+  SELECT trim(regexp_replace(lower(translate(coalesce(t, ''), 'ÁÉÍÓÚÜÑáéíóúüñ', 'AEIOUUNaeiouun')), '[^a-z0-9]+', ' ', 'g'))
+$$;
+-- Palabras que cuentan: sin "y", "de"...; "I", "II" pasan a 1, 2; sin la s final
+CREATE OR REPLACE FUNCTION pg_temp.palabras(t text) RETURNS text[] LANGUAGE sql IMMUTABLE AS $$
+  SELECT coalesce(array_agg(w ORDER BY n), '{}') FROM (
+    SELECT n, CASE WHEN length(w0) > 4 AND w0 LIKE '%s' THEN left(w0, -1) ELSE w0 END AS w
+    FROM (
+      SELECT n, CASE w WHEN 'i' THEN '1' WHEN 'ii' THEN '2' WHEN 'iii' THEN '3' WHEN 'iv' THEN '4' WHEN 'v' THEN '5' ELSE w END AS w0
+      FROM unnest(string_to_array(pg_temp.norma(t), ' ')) WITH ORDINALITY AS x(w, n)
+    ) a
+    WHERE w0 NOT IN ('', 'y', 'e', 'de', 'del', 'la', 'las', 'el', 'los', 'en', 'para', 'con', 'a', 'elec', 'electiva')
+  ) b
+$$;
+
+-- 1. Creatividad y Desarrollo de Entornos Virtuales
+INSERT INTO public.materias (nombre, nivel, es_electiva, puntos_electiva)
+SELECT 'Creatividad y Desarrollo de Entornos Virtuales', 5, true,
+       (SELECT puntos_electiva FROM public.materias WHERE pg_temp.norma(nombre) LIKE 'consultoria en negocios digitales%' LIMIT 1)
+WHERE NOT EXISTS (SELECT 1 FROM public.materias WHERE pg_temp.norma(nombre) LIKE 'creatividad%entornos virtuales%');
+
+-- Si una corrida anterior de este archivo creó cursos nuevos de la materia
+-- en 5K1 o 5K4 (el 11/11), se borran: el bueno es el que ya estaba cargado
+-- como Creatividad e Innovación, que tiene los profesores y las reseñas.
+CREATE TEMP TABLE IF NOT EXISTS sobrantes (id integer);
+TRUNCATE sobrantes;
+INSERT INTO sobrantes
+SELECT d.id FROM public.dictados d
+JOIN public.materias m ON m.id = d.materia_id AND pg_temp.norma(m.nombre) LIKE 'creatividad%entornos virtuales%'
+JOIN public.cursos c ON c.id = d.curso_id AND upper(trim(c.identificador)) IN ('5K1', '5K4')
+WHERE EXISTS (
+  SELECT 1 FROM public.dictados o JOIN public.materias mo ON mo.id = o.materia_id
+  WHERE o.curso_id = d.curso_id AND pg_temp.norma(mo.nombre) LIKE 'creatividad e innovacion%'
+) AND NOT EXISTS (SELECT 1 FROM public.resenas r WHERE r.dictado_id = d.id);
+DELETE FROM public.dictado_profesores WHERE dictado_id IN (SELECT id FROM sobrantes);
+DELETE FROM public.profesores_historial WHERE dictado_id IN (SELECT id FROM sobrantes);
+DELETE FROM public.dictados WHERE id IN (SELECT id FROM sobrantes);
+
+-- Los de 5K1 y 5K4 pasan a la materia nueva (con profesores, horarios y reseñas)
+UPDATE public.dictados d
+SET materia_id = (SELECT id FROM public.materias WHERE pg_temp.norma(nombre) LIKE 'creatividad%entornos virtuales%' LIMIT 1),
+    periodo_dictado = 'SEGUNDO_CUATRIMESTRE'
+FROM public.materias m, public.cursos c
+WHERE m.id = d.materia_id AND pg_temp.norma(m.nombre) LIKE 'creatividad e innovacion%'
+  AND c.id = d.curso_id AND upper(trim(c.identificador)) IN ('5K1', '5K4');
+
+-- 2. 5K5 con Gestión Gerencial
+INSERT INTO public.cursos (identificador, anio_carrera, turno)
+SELECT '5K5', 5, 'NOCHE'
+WHERE NOT EXISTS (SELECT 1 FROM public.cursos WHERE upper(trim(identificador)) = '5K5');
+
+INSERT INTO public.dictados (materia_id, curso_id, periodo_dictado, es_contracuatrimestral)
+SELECT m.id, c.id, 'SEGUNDO_CUATRIMESTRE', true
+FROM public.materias m JOIN public.cursos c ON upper(trim(c.identificador)) = '5K5'
+WHERE pg_temp.norma(m.nombre) = 'gestion gerencial'
+  AND NOT EXISTS (SELECT 1 FROM public.dictados d WHERE d.materia_id = m.id AND d.curso_id = c.id);
+
+INSERT INTO public.dictado_profesores (dictado_id, profesor_id)
+SELECT d.id, p.id
+FROM public.dictados d
+JOIN public.materias m ON m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'gestion gerencial'
+JOIN public.cursos c ON c.id = d.curso_id AND upper(trim(c.identificador)) = '5K5'
+JOIN public.profesores p ON pg_temp.norma(p.nombre_completo) = 'shocron benmuyal leon elias'
+WHERE NOT EXISTS (SELECT 1 FROM public.dictado_profesores x WHERE x.dictado_id = d.id AND x.profesor_id = p.id);
+
+-- 1K16: Lógica y Estructuras Discretas, y Sistemas y Procesos de Negocio
+INSERT INTO public.dictados (materia_id, curso_id, periodo_dictado)
+SELECT m.id, c.id, 'SEGUNDO_CUATRIMESTRE'
+FROM public.materias m JOIN public.cursos c ON upper(trim(c.identificador)) = '1K16'
+WHERE m.id IN (
+    (SELECT id FROM public.materias WHERE pg_temp.norma(nombre) = 'logica y estructuras discretas' LIMIT 1),
+    (SELECT id FROM public.materias WHERE pg_temp.norma(nombre) LIKE 'sistemas y procesos de negocio%' ORDER BY nivel LIMIT 1))
+  AND NOT EXISTS (SELECT 1 FROM public.dictados d WHERE d.materia_id = m.id AND d.curso_id = c.id);
+
+-- 4K1B: Experiencia e Interfaces de Usuario del 2.º cuatrimestre, igual a
+-- 4K1A (que es la del 1.º), con el mismo profesor (Pato, 11/11/2026)
+INSERT INTO public.cursos (identificador, anio_carrera, turno)
+SELECT '4K1B', a.anio_carrera, a.turno FROM public.cursos a
+WHERE upper(trim(a.identificador)) = '4K1A'
+  AND NOT EXISTS (SELECT 1 FROM public.cursos WHERE upper(trim(identificador)) = '4K1B');
+
+INSERT INTO public.dictados (materia_id, curso_id, periodo_dictado)
+SELECT d.materia_id, b.id, 'SEGUNDO_CUATRIMESTRE'
+FROM public.dictados d
+JOIN public.cursos a ON a.id = d.curso_id AND upper(trim(a.identificador)) = '4K1A'
+JOIN public.materias m ON m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'experiencia e interfaces de usuario'
+JOIN public.cursos b ON upper(trim(b.identificador)) = '4K1B'
+WHERE NOT EXISTS (SELECT 1 FROM public.dictados x WHERE x.materia_id = d.materia_id AND x.curso_id = b.id);
+
+UPDATE public.dictados d SET periodo_dictado = 'PRIMER_CUATRIMESTRE'
+FROM public.cursos a, public.materias m
+WHERE a.id = d.curso_id AND upper(trim(a.identificador)) = '4K1A'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'experiencia e interfaces de usuario'
+  AND d.periodo_dictado::text IS DISTINCT FROM 'PRIMER_CUATRIMESTRE';
+
+-- Una corrida anterior pudo dejarle a 4K1A también los horarios del 2.º
+DELETE FROM public.horarios h
+USING public.dictados d, public.cursos a, public.materias m
+WHERE h.dictado_id = d.id AND h.cuatri = 2
+  AND a.id = d.curso_id AND upper(trim(a.identificador)) = '4K1A'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'experiencia e interfaces de usuario';
+
+INSERT INTO public.dictado_profesores (dictado_id, profesor_id)
+SELECT b.id, dp.profesor_id
+FROM public.dictados d
+JOIN public.cursos a ON a.id = d.curso_id AND upper(trim(a.identificador)) = '4K1A'
+JOIN public.materias m ON m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'experiencia e interfaces de usuario'
+JOIN public.dictado_profesores dp ON dp.dictado_id = d.id
+JOIN public.dictados b ON b.materia_id = d.materia_id
+JOIN public.cursos cb ON cb.id = b.curso_id AND upper(trim(cb.identificador)) = '4K1B'
+WHERE NOT EXISTS (SELECT 1 FROM public.dictado_profesores x WHERE x.dictado_id = b.id AND x.profesor_id = dp.profesor_id);
+
+-- Sistemas de Gestión en 5K3 (contracuatrimestral, sin horario) no existe:
+-- 5K4 la da en los dos cuatrimestres (Pato, 16/11/2026). Solo si no tiene reseñas.
+DELETE FROM public.dictado_profesores dp
+USING public.dictados d, public.cursos c, public.materias m
+WHERE dp.dictado_id = d.id AND c.id = d.curso_id AND upper(trim(c.identificador)) = '5K3'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'sistemas de gestion'
+  AND NOT EXISTS (SELECT 1 FROM public.resenas r WHERE r.dictado_id = d.id);
+DELETE FROM public.profesores_historial ph
+USING public.dictados d, public.cursos c, public.materias m
+WHERE ph.dictado_id = d.id AND c.id = d.curso_id AND upper(trim(c.identificador)) = '5K3'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'sistemas de gestion'
+  AND NOT EXISTS (SELECT 1 FROM public.resenas r WHERE r.dictado_id = d.id);
+DELETE FROM public.dictados d
+USING public.cursos c, public.materias m
+WHERE c.id = d.curso_id AND upper(trim(c.identificador)) = '5K3'
+  AND m.id = d.materia_id AND pg_temp.norma(m.nombre) = 'sistemas de gestion'
+  AND NOT EXISTS (SELECT 1 FROM public.resenas r WHERE r.dictado_id = d.id);
+
+-- 3 y 4, con el resultado en una fila
+WITH arreglados AS (
+  UPDATE public.materias m SET nombre = n.nuevo
+  FROM (
+    SELECT id, nombre AS viejo,
+      (SELECT string_agg(CASE WHEN k > 1 AND lower(w) IN ('de', 'del', 'la', 'las', 'el', 'los', 'en', 'y', 'e', 'o', 'u', 'para', 'con', 'a') THEN lower(w) ELSE w END, ' ' ORDER BY k)
+       FROM unnest(string_to_array(nombre, ' ')) WITH ORDINALITY AS t(w, k)) AS nuevo
+    FROM public.materias
+  ) n
+  WHERE m.id = n.id AND n.nuevo <> n.viejo
+    AND NOT EXISTS (SELECT 1 FROM public.materias o WHERE o.nombre = n.nuevo)
+  RETURNING n.viejo, n.nuevo
+),
+datos(curso, materia, cuatri, dia, desde, hasta) AS (VALUES
+  ('1K1', 'Algoritmos y Estructuras de Datos', NULL, 2, '11:20', '12:50'),
+  ('1K1', 'Algoritmos y Estructuras de Datos', NULL, 2, '13:15', '14:00'),
+  ('1K1', 'Algoritmos y Estructuras de Datos', NULL, 3, '08:00', '09:30'),
+  ('1K1', 'Análisis Matemático I', NULL, 1, '08:00', '10:25'),
+  ('1K1', 'Análisis Matemático I', NULL, 2, '08:00', '09:30'),
+  ('1K1', 'Arquitectura de Computadoras', 2, 4, '09:40', '12:50'),
+  ('1K1', 'Arquitectura de Computadoras', 2, 5, '08:00', '11:10'),
+  ('1K1', 'Física I', NULL, 2, '09:40', '11:10'),
+  ('1K1', 'Física I', NULL, 3, '09:40', '12:05'),
+  ('1K1', 'Ingeniería y Sociedad', 2, 4, '08:00', '09:30'),
+  ('1K1', 'Ingeniería y Sociedad', 2, 5, '11:20', '12:50'),
+  ('1K1', 'Inglés I', NULL, 1, '13:15', '14:45'),
+  ('1K1', 'Lógica y Estructuras Discretas', 1, 4, '08:00', '10:25'),
+  ('1K1', 'Lógica y Estructuras Discretas', 1, 5, '10:25', '12:50'),
+  ('1K1', 'Sistemas y Procesos de Negocio', 1, 4, '10:25', '12:50'),
+  ('1K1', 'Sistemas y Procesos de Negocio', 1, 5, '08:00', '10:25'),
+  ('1K1', 'Álgebra y Geometría Analítica', NULL, 1, '10:25', '12:50'),
+  ('1K1', 'Álgebra y Geometría Analítica', NULL, 3, '12:05', '12:50'),
+  ('1K1', 'Álgebra y Geometría Analítica', NULL, 3, '13:15', '14:00'),
+  ('1K10', 'Algoritmos y Estructuras de Datos', NULL, 2, '14:55', '16:25'),
+  ('1K10', 'Algoritmos y Estructuras de Datos', NULL, 5, '12:05', '12:50'),
+  ('1K10', 'Algoritmos y Estructuras de Datos', NULL, 5, '13:15', '14:45'),
+  ('1K10', 'Análisis Matemático I', NULL, 2, '12:05', '12:50'),
+  ('1K10', 'Análisis Matemático I', NULL, 2, '13:15', '14:45'),
+  ('1K10', 'Análisis Matemático I', NULL, 5, '14:55', '16:25'),
+  ('1K10', 'Arquitectura de Computadoras', 2, 3, '14:55', '18:05'),
+  ('1K10', 'Arquitectura de Computadoras', 2, 4, '13:15', '16:25'),
+  ('1K10', 'Física I', NULL, 1, '15:40', '18:05'),
+  ('1K10', 'Física I', NULL, 2, '16:35', '18:05'),
+  ('1K10', 'Ingeniería y Sociedad', 2, 3, '13:15', '14:45'),
+  ('1K10', 'Ingeniería y Sociedad', 2, 4, '16:35', '18:05'),
+  ('1K10', 'Inglés I', NULL, 4, '09:40', '11:10'),
+  ('1K10', 'Lógica y Estructuras Discretas', 1, 3, '13:15', '15:40'),
+  ('1K10', 'Lógica y Estructuras Discretas', 1, 4, '15:40', '18:05'),
+  ('1K10', 'Sistemas y Procesos de Negocio', 1, 3, '15:40', '18:05'),
+  ('1K10', 'Sistemas y Procesos de Negocio', 1, 4, '13:15', '15:40'),
+  ('1K10', 'Álgebra y Geometría Analítica', NULL, 1, '13:15', '15:40'),
+  ('1K10', 'Álgebra y Geometría Analítica', NULL, 5, '16:35', '18:05'),
+  ('1K11', 'Algoritmos y Estructuras de Datos', NULL, 3, '21:35', '23:05'),
+  ('1K11', 'Algoritmos y Estructuras de Datos', NULL, 5, '18:15', '20:40'),
+  ('1K11', 'Arquitectura de Computadoras', 1, 4, '14:55', '18:05'),
+  ('1K11', 'Arquitectura de Computadoras', 1, 5, '13:15', '16:25'),
+  ('1K11', 'Lógica y Estructuras Discretas', 2, 2, '13:15', '15:40'),
+  ('1K11', 'Lógica y Estructuras Discretas', 2, 5, '13:15', '15:40'),
+  ('1K11', 'Sistemas y Procesos de Negocio', 2, 2, '15:40', '18:00'),
+  ('1K11', 'Sistemas y Procesos de Negocio', 2, 5, '15:40', '18:00'),
+  ('1K12', 'Algoritmos y Estructuras de Datos', NULL, 1, '17:20', '19:00'),
+  ('1K12', 'Algoritmos y Estructuras de Datos', NULL, 5, '18:15', '20:40'),
+  ('1K12', 'Análisis Matemático I', NULL, 1, '20:40', '23:05'),
+  ('1K12', 'Análisis Matemático I', NULL, 3, '17:20', '19:00'),
+  ('1K12', 'Arquitectura de Computadoras', 2, 2, '18:15', '21:25'),
+  ('1K12', 'Arquitectura de Computadoras', 2, 4, '18:15', '21:25'),
+  ('1K12', 'Física I', NULL, 1, '19:00', '20:40'),
+  ('1K12', 'Física I', NULL, 3, '20:40', '23:05'),
+  ('1K12', 'Ingeniería y Sociedad', 2, 2, '21:35', '23:05'),
+  ('1K12', 'Ingeniería y Sociedad', 2, 4, '21:35', '23:05'),
+  ('1K12', 'Inglés I', NULL, 3, '15:40', '17:20'),
+  ('1K12', 'Lógica y Estructuras Discretas', 1, 2, '18:15', '19:00'),
+  ('1K12', 'Lógica y Estructuras Discretas', 1, 2, '19:45', '19:55'),
+  ('1K12', 'Lógica y Estructuras Discretas', 1, 4, '20:40', '23:05'),
+  ('1K12', 'Sistemas y Procesos de Negocio', 1, 2, '20:40', '23:05'),
+  ('1K12', 'Sistemas y Procesos de Negocio', 1, 4, '18:15', '20:40'),
+  ('1K12', 'Álgebra y Geometría Analítica', NULL, 3, '19:00', '20:40'),
+  ('1K12', 'Álgebra y Geometría Analítica', NULL, 5, '20:40', '23:05'),
+  ('1K13', 'Algoritmos y Estructuras de Datos', NULL, 3, '21:35', '23:05'),
+  ('1K13', 'Algoritmos y Estructuras de Datos', NULL, 5, '18:15', '20:40'),
+  ('1K13', 'Análisis Matemático I', NULL, 1, '17:20', '19:45'),
+  ('1K13', 'Análisis Matemático I', NULL, 3, '19:55', '21:25'),
+  ('1K13', 'Arquitectura de Computadoras', 2, 2, '18:15', '21:25'),
+  ('1K13', 'Arquitectura de Computadoras', 2, 4, '18:15', '21:25'),
+  ('1K13', 'Física I', NULL, 1, '21:35', '23:05'),
+  ('1K13', 'Física I', NULL, 5, '20:40', '23:05'),
+  ('1K13', 'Ingeniería y Sociedad', 2, 2, '21:35', '23:05'),
+  ('1K13', 'Ingeniería y Sociedad', 2, 4, '21:35', '23:05'),
+  ('1K13', 'Inglés I', NULL, 4, '16:35', '18:05'),
+  ('1K13', 'Lógica y Estructuras Discretas', 1, 2, '20:40', '21:35'),
+  ('1K13', 'Lógica y Estructuras Discretas', 1, 2, '22:20', '23:05'),
+  ('1K13', 'Lógica y Estructuras Discretas', 1, 4, '18:05', '19:00'),
+  ('1K13', 'Lógica y Estructuras Discretas', 1, 4, '19:45', '19:55'),
+  ('1K13', 'Sistemas y Procesos de Negocio', 1, 2, '18:15', '20:40'),
+  ('1K13', 'Sistemas y Procesos de Negocio', 1, 4, '20:40', '23:05'),
+  ('1K13', 'Álgebra y Geometría Analítica', NULL, 1, '19:55', '21:25'),
+  ('1K13', 'Álgebra y Geometría Analítica', NULL, 3, '17:20', '19:45'),
+  ('1K14', 'Algoritmos y Estructuras de Datos', NULL, 2, '11:20', '12:50'),
+  ('1K14', 'Algoritmos y Estructuras de Datos', NULL, 2, '13:15', '14:00'),
+  ('1K14', 'Algoritmos y Estructuras de Datos', NULL, 3, '08:00', '09:30'),
+  ('1K14', 'Análisis Matemático I', NULL, 1, '08:00', '10:25'),
+  ('1K14', 'Análisis Matemático I', NULL, 2, '08:00', '09:30'),
+  ('1K14', 'Arquitectura de Computadoras', 2, 4, '09:40', '12:50'),
+  ('1K14', 'Arquitectura de Computadoras', 2, 5, '08:00', '11:10'),
+  ('1K14', 'Física I', NULL, 2, '09:40', '11:10'),
+  ('1K14', 'Física I', NULL, 3, '09:40', '12:05'),
+  ('1K14', 'Ingeniería y Sociedad', 2, 4, '08:00', '09:30'),
+  ('1K14', 'Ingeniería y Sociedad', 2, 5, '11:20', '12:50'),
+  ('1K14', 'Inglés I', NULL, 1, '13:15', '14:45'),
+  ('1K14', 'Lógica y Estructuras Discretas', 1, 4, '08:00', '10:25'),
+  ('1K14', 'Lógica y Estructuras Discretas', 1, 5, '10:25', '12:50'),
+  ('1K14', 'Sistemas y Procesos de Negocio', 1, 4, '10:25', '12:50'),
+  ('1K14', 'Sistemas y Procesos de Negocio', 1, 5, '08:00', '10:25'),
+  ('1K14', 'Álgebra y Geometría Analítica', NULL, 1, '10:25', '12:50'),
+  ('1K14', 'Álgebra y Geometría Analítica', NULL, 3, '12:05', '12:50'),
+  ('1K14', 'Álgebra y Geometría Analítica', NULL, 3, '13:15', '14:00'),
+  ('1K16', 'Algoritmos y Estructuras de Datos', NULL, 1, '16:35', '18:05'),
+  ('1K16', 'Algoritmos y Estructuras de Datos', NULL, 5, '18:15', '20:40'),
+  ('1K16', 'Lógica y Estructuras Discretas', 2, 6, '08:00', '12:50'),
+  ('1K16', 'Sistemas y Procesos de Negocio', 2, 2, '15:40', '18:05'),
+  ('1K16', 'Sistemas y Procesos de Negocio', 2, 4, '15:40', '18:05'),
+  ('1K17', 'Algoritmos y Estructuras de Datos', NULL, 2, '09:40', '11:10'),
+  ('1K17', 'Algoritmos y Estructuras de Datos', NULL, 4, '08:00', '10:25'),
+  ('1K17', 'Análisis Matemático I', NULL, 1, '08:00', '10:25'),
+  ('1K17', 'Análisis Matemático I', NULL, 2, '08:00', '09:30'),
+  ('1K17', 'Arquitectura de Computadoras', 2, 3, '08:00', '11:10'),
+  ('1K17', 'Arquitectura de Computadoras', 2, 5, '09:40', '12:50'),
+  ('1K17', 'Física I', NULL, 1, '10:25', '12:50'),
+  ('1K17', 'Física I', NULL, 4, '12:05', '12:50'),
+  ('1K17', 'Física I', NULL, 4, '13:15', '14:00'),
+  ('1K17', 'Ingeniería y Sociedad', 2, 3, '11:20', '12:50'),
+  ('1K17', 'Ingeniería y Sociedad', 2, 5, '08:00', '09:30'),
+  ('1K17', 'Inglés I', NULL, 3, '13:15', '14:45'),
+  ('1K17', 'Lógica y Estructuras Discretas', 1, 3, '10:25', '12:50'),
+  ('1K17', 'Lógica y Estructuras Discretas', 1, 5, '08:00', '10:25'),
+  ('1K17', 'Sistemas y Procesos de Negocio', 1, 3, '08:00', '10:25'),
+  ('1K17', 'Sistemas y Procesos de Negocio', 1, 5, '10:25', '12:50'),
+  ('1K17', 'Álgebra y Geometría Analítica', NULL, 2, '11:20', '12:50'),
+  ('1K17', 'Álgebra y Geometría Analítica', NULL, 2, '13:15', '14:00'),
+  ('1K17', 'Álgebra y Geometría Analítica', NULL, 4, '10:25', '12:05'),
+  ('1K2', 'Algoritmos y Estructuras de Datos', NULL, 1, '08:00', '10:25'),
+  ('1K2', 'Algoritmos y Estructuras de Datos', NULL, 3, '08:00', '09:30'),
+  ('1K2', 'Análisis Matemático I', NULL, 3, '09:40', '11:10'),
+  ('1K2', 'Análisis Matemático I', NULL, 5, '11:20', '12:50'),
+  ('1K2', 'Análisis Matemático I', NULL, 5, '13:15', '14:00'),
+  ('1K2', 'Arquitectura de Computadoras', 2, 2, '08:00', '11:10'),
+  ('1K2', 'Arquitectura de Computadoras', 2, 4, '08:00', '11:10'),
+  ('1K2', 'Física I', NULL, 3, '11:20', '12:50'),
+  ('1K2', 'Física I', NULL, 3, '13:15', '14:00'),
+  ('1K2', 'Física I', NULL, 5, '09:40', '11:10'),
+  ('1K2', 'Ingeniería y Sociedad', 2, 2, '11:20', '12:50'),
+  ('1K2', 'Ingeniería y Sociedad', 2, 4, '11:20', '12:50'),
+  ('1K2', 'Inglés I', NULL, 1, '13:15', '14:45'),
+  ('1K2', 'Lógica y Estructuras Discretas', 1, 2, '10:25', '12:50'),
+  ('1K2', 'Lógica y Estructuras Discretas', 1, 4, '08:00', '10:25'),
+  ('1K2', 'Sistemas y Procesos de Negocio', 1, 2, '08:00', '10:25'),
+  ('1K2', 'Sistemas y Procesos de Negocio', 1, 4, '10:25', '12:50'),
+  ('1K2', 'Álgebra y Geometría Analítica', NULL, 1, '10:25', '12:50'),
+  ('1K2', 'Álgebra y Geometría Analítica', NULL, 5, '08:00', '09:30'),
+  ('1K3', 'Algoritmos y Estructuras de Datos', NULL, 1, '12:05', '12:50'),
+  ('1K3', 'Algoritmos y Estructuras de Datos', NULL, 1, '13:15', '14:00'),
+  ('1K3', 'Algoritmos y Estructuras de Datos', NULL, 5, '10:25', '12:50'),
+  ('1K3', 'Análisis Matemático I', NULL, 1, '10:25', '12:05'),
+  ('1K3', 'Análisis Matemático I', NULL, 2, '08:00', '10:25'),
+  ('1K3', 'Arquitectura de Computadoras', 2, 3, '09:40', '12:50'),
+  ('1K3', 'Arquitectura de Computadoras', 2, 4, '08:00', '11:10'),
+  ('1K3', 'Física I', NULL, 2, '12:05', '12:50'),
+  ('1K3', 'Física I', NULL, 2, '13:15', '14:00'),
+  ('1K3', 'Física I', NULL, 5, '08:00', '10:25'),
+  ('1K3', 'Ingeniería y Sociedad', 2, 3, '08:00', '09:30'),
+  ('1K3', 'Ingeniería y Sociedad', 2, 4, '11:20', '12:50'),
+  ('1K3', 'Inglés I', NULL, 4, '13:15', '14:45'),
+  ('1K3', 'Lógica y Estructuras Discretas', 1, 3, '08:00', '10:25'),
+  ('1K3', 'Lógica y Estructuras Discretas', 1, 4, '10:25', '12:50'),
+  ('1K3', 'Sistemas y Procesos de Negocio', 1, 3, '10:25', '12:50'),
+  ('1K3', 'Sistemas y Procesos de Negocio', 1, 4, '08:00', '10:25'),
+  ('1K3', 'Álgebra y Geometría Analítica', NULL, 1, '08:00', '10:25'),
+  ('1K3', 'Álgebra y Geometría Analítica', NULL, 2, '10:25', '12:05'),
+  ('1K4', 'Algoritmos y Estructuras de Datos', NULL, 2, '09:40', '11:10'),
+  ('1K4', 'Algoritmos y Estructuras de Datos', NULL, 4, '08:00', '10:25'),
+  ('1K4', 'Análisis Matemático I', NULL, 1, '08:00', '10:25'),
+  ('1K4', 'Análisis Matemático I', NULL, 2, '08:00', '09:30'),
+  ('1K4', 'Arquitectura de Computadoras', 2, 3, '08:00', '11:10'),
+  ('1K4', 'Arquitectura de Computadoras', 2, 5, '09:40', '12:50'),
+  ('1K4', 'Física I', NULL, 1, '10:25', '12:50'),
+  ('1K4', 'Física I', NULL, 4, '12:05', '12:50'),
+  ('1K4', 'Física I', NULL, 4, '13:15', '14:00'),
+  ('1K4', 'Ingeniería y Sociedad', 2, 3, '11:20', '12:50'),
+  ('1K4', 'Ingeniería y Sociedad', 2, 5, '08:00', '09:30'),
+  ('1K4', 'Inglés I', NULL, 3, '13:15', '14:45'),
+  ('1K4', 'Lógica y Estructuras Discretas', 1, 3, '10:25', '12:50'),
+  ('1K4', 'Lógica y Estructuras Discretas', 1, 5, '08:00', '10:25'),
+  ('1K4', 'Sistemas y Procesos de Negocio', 1, 3, '08:00', '10:25'),
+  ('1K4', 'Sistemas y Procesos de Negocio', 1, 5, '10:25', '12:50'),
+  ('1K4', 'Álgebra y Geometría Analítica', NULL, 2, '11:20', '12:50'),
+  ('1K4', 'Álgebra y Geometría Analítica', NULL, 2, '13:15', '14:00'),
+  ('1K4', 'Álgebra y Geometría Analítica', NULL, 4, '10:25', '12:05'),
+  ('1K5', 'Algoritmos y Estructuras de Datos', NULL, 2, '10:25', '12:50'),
+  ('1K5', 'Algoritmos y Estructuras de Datos', NULL, 5, '12:05', '12:50'),
+  ('1K5', 'Algoritmos y Estructuras de Datos', NULL, 5, '13:15', '14:00'),
+  ('1K5', 'Análisis Matemático I', NULL, 1, '10:25', '12:05'),
+  ('1K5', 'Análisis Matemático I', NULL, 2, '08:00', '10:25'),
+  ('1K5', 'Arquitectura de Computadoras', 2, 3, '08:00', '11:10'),
+  ('1K5', 'Arquitectura de Computadoras', 2, 4, '09:40', '12:50'),
+  ('1K5', 'Física I', NULL, 1, '12:05', '12:50'),
+  ('1K5', 'Física I', NULL, 1, '13:15', '14:00'),
+  ('1K5', 'Física I', NULL, 5, '08:00', '10:25'),
+  ('1K5', 'Ingeniería y Sociedad', 2, 3, '11:20', '12:50'),
+  ('1K5', 'Ingeniería y Sociedad', 2, 4, '08:00', '09:30'),
+  ('1K5', 'Inglés I', NULL, 3, '14:55', '16:25'),
+  ('1K5', 'Lógica y Estructuras Discretas', 1, 3, '10:25', '12:50'),
+  ('1K5', 'Lógica y Estructuras Discretas', 1, 4, '08:00', '10:25'),
+  ('1K5', 'Sistemas y Procesos de Negocio', 1, 3, '08:00', '10:25'),
+  ('1K5', 'Sistemas y Procesos de Negocio', 1, 4, '10:25', '12:50'),
+  ('1K5', 'Álgebra y Geometría Analítica', NULL, 1, '08:00', '10:25'),
+  ('1K5', 'Álgebra y Geometría Analítica', NULL, 5, '10:25', '12:05'),
+  ('1K6', 'Algoritmos y Estructuras de Datos', NULL, 1, '10:25', '12:50'),
+  ('1K6', 'Algoritmos y Estructuras de Datos', NULL, 4, '12:05', '12:50'),
+  ('1K6', 'Algoritmos y Estructuras de Datos', NULL, 4, '13:15', '14:00'),
+  ('1K6', 'Análisis Matemático I', NULL, 3, '08:00', '10:25'),
+  ('1K6', 'Análisis Matemático I', NULL, 4, '10:25', '12:05'),
+  ('1K6', 'Arquitectura de Computadoras', 2, 2, '08:00', '11:10'),
+  ('1K6', 'Arquitectura de Computadoras', 2, 5, '08:00', '11:10'),
+  ('1K6', 'Física I', NULL, 1, '08:00', '10:25'),
+  ('1K6', 'Física I', NULL, 3, '10:25', '12:05'),
+  ('1K6', 'Ingeniería y Sociedad', 2, 1, '13:15', '14:45'),
+  ('1K6', 'Ingeniería y Sociedad', 2, 2, '11:20', '12:50'),
+  ('1K6', 'Inglés I', NULL, 1, '14:55', '16:25'),
+  ('1K6', 'Lógica y Estructuras Discretas', 1, 2, '10:25', '12:50'),
+  ('1K6', 'Lógica y Estructuras Discretas', 1, 5, '08:00', '10:25'),
+  ('1K6', 'Sistemas y Procesos de Negocio', 1, 2, '08:00', '10:25'),
+  ('1K6', 'Sistemas y Procesos de Negocio', 1, 5, '10:25', '12:50'),
+  ('1K6', 'Álgebra y Geometría Analítica', NULL, 3, '12:05', '12:50'),
+  ('1K6', 'Álgebra y Geometría Analítica', NULL, 3, '13:15', '14:00'),
+  ('1K6', 'Álgebra y Geometría Analítica', NULL, 4, '08:00', '10:25'),
+  ('1K7', 'Algoritmos y Estructuras de Datos', NULL, 3, '08:00', '10:25'),
+  ('1K7', 'Algoritmos y Estructuras de Datos', NULL, 5, '12:05', '12:50'),
+  ('1K7', 'Algoritmos y Estructuras de Datos', NULL, 5, '13:15', '14:00'),
+  ('1K7', 'Análisis Matemático I', NULL, 4, '08:00', '10:25'),
+  ('1K7', 'Análisis Matemático I', NULL, 5, '10:25', '12:05'),
+  ('1K7', 'Arquitectura de Computadoras', 2, 1, '08:00', '11:10'),
+  ('1K7', 'Arquitectura de Computadoras', 2, 2, '09:40', '12:50'),
+  ('1K7', 'Física I', NULL, 3, '10:25', '12:50'),
+  ('1K7', 'Física I', NULL, 4, '10:25', '12:05'),
+  ('1K7', 'Ingeniería y Sociedad', 2, 1, '11:20', '12:50'),
+  ('1K7', 'Ingeniería y Sociedad', 2, 2, '08:00', '09:30'),
+  ('1K7', 'Inglés I', NULL, 4, '14:55', '16:25'),
+  ('1K7', 'Lógica y Estructuras Discretas', 1, 1, '10:25', '12:50'),
+  ('1K7', 'Lógica y Estructuras Discretas', 1, 2, '08:00', '10:25'),
+  ('1K7', 'Sistemas y Procesos de Negocio', 1, 1, '08:00', '10:25'),
+  ('1K7', 'Sistemas y Procesos de Negocio', 1, 2, '10:25', '12:50'),
+  ('1K7', 'Álgebra y Geometría Analítica', NULL, 4, '12:05', '12:50'),
+  ('1K7', 'Álgebra y Geometría Analítica', NULL, 4, '13:15', '14:00'),
+  ('1K7', 'Álgebra y Geometría Analítica', NULL, 5, '08:00', '10:25'),
+  ('1K8', 'Algoritmos y Estructuras de Datos', NULL, 1, '08:00', '10:25'),
+  ('1K8', 'Algoritmos y Estructuras de Datos', NULL, 3, '08:00', '09:30'),
+  ('1K8', 'Arquitectura de Computadoras', 1, 2, '10:25', '12:50'),
+  ('1K8', 'Arquitectura de Computadoras', 1, 2, '13:15', '14:00'),
+  ('1K8', 'Arquitectura de Computadoras', 1, 4, '08:00', '11:10'),
+  ('1K8', 'Lógica y Estructuras Discretas', 2, 6, '08:00', '12:50'),
+  ('1K8', 'Sistemas y Procesos de Negocio', 2, 1, '18:15', '20:40'),
+  ('1K8', 'Sistemas y Procesos de Negocio', 2, 3, '18:15', '20:40'),
+  ('1K9', 'Algoritmos y Estructuras de Datos', NULL, 2, '15:40', '18:05'),
+  ('1K9', 'Algoritmos y Estructuras de Datos', NULL, 5, '16:35', '18:05'),
+  ('1K9', 'Análisis Matemático I', NULL, 1, '13:15', '15:40'),
+  ('1K9', 'Análisis Matemático I', NULL, 2, '12:05', '12:50'),
+  ('1K9', 'Análisis Matemático I', NULL, 2, '13:15', '14:00'),
+  ('1K9', 'Arquitectura de Computadoras', 2, 3, '13:15', '16:25'),
+  ('1K9', 'Arquitectura de Computadoras', 2, 4, '14:55', '18:05'),
+  ('1K9', 'Física I', NULL, 1, '15:40', '18:05'),
+  ('1K9', 'Física I', NULL, 5, '14:55', '16:25'),
+  ('1K9', 'Ingeniería y Sociedad', 2, 3, '16:35', '18:05'),
+  ('1K9', 'Ingeniería y Sociedad', 2, 4, '13:15', '14:45'),
+  ('1K9', 'Inglés I', NULL, 1, '11:20', '12:50'),
+  ('1K9', 'Lógica y Estructuras Discretas', 1, 3, '14:55', '15:40'),
+  ('1K9', 'Lógica y Estructuras Discretas', 1, 3, '16:35', '18:05'),
+  ('1K9', 'Lógica y Estructuras Discretas', 1, 4, '13:15', '15:40'),
+  ('1K9', 'Sistemas y Procesos de Negocio', 1, 3, '13:15', '15:40'),
+  ('1K9', 'Sistemas y Procesos de Negocio', 1, 4, '15:40', '18:05'),
+  ('1K9', 'Álgebra y Geometría Analítica', NULL, 2, '14:00', '15:40'),
+  ('1K9', 'Álgebra y Geometría Analítica', NULL, 5, '12:05', '12:50'),
+  ('1K9', 'Álgebra y Geometría Analítica', NULL, 5, '13:15', '14:45'),
+  ('2K1', 'Análisis Matemático II', NULL, 1, '09:40', '11:10'),
+  ('2K1', 'Análisis Matemático II', NULL, 2, '08:00', '10:25'),
+  ('2K1', 'Análisis de Sistemas de Información', NULL, 3, '10:25', '12:50'),
+  ('2K1', 'Análisis de Sistemas de Información', NULL, 5, '08:00', '10:25'),
+  ('2K1', 'Física II', NULL, 3, '08:00', '10:25'),
+  ('2K1', 'Física II', NULL, 5, '10:25', '12:05'),
+  ('2K1', 'Paradigmas de Programación', 2, 2, '10:25', '12:50'),
+  ('2K1', 'Paradigmas de Programación', 2, 2, '13:15', '14:00'),
+  ('2K1', 'Paradigmas de Programación', 2, 4, '08:00', '11:10'),
+  ('2K1', 'Probabilidad y Estadística', 1, 1, '11:20', '12:50'),
+  ('2K1', 'Probabilidad y Estadística', 1, 1, '13:15', '14:00'),
+  ('2K1', 'Probabilidad y Estadística', 1, 4, '11:20', '12:50'),
+  ('2K1', 'Probabilidad y Estadística', 1, 4, '13:15', '14:00'),
+  ('2K1', 'Sintaxis y Semántica de los Lenguajes', 1, 2, '10:25', '12:50'),
+  ('2K1', 'Sintaxis y Semántica de los Lenguajes', 1, 2, '13:15', '14:00'),
+  ('2K1', 'Sintaxis y Semántica de los Lenguajes', 1, 4, '08:00', '11:10'),
+  ('2K1', 'Sistemas Operativos', NULL, 1, '08:00', '09:30'),
+  ('2K1', 'Sistemas Operativos', NULL, 5, '12:05', '12:50'),
+  ('2K1', 'Sistemas Operativos', NULL, 5, '13:15', '14:00'),
+  ('2K10', 'Análisis Matemático II', NULL, 4, '18:15', '20:40'),
+  ('2K10', 'Análisis Matemático II', NULL, 5, '19:00', '20:40'),
+  ('2K10', 'Análisis de Sistemas de Información', NULL, 2, '17:20', '19:45'),
+  ('2K10', 'Análisis de Sistemas de Información', NULL, 3, '17:20', '19:45'),
+  ('2K10', 'Física II', NULL, 1, '19:00', '20:40'),
+  ('2K10', 'Física II', NULL, 4, '20:40', '23:05'),
+  ('2K10', 'Paradigmas de Programación', 1, 2, '19:55', '23:05'),
+  ('2K10', 'Paradigmas de Programación', 1, 3, '19:55', '23:05'),
+  ('2K10', 'Probabilidad y Estadística', 2, 1, '20:40', '23:05'),
+  ('2K10', 'Probabilidad y Estadística', 2, 5, '20:40', '23:05'),
+  ('2K10', 'Sintaxis y Semántica de los Lenguajes', 2, 2, '19:55', '23:05'),
+  ('2K10', 'Sintaxis y Semántica de los Lenguajes', 2, 3, '19:55', '23:05'),
+  ('2K10', 'Sistemas Operativos', NULL, 1, '17:20', '19:00'),
+  ('2K10', 'Sistemas Operativos', NULL, 5, '17:20', '19:00'),
+  ('2K11', 'Análisis de Sistemas de Información', NULL, 3, '10:25', '12:50'),
+  ('2K11', 'Análisis de Sistemas de Información', NULL, 5, '08:00', '10:25'),
+  ('2K11', 'Paradigmas de Programación', 2, 2, '10:25', '12:50'),
+  ('2K11', 'Paradigmas de Programación', 2, 2, '13:15', '14:00'),
+  ('2K11', 'Paradigmas de Programación', 2, 4, '08:00', '11:10'),
+  ('2K11', 'Probabilidad y Estadística', 1, 1, '11:20', '12:50'),
+  ('2K11', 'Probabilidad y Estadística', 1, 1, '13:15', '14:00'),
+  ('2K11', 'Probabilidad y Estadística', 1, 4, '11:20', '12:50'),
+  ('2K11', 'Probabilidad y Estadística', 1, 4, '13:15', '14:00'),
+  ('2K11', 'Sintaxis y Semántica de los Lenguajes', 1, 2, '10:25', '12:50'),
+  ('2K11', 'Sintaxis y Semántica de los Lenguajes', 1, 2, '13:15', '14:00'),
+  ('2K11', 'Sintaxis y Semántica de los Lenguajes', 1, 4, '08:00', '11:10'),
+  ('2K11', 'Sistemas Operativos', NULL, 1, '08:00', '09:30'),
+  ('2K11', 'Sistemas Operativos', NULL, 5, '12:05', '12:50'),
+  ('2K11', 'Sistemas Operativos', NULL, 5, '13:15', '14:00'),
+  ('2K2', 'Análisis Matemático II', NULL, 2, '08:00', '09:30'),
+  ('2K2', 'Análisis Matemático II', NULL, 3, '11:20', '12:50'),
+  ('2K2', 'Análisis Matemático II', NULL, 3, '13:15', '14:00'),
+  ('2K2', 'Análisis de Sistemas de Información', NULL, 2, '11:20', '12:50'),
+  ('2K2', 'Análisis de Sistemas de Información', NULL, 2, '13:15', '14:00'),
+  ('2K2', 'Análisis de Sistemas de Información', NULL, 5, '11:20', '12:50'),
+  ('2K2', 'Análisis de Sistemas de Información', NULL, 5, '13:15', '14:00'),
+  ('2K2', 'Física II', NULL, 1, '08:00', '10:25'),
+  ('2K2', 'Física II', NULL, 4, '12:05', '12:50'),
+  ('2K2', 'Física II', NULL, 4, '13:15', '14:00'),
+  ('2K2', 'Paradigmas de Programación', 2, 3, '08:00', '08:45'),
+  ('2K2', 'Paradigmas de Programación', 2, 4, '08:00', '10:25'),
+  ('2K2', 'Paradigmas de Programación', 2, 5, '08:00', '11:10'),
+  ('2K2', 'Probabilidad y Estadística', 1, 1, '10:25', '12:50'),
+  ('2K2', 'Probabilidad y Estadística', 1, 4, '08:00', '10:25'),
+  ('2K2', 'Sintaxis y Semántica de los Lenguajes', 1, 3, '08:00', '11:10'),
+  ('2K2', 'Sintaxis y Semántica de los Lenguajes', 1, 5, '08:00', '11:10'),
+  ('2K2', 'Sistemas Operativos', NULL, 2, '09:40', '11:10'),
+  ('2K2', 'Sistemas Operativos', NULL, 4, '10:25', '12:05'),
+  ('2K3', 'Análisis Matemático II', NULL, 1, '11:20', '12:50'),
+  ('2K3', 'Análisis Matemático II', NULL, 1, '13:15', '14:00'),
+  ('2K3', 'Análisis Matemático II', NULL, 2, '10:25', '12:05'),
+  ('2K3', 'Análisis de Sistemas de Información', NULL, 3, '08:00', '10:25'),
+  ('2K3', 'Análisis de Sistemas de Información', NULL, 4, '11:20', '12:50'),
+  ('2K3', 'Análisis de Sistemas de Información', NULL, 4, '13:15', '14:00'),
+  ('2K3', 'Física II', NULL, 4, '08:00', '09:30'),
+  ('2K3', 'Física II', NULL, 5, '08:00', '10:25'),
+  ('2K3', 'Paradigmas de Programación', 2, 1, '08:00', '11:10'),
+  ('2K3', 'Paradigmas de Programación', 2, 3, '10:25', '12:50'),
+  ('2K3', 'Paradigmas de Programación', 2, 3, '13:15', '14:00'),
+  ('2K3', 'Probabilidad y Estadística', 1, 2, '08:00', '10:25'),
+  ('2K3', 'Probabilidad y Estadística', 1, 5, '10:25', '12:50'),
+  ('2K3', 'Sintaxis y Semántica de los Lenguajes', 1, 1, '08:00', '11:10'),
+  ('2K3', 'Sintaxis y Semántica de los Lenguajes', 1, 3, '10:25', '12:50'),
+  ('2K3', 'Sintaxis y Semántica de los Lenguajes', 1, 3, '13:15', '14:00'),
+  ('2K3', 'Sistemas Operativos', NULL, 2, '12:05', '12:50'),
+  ('2K3', 'Sistemas Operativos', NULL, 2, '13:15', '14:00'),
+  ('2K3', 'Sistemas Operativos', NULL, 4, '09:40', '11:10'),
+  ('2K4', 'Análisis Matemático II', NULL, 1, '08:00', '09:30'),
+  ('2K4', 'Análisis Matemático II', NULL, 2, '11:20', '12:50'),
+  ('2K4', 'Análisis Matemático II', NULL, 2, '13:15', '14:00'),
+  ('2K4', 'Análisis de Sistemas de Información', NULL, 3, '11:20', '12:50'),
+  ('2K4', 'Análisis de Sistemas de Información', NULL, 3, '13:15', '14:00'),
+  ('2K4', 'Análisis de Sistemas de Información', NULL, 5, '10:25', '12:50'),
+  ('2K4', 'Física II', NULL, 1, '11:20', '12:50'),
+  ('2K4', 'Física II', NULL, 1, '13:15', '14:00'),
+  ('2K4', 'Física II', NULL, 2, '09:40', '11:10'),
+  ('2K4', 'Paradigmas de Programación', 1, 3, '08:00', '11:10'),
+  ('2K4', 'Paradigmas de Programación', 1, 4, '10:25', '12:50'),
+  ('2K4', 'Paradigmas de Programación', 1, 4, '13:15', '14:00'),
+  ('2K4', 'Probabilidad y Estadística', 2, 4, '08:00', '10:25'),
+  ('2K4', 'Probabilidad y Estadística', 2, 5, '08:00', '10:25'),
+  ('2K4', 'Sintaxis y Semántica de los Lenguajes', 2, 3, '08:00', '11:10'),
+  ('2K4', 'Sintaxis y Semántica de los Lenguajes', 2, 4, '10:25', '12:50'),
+  ('2K4', 'Sintaxis y Semántica de los Lenguajes', 2, 4, '13:15', '14:00'),
+  ('2K4', 'Sistemas Operativos', NULL, 1, '09:40', '11:10'),
+  ('2K4', 'Sistemas Operativos', NULL, 2, '08:00', '09:30'),
+  ('2K5', 'Análisis Matemático II', NULL, 3, '14:00', '16:25'),
+  ('2K5', 'Análisis Matemático II', NULL, 4, '14:00', '15:40'),
+  ('2K5', 'Análisis de Sistemas de Información', NULL, 2, '14:55', '18:05'),
+  ('2K5', 'Análisis de Sistemas de Información', NULL, 3, '16:35', '18:05'),
+  ('2K5', 'Física II', NULL, 2, '12:05', '12:50'),
+  ('2K5', 'Física II', NULL, 2, '13:15', '14:45'),
+  ('2K5', 'Física II', NULL, 4, '12:05', '12:50'),
+  ('2K5', 'Física II', NULL, 4, '13:15', '14:00'),
+  ('2K5', 'Paradigmas de Programación', 2, 1, '14:55', '18:05'),
+  ('2K5', 'Paradigmas de Programación', 2, 5, '13:15', '16:25'),
+  ('2K5', 'Probabilidad y Estadística', 1, 1, '15:40', '18:05'),
+  ('2K5', 'Probabilidad y Estadística', 1, 4, '15:40', '18:05'),
+  ('2K5', 'Sintaxis y Semántica de los Lenguajes', 1, 1, '12:05', '12:50'),
+  ('2K5', 'Sintaxis y Semántica de los Lenguajes', 1, 1, '13:15', '15:40'),
+  ('2K5', 'Sintaxis y Semántica de los Lenguajes', 1, 5, '13:15', '16:25'),
+  ('2K5', 'Sistemas Operativos', NULL, 3, '12:05', '12:50'),
+  ('2K5', 'Sistemas Operativos', NULL, 3, '13:15', '14:00'),
+  ('2K5', 'Sistemas Operativos', NULL, 5, '16:35', '18:05'),
+  ('2K6', 'Análisis Matemático II', NULL, 1, '14:55', '16:25'),
+  ('2K6', 'Análisis Matemático II', NULL, 4, '15:40', '18:05'),
+  ('2K6', 'Análisis de Sistemas de Información', NULL, 2, '15:40', '18:05'),
+  ('2K6', 'Análisis de Sistemas de Información', NULL, 4, '13:15', '15:40'),
+  ('2K6', 'Física II', NULL, 1, '12:05', '12:50'),
+  ('2K6', 'Física II', NULL, 1, '13:15', '14:45'),
+  ('2K6', 'Física II', NULL, 5, '16:35', '18:05'),
+  ('2K6', 'Paradigmas de Programación', 2, 2, '12:05', '12:50'),
+  ('2K6', 'Paradigmas de Programación', 2, 2, '13:15', '15:40'),
+  ('2K6', 'Paradigmas de Programación', 2, 3, '14:55', '18:05'),
+  ('2K6', 'Probabilidad y Estadística', 1, 3, '12:05', '12:50'),
+  ('2K6', 'Probabilidad y Estadística', 1, 3, '13:15', '14:45'),
+  ('2K6', 'Probabilidad y Estadística', 1, 5, '14:00', '16:25'),
+  ('2K6', 'Sintaxis y Semántica de los Lenguajes', 1, 2, '12:05', '12:50'),
+  ('2K6', 'Sintaxis y Semántica de los Lenguajes', 1, 2, '13:15', '15:40'),
+  ('2K6', 'Sintaxis y Semántica de los Lenguajes', 1, 3, '14:55', '18:05'),
+  ('2K6', 'Sistemas Operativos', NULL, 1, '16:35', '18:05'),
+  ('2K6', 'Sistemas Operativos', NULL, 5, '12:05', '12:50'),
+  ('2K6', 'Sistemas Operativos', NULL, 5, '13:15', '14:00'),
+  ('2K7', 'Análisis Matemático II', NULL, 1, '12:05', '12:50'),
+  ('2K7', 'Análisis Matemático II', NULL, 1, '13:15', '14:00'),
+  ('2K7', 'Análisis Matemático II', NULL, 4, '12:05', '12:50'),
+  ('2K7', 'Análisis Matemático II', NULL, 4, '13:15', '14:45'),
+  ('2K7', 'Análisis de Sistemas de Información', NULL, 3, '15:40', '18:05'),
+  ('2K7', 'Análisis de Sistemas de Información', NULL, 5, '15:40', '18:05'),
+  ('2K7', 'Física II', NULL, 2, '12:05', '12:50'),
+  ('2K7', 'Física II', NULL, 2, '13:15', '16:25'),
+  ('2K7', 'Paradigmas de Programación', 1, 3, '12:05', '12:50'),
+  ('2K7', 'Paradigmas de Programación', 1, 3, '13:15', '15:40'),
+  ('2K7', 'Paradigmas de Programación', 1, 4, '14:55', '18:05'),
+  ('2K7', 'Probabilidad y Estadística', 2, 1, '15:40', '18:05'),
+  ('2K7', 'Probabilidad y Estadística', 2, 5, '13:15', '15:40'),
+  ('2K7', 'Sintaxis y Semántica de los Lenguajes', 2, 3, '12:05', '12:50'),
+  ('2K7', 'Sintaxis y Semántica de los Lenguajes', 2, 3, '13:15', '15:40'),
+  ('2K7', 'Sintaxis y Semántica de los Lenguajes', 2, 4, '14:55', '18:05'),
+  ('2K7', 'Sistemas Operativos', NULL, 1, '14:00', '15:40'),
+  ('2K7', 'Sistemas Operativos', NULL, 2, '16:35', '18:05'),
+  ('2K8', 'Análisis Matemático II', NULL, 1, '18:15', '20:40'),
+  ('2K8', 'Análisis Matemático II', NULL, 4, '21:35', '23:05'),
+  ('2K8', 'Análisis de Sistemas de Información', NULL, 1, '20:40', '23:05'),
+  ('2K8', 'Análisis de Sistemas de Información', NULL, 3, '20:40', '23:05'),
+  ('2K8', 'Física II', NULL, 2, '20:40', '23:05'),
+  ('2K8', 'Física II', NULL, 3, '17:20', '19:00'),
+  ('2K8', 'Paradigmas de Programación', 2, 2, '17:20', '20:40'),
+  ('2K8', 'Paradigmas de Programación', 2, 5, '19:55', '23:05'),
+  ('2K8', 'Probabilidad y Estadística', 1, 4, '17:20', '19:45'),
+  ('2K8', 'Probabilidad y Estadística', 1, 5, '17:20', '19:45'),
+  ('2K8', 'Sintaxis y Semántica de los Lenguajes', 1, 2, '17:20', '20:40'),
+  ('2K8', 'Sintaxis y Semántica de los Lenguajes', 1, 5, '19:55', '23:05'),
+  ('2K8', 'Sistemas Operativos', NULL, 3, '19:00', '20:40'),
+  ('2K8', 'Sistemas Operativos', NULL, 4, '19:55', '21:25'),
+  ('2K9', 'Análisis Matemático II', NULL, 2, '19:55', '22:20'),
+  ('2K9', 'Análisis Matemático II', NULL, 5, '17:20', '19:00'),
+  ('2K9', 'Análisis de Sistemas de Información', NULL, 1, '17:20', '19:45'),
+  ('2K9', 'Análisis de Sistemas de Información', NULL, 4, '20:40', '23:05'),
+  ('2K9', 'Física II', NULL, 2, '17:20', '19:45'),
+  ('2K9', 'Física II', NULL, 3, '19:00', '20:40'),
+  ('2K9', 'Paradigmas de Programación', 2, 1, '19:55', '23:05'),
+  ('2K9', 'Paradigmas de Programación', 2, 4, '17:20', '20:40'),
+  ('2K9', 'Probabilidad y Estadística', 1, 3, '20:40', '23:05'),
+  ('2K9', 'Probabilidad y Estadística', 1, 5, '20:40', '23:05'),
+  ('2K9', 'Sintaxis y Semántica de los Lenguajes', 1, 1, '19:55', '23:05'),
+  ('2K9', 'Sintaxis y Semántica de los Lenguajes', 1, 4, '17:20', '20:40'),
+  ('2K9', 'Sistemas Operativos', NULL, 3, '17:20', '19:00'),
+  ('2K9', 'Sistemas Operativos', NULL, 5, '19:00', '20:40'),
+  ('3K1', 'Análisis Numérico', 2, 3, '11:20', '12:50'),
+  ('3K1', 'Análisis Numérico', 2, 3, '13:15', '14:00'),
+  ('3K1', 'Análisis Numérico', 2, 4, '10:25', '12:50'),
+  ('3K1', 'Backend de Aplicaciones', 2, 2, '08:00', '11:10'),
+  ('3K1', 'Backend de Aplicaciones', 2, 3, '08:00', '11:10'),
+  ('3K1', 'Base de Datos', 1, 3, '08:00', '11:10'),
+  ('3K1', 'Base de Datos', 1, 5, '09:40', '12:50'),
+  ('3K1', 'Comunicación de Datos', NULL, 1, '10:25', '12:50'),
+  ('3K1', 'Comunicación de Datos', NULL, 1, '13:15', '14:00'),
+  ('3K1', 'Desarrollo de Software', 1, 2, '08:00', '11:10'),
+  ('3K1', 'Desarrollo de Software', 1, 4, '10:25', '12:50'),
+  ('3K1', 'Desarrollo de Software', 1, 4, '13:15', '14:00'),
+  ('3K1', 'Diseño de Sistemas de Información', NULL, 1, '08:00', '10:25'),
+  ('3K1', 'Diseño de Sistemas de Información', NULL, 4, '08:00', '10:25'),
+  ('3K1', 'Economía', 2, 2, '11:20', '12:50'),
+  ('3K1', 'Economía', 2, 2, '13:15', '14:00'),
+  ('3K1', 'Economía', 2, 5, '09:40', '12:05'),
+  ('3K1', 'Inglés II', NULL, 5, '08:00', '09:30'),
+  ('3K1', 'Seminario Integrador', 2, 2, '18:15', '21:25'),
+  ('3K1', 'Seminario Integrador', 2, 3, '18:15', '21:25'),
+  ('3K2', 'Análisis Numérico', 2, 1, '08:00', '10:25'),
+  ('3K2', 'Análisis Numérico', 2, 5, '08:00', '10:25'),
+  ('3K2', 'Backend de Aplicaciones', 2, 2, '10:25', '12:50'),
+  ('3K2', 'Backend de Aplicaciones', 2, 2, '13:15', '14:00'),
+  ('3K2', 'Backend de Aplicaciones', 2, 4, '08:00', '11:10'),
+  ('3K2', 'Base de Datos', 1, 1, '08:00', '11:10'),
+  ('3K2', 'Base de Datos', 1, 4, '08:00', '11:10'),
+  ('3K2', 'Comunicación de Datos', NULL, 5, '10:25', '12:50'),
+  ('3K2', 'Comunicación de Datos', NULL, 5, '13:15', '14:00'),
+  ('3K2', 'Desarrollo de Software', 1, 2, '10:25', '12:50'),
+  ('3K2', 'Desarrollo de Software', 1, 2, '13:15', '14:00'),
+  ('3K2', 'Desarrollo de Software', 1, 3, '10:25', '12:50'),
+  ('3K2', 'Desarrollo de Software', 1, 3, '13:15', '14:00'),
+  ('3K2', 'Diseño de Sistemas de Información', NULL, 2, '08:00', '10:25'),
+  ('3K2', 'Diseño de Sistemas de Información', NULL, 3, '08:00', '10:25'),
+  ('3K2', 'Economía', 2, 1, '10:25', '12:50'),
+  ('3K2', 'Economía', 2, 3, '10:25', '12:50'),
+  ('3K2', 'Inglés II', NULL, 4, '11:20', '12:50'),
+  ('3K2', 'Seminario Integrador', 2, 2, '14:55', '18:05'),
+  ('3K2', 'Seminario Integrador', 2, 3, '14:55', '18:05'),
+  ('3K3', 'Análisis Numérico', 2, 3, '12:05', '12:50'),
+  ('3K3', 'Análisis Numérico', 2, 3, '13:15', '14:45'),
+  ('3K3', 'Análisis Numérico', 2, 4, '13:15', '15:40'),
+  ('3K3', 'Backend de Aplicaciones', 2, 2, '14:55', '18:05'),
+  ('3K3', 'Backend de Aplicaciones', 2, 5, '14:55', '18:05'),
+  ('3K3', 'Base de Datos', 1, 1, '14:55', '18:05'),
+  ('3K3', 'Base de Datos', 1, 4, '14:55', '18:05'),
+  ('3K3', 'Comunicación de Datos', NULL, 1, '13:15', '14:45'),
+  ('3K3', 'Comunicación de Datos', NULL, 3, '14:55', '16:25'),
+  ('3K3', 'Desarrollo de Software', 1, 2, '14:55', '18:05'),
+  ('3K3', 'Desarrollo de Software', 1, 5, '14:55', '18:05'),
+  ('3K3', 'Diseño de Sistemas de Información', NULL, 2, '12:05', '12:50'),
+  ('3K3', 'Diseño de Sistemas de Información', NULL, 2, '13:15', '14:45'),
+  ('3K3', 'Diseño de Sistemas de Información', NULL, 5, '12:05', '12:50'),
+  ('3K3', 'Diseño de Sistemas de Información', NULL, 5, '13:15', '14:45'),
+  ('3K3', 'Economía', 2, 1, '14:55', '17:20'),
+  ('3K3', 'Economía', 2, 4, '15:40', '18:05'),
+  ('3K3', 'Inglés II', NULL, 3, '16:35', '18:05'),
+  ('3K4', 'Análisis Numérico', 2, 1, '17:20', '19:45'),
+  ('3K4', 'Análisis Numérico', 2, 4, '17:20', '19:45'),
+  ('3K4', 'Backend de Aplicaciones', 2, 2, '19:55', '23:05'),
+  ('3K4', 'Backend de Aplicaciones', 2, 3, '19:55', '23:05'),
+  ('3K4', 'Base de Datos', 1, 2, '19:55', '23:05'),
+  ('3K4', 'Base de Datos', 1, 3, '19:55', '23:05'),
+  ('3K4', 'Comunicación de Datos', NULL, 5, '19:55', '23:05'),
+  ('3K4', 'Desarrollo de Software', 1, 1, '18:15', '21:25'),
+  ('3K4', 'Desarrollo de Software', 1, 4, '18:15', '21:25'),
+  ('3K4', 'Diseño de Sistemas de Información', NULL, 2, '17:20', '19:45'),
+  ('3K4', 'Diseño de Sistemas de Información', NULL, 5, '17:20', '19:45'),
+  ('3K4', 'Economía', 2, 1, '19:55', '22:20'),
+  ('3K4', 'Economía', 2, 4, '19:55', '22:20'),
+  ('3K4', 'Inglés II', NULL, 3, '18:15', '19:45'),
+  ('3K4', 'Seminario Integrador', 2, 2, '09:40', '12:50'),
+  ('3K4', 'Seminario Integrador', 2, 3, '09:40', '12:50'),
+  ('3K5', 'Análisis Numérico', 2, 2, '17:20', '19:45'),
+  ('3K5', 'Análisis Numérico', 2, 5, '17:20', '19:45'),
+  ('3K5', 'Backend de Aplicaciones', 1, 3, '19:55', '23:05'),
+  ('3K5', 'Backend de Aplicaciones', 1, 5, '19:55', '23:05'),
+  ('3K5', 'Base de Datos', 1, 2, '19:55', '23:05'),
+  ('3K5', 'Base de Datos', 1, 4, '19:55', '23:05'),
+  ('3K5', 'Comunicación de Datos', NULL, 1, '19:55', '23:05'),
+  ('3K5', 'Desarrollo de Software', 1, 3, '19:55', '23:05'),
+  ('3K5', 'Desarrollo de Software', 1, 5, '19:55', '23:05'),
+  ('3K5', 'Diseño de Sistemas de Información', NULL, 1, '17:20', '19:45'),
+  ('3K5', 'Diseño de Sistemas de Información', NULL, 3, '17:20', '19:45'),
+  ('3K5', 'Economía', 2, 4, '19:55', '22:20'),
+  ('3K5', 'Economía', 2, 5, '19:55', '22:20'),
+  ('3K5', 'Inglés II', NULL, 4, '18:15', '19:45'),
+  ('3K6', 'Análisis Numérico', 1, 2, '17:20', '19:45'),
+  ('3K6', 'Análisis Numérico', 1, 4, '18:15', '20:40'),
+  ('3K6', 'Base de Datos', 2, 1, '19:55', '23:05'),
+  ('3K6', 'Base de Datos', 2, 3, '19:55', '23:05'),
+  ('3K6', 'Comunicación de Datos', NULL, 3, '17:20', '19:00'),
+  ('3K6', 'Comunicación de Datos', NULL, 5, '21:35', '23:05'),
+  ('3K6', 'Desarrollo de Software', 1, 2, '19:55', '23:05'),
+  ('3K6', 'Desarrollo de Software', 1, 3, '19:55', '23:05'),
+  ('3K6', 'Desarrollo de Software', 2, 2, '19:55', '23:05'),
+  ('3K6', 'Desarrollo de Software', 2, 5, '18:15', '21:25'),
+  ('3K6', 'Diseño de Sistemas de Información', NULL, 1, '17:20', '19:45'),
+  ('3K6', 'Diseño de Sistemas de Información', NULL, 4, '20:40', '23:05'),
+  ('3K6', 'Economía', 1, 1, '19:55', '22:20'),
+  ('3K6', 'Economía', 1, 5, '19:00', '21:25'),
+  ('3K6', 'Inglés II', NULL, 1, '13:15', '14:45'),
+  ('3K7', 'Análisis Numérico', 1, 3, '12:05', '12:50'),
+  ('3K7', 'Análisis Numérico', 1, 3, '13:15', '14:45'),
+  ('3K7', 'Análisis Numérico', 1, 4, '13:15', '15:40'),
+  ('3K7', 'Backend de Aplicaciones', 2, 2, '14:55', '18:05'),
+  ('3K7', 'Backend de Aplicaciones', 2, 5, '13:15', '16:25'),
+  ('3K7', 'Base de Datos', 2, 1, '14:55', '18:05'),
+  ('3K7', 'Base de Datos', 2, 3, '14:55', '18:05'),
+  ('3K7', 'Comunicación de Datos', NULL, 2, '13:15', '14:45'),
+  ('3K7', 'Comunicación de Datos', NULL, 5, '16:35', '18:05'),
+  ('3K7', 'Desarrollo de Software', 1, 2, '14:55', '18:05'),
+  ('3K7', 'Desarrollo de Software', 1, 3, '14:55', '18:05'),
+  ('3K7', 'Diseño de Sistemas de Información', NULL, 1, '12:05', '12:50'),
+  ('3K7', 'Diseño de Sistemas de Información', NULL, 1, '13:15', '14:45'),
+  ('3K7', 'Diseño de Sistemas de Información', NULL, 4, '15:40', '18:05'),
+  ('3K7', 'Economía', 1, 1, '14:55', '17:20'),
+  ('3K7', 'Economía', 1, 5, '14:00', '16:25'),
+  ('3K7', 'Inglés II', 1, 2, '11:20', '12:50'),
+  ('3K7', 'Inglés II', 2, 2, '12:05', '12:50'),
+  ('4K1', 'Administración de Sistemas de Información', NULL, 1, '08:00', '10:25'),
+  ('4K1', 'Administración de Sistemas de Información', NULL, 4, '08:00', '10:25'),
+  ('4K1', 'Desarrollo de Aplicaciones con Objetos', 2, 5, '10:25', '12:50'),
+  ('4K1', 'Desarrollo de Aplicaciones con Objetos', 2, 5, '13:15', '14:00'),
+  ('4K1', 'Experiencia e Interfaces de Usuario', 1, 2, '10:25', '12:50'),
+  ('4K1', 'Experiencia e Interfaces de Usuario', 1, 3, '10:25', '12:50'),
+  ('4K1', 'Experiencia e Interfaces de Usuario', 2, 2, '10:25', '12:50'),
+  ('4K1', 'Experiencia e Interfaces de Usuario', 2, 3, '10:25', '12:50'),
+  ('4K1', 'Gestión Industrial de la Producción', 1, 2, '11:20', '12:50'),
+  ('4K1', 'Gestión Industrial de la Producción', 1, 2, '13:15', '14:00'),
+  ('4K1', 'Gestión Industrial de la Producción', 1, 5, '08:00', '10:25'),
+  ('4K1', 'Gestión de la Mejora de Procesos', 1, 2, '11:20', '12:50'),
+  ('4K1', 'Gestión de la Mejora de Procesos', 1, 2, '13:15', '14:00'),
+  ('4K1', 'Gestión de la Mejora de Procesos', 1, 5, '08:00', '10:25'),
+  ('4K1', 'Green Software', 1, 3, '10:25', '12:50'),
+  ('4K1', 'Green Software', 1, 5, '10:25', '12:50'),
+  ('4K1', 'Ingeniería y Calidad de Software', 2, 2, '11:20', '12:50'),
+  ('4K1', 'Ingeniería y Calidad de Software', 2, 2, '13:15', '14:00'),
+  ('4K1', 'Ingeniería y Calidad de Software', 2, 4, '10:25', '12:50'),
+  ('4K1', 'Investigación Operativa', NULL, 1, '10:25', '12:05'),
+  ('4K1', 'Investigación Operativa', NULL, 2, '09:40', '11:10'),
+  ('4K1', 'Legislación', 2, 3, '08:00', '11:10'),
+  ('4K1', 'Redes de Datos', NULL, 1, '12:05', '12:50'),
+  ('4K1', 'Redes de Datos', NULL, 1, '13:15', '14:00'),
+  ('4K1', 'Redes de Datos', NULL, 2, '08:00', '09:30'),
+  ('4K1', 'Simulación', 1, 3, '08:00', '10:25'),
+  ('4K1', 'Simulación', 1, 4, '10:25', '12:50'),
+  ('4K1', 'Tecnologías para la Automatización', 2, 3, '11:20', '12:50'),
+  ('4K1', 'Tecnologías para la Automatización', 2, 3, '13:15', '14:00'),
+  ('4K1', 'Tecnologías para la Automatización', 2, 5, '08:00', '10:25'),
+  ('4K2', 'Administración de Sistemas de Información', NULL, 1, '15:40', '18:05'),
+  ('4K2', 'Administración de Sistemas de Información', NULL, 3, '13:15', '15:40'),
+  ('4K2', 'Desarrollo de Aplicaciones con Objetos', 2, 3, '18:15', '19:45'),
+  ('4K2', 'Desarrollo de Aplicaciones con Objetos', 2, 4, '18:15', '19:45'),
+  ('4K2', 'Gestión Industrial de la Producción', 1, 4, '13:15', '15:40'),
+  ('4K2', 'Gestión Industrial de la Producción', 1, 5, '13:15', '15:40'),
+  ('4K2', 'Gestión de la Mejora de Procesos', 1, 3, '15:40', '18:05'),
+  ('4K2', 'Gestión de la Mejora de Procesos', 1, 4, '15:40', '18:05'),
+  ('4K2', 'Green Software', 1, 3, '15:40', '18:05'),
+  ('4K2', 'Green Software', 1, 4, '15:40', '18:05'),
+  ('4K2', 'Ingeniería y Calidad de Software', 2, 2, '12:05', '12:50'),
+  ('4K2', 'Ingeniería y Calidad de Software', 2, 2, '13:15', '14:45'),
+  ('4K2', 'Ingeniería y Calidad de Software', 2, 5, '15:40', '18:05'),
+  ('4K2', 'Investigación Operativa', NULL, 1, '12:05', '12:50'),
+  ('4K2', 'Investigación Operativa', NULL, 1, '13:15', '14:00'),
+  ('4K2', 'Investigación Operativa', NULL, 2, '16:35', '18:05'),
+  ('4K2', 'Legislación', 2, 4, '14:55', '18:05'),
+  ('4K2', 'Redes de Datos', NULL, 1, '14:00', '15:40'),
+  ('4K2', 'Redes de Datos', NULL, 2, '14:55', '16:25'),
+  ('4K2', 'Seguridad en el Desarrollo de Software', 2, 3, '15:40', '18:05'),
+  ('4K2', 'Seguridad en el Desarrollo de Software', 2, 5, '13:15', '15:40'),
+  ('4K2', 'Simulación', 1, 2, '12:05', '12:50'),
+  ('4K2', 'Simulación', 1, 2, '13:15', '14:45'),
+  ('4K2', 'Simulación', 1, 5, '15:40', '18:05'),
+  ('4K2', 'Tecnologías para la Automatización', 2, 3, '15:40', '18:05'),
+  ('4K2', 'Tecnologías para la Automatización', 2, 5, '13:15', '15:40'),
+  ('4K3', 'Administración de Sistemas de Información', NULL, 1, '17:20', '19:45'),
+  ('4K3', 'Administración de Sistemas de Información', NULL, 4, '18:15', '20:40'),
+  ('4K3', 'Desarrollo de Aplicaciones con Objetos', 2, 2, '17:20', '20:40'),
+  ('4K3', 'Gestión Industrial de la Producción', 1, 2, '18:15', '20:40'),
+  ('4K3', 'Gestión Industrial de la Producción', 1, 4, '20:40', '23:05'),
+  ('4K3', 'Gestión de la Mejora de Procesos', 1, 2, '18:15', '20:40'),
+  ('4K3', 'Gestión de la Mejora de Procesos', 1, 4, '20:40', '23:05'),
+  ('4K3', 'Ingeniería y Calidad de Software', 2, 3, '20:40', '23:05'),
+  ('4K3', 'Ingeniería y Calidad de Software', 2, 5, '20:40', '23:05'),
+  ('4K3', 'Investigación Operativa', NULL, 3, '17:20', '19:00'),
+  ('4K3', 'Investigación Operativa', NULL, 5, '19:00', '20:40'),
+  ('4K3', 'Legislación', 2, 1, '19:55', '23:05'),
+  ('4K3', 'Redes de Datos', NULL, 3, '19:00', '20:40'),
+  ('4K3', 'Redes de Datos', NULL, 5, '17:20', '19:00'),
+  ('4K3', 'Seguridad en el Desarrollo de Software', 2, 1, '20:40', '23:05'),
+  ('4K3', 'Seguridad en el Desarrollo de Software', 2, 4, '17:20', '19:45'),
+  ('4K3', 'Simulación', 1, 2, '20:40', '23:05'),
+  ('4K3', 'Simulación', 1, 5, '20:40', '23:05'),
+  ('4K3', 'Tecnologías para la Automatización', 2, 2, '20:40', '23:05'),
+  ('4K3', 'Tecnologías para la Automatización', 2, 4, '20:40', '23:05'),
+  ('4K4', 'Administración de Sistemas de Información', NULL, 1, '20:40', '23:05'),
+  ('4K4', 'Administración de Sistemas de Información', NULL, 3, '17:20', '19:45'),
+  ('4K4', 'Comunicación Multimedial en el Desarrollo de Sistemas de Información', 2, 2, '18:15', '20:40'),
+  ('4K4', 'Comunicación Multimedial en el Desarrollo de Sistemas de Información', 2, 5, '18:15', '20:40'),
+  ('4K4', 'Desarrollo y Operaciones DevOps', 2, 4, '20:40', '23:05'),
+  ('4K4', 'Desarrollo y Operaciones DevOps', 2, 5, '20:40', '23:05'),
+  ('4K4', 'Gestión de la Mejora de Procesos', 2, 4, '20:40', '23:05'),
+  ('4K4', 'Gestión de la Mejora de Procesos', 2, 5, '20:40', '23:05'),
+  ('4K4', 'Green Software', 2, 2, '18:15', '20:40'),
+  ('4K4', 'Green Software', 2, 5, '18:15', '20:40'),
+  ('4K4', 'Ingeniería y Calidad de Software', 1, 2, '20:40', '23:05'),
+  ('4K4', 'Ingeniería y Calidad de Software', 1, 5, '18:15', '20:40'),
+  ('4K4', 'Investigación Operativa', NULL, 1, '19:00', '20:40'),
+  ('4K4', 'Investigación Operativa', NULL, 4, '19:00', '20:40'),
+  ('4K4', 'Legislación', 1, 3, '19:55', '23:05'),
+  ('4K4', 'Redes de Datos', NULL, 1, '17:20', '19:00'),
+  ('4K4', 'Redes de Datos', NULL, 4, '17:20', '19:00'),
+  ('4K4', 'Seguridad en el Desarrollo de Software', 2, 4, '20:40', '23:05'),
+  ('4K4', 'Simulación', 2, 2, '20:40', '23:05'),
+  ('4K4', 'Simulación', 2, 3, '19:55', '22:20'),
+  ('4K4', 'Tecnologías para la Automatización', 1, 4, '20:40', '23:05'),
+  ('4K4', 'Tecnologías para la Automatización', 1, 5, '20:40', '23:05'),
+  ('5K1', 'Ciencia de Datos', 2, 4, '08:00', '10:25'),
+  ('5K1', 'Ciencia de Datos', 2, 5, '08:00', '10:25'),
+  ('5K1', 'Consultoría en Negocios Digitales', 2, 4, '10:25', '12:50'),
+  ('5K1', 'Consultoría en Negocios Digitales', 2, 5, '10:25', '12:50'),
+  ('5K1', 'Creatividad y Desarrollo de Entornos Virtuales', 2, 4, '10:25', '12:50'),
+  ('5K1', 'Creatividad y Desarrollo de Entornos Virtuales', 2, 5, '10:25', '12:50'),
+  ('5K1', 'Decisiones en Escenarios Complejos', 1, 4, '11:20', '12:05'),
+  ('5K1', 'Decisiones en Escenarios Complejos', 1, 4, '12:50', '14:00'),
+  ('5K1', 'Decisiones en Escenarios Complejos', 1, 5, '10:25', '12:50'),
+  ('5K1', 'Gerenciamiento Estratégico', 1, 4, '11:20', '12:05'),
+  ('5K1', 'Gerenciamiento Estratégico', 1, 4, '12:50', '14:00'),
+  ('5K1', 'Gerenciamiento Estratégico', 1, 5, '10:25', '12:50'),
+  ('5K1', 'Gestión Gerencial', 1, 1, '10:25', '11:20'),
+  ('5K1', 'Gestión Gerencial', 1, 1, '12:05', '12:50'),
+  ('5K1', 'Gestión Gerencial', 1, 3, '08:00', '10:25'),
+  ('5K1', 'Habilidades Blandas', 2, 1, '10:25', '12:50'),
+  ('5K1', 'Habilidades Blandas', 2, 3, '08:00', '10:25'),
+  ('5K1', 'Ingeniería de Software de Fuentes Abiertas/Libres', 1, 6, '08:00', '10:25'),
+  ('5K1', 'Inteligencia Artificial', 2, 1, '08:00', '10:25'),
+  ('5K1', 'Inteligencia Artificial', 2, 3, '10:25', '12:50'),
+  ('5K1', 'Proyecto Final', NULL, 2, '08:00', '12:50'),
+  ('5K1', 'Seguridad en los Sistemas de Información', 1, 1, '08:00', '10:25'),
+  ('5K1', 'Seguridad en los Sistemas de Información', 1, 5, '08:00', '10:25'),
+  ('5K1', 'Sistemas de Gestión', 1, 3, '10:25', '12:50'),
+  ('5K1', 'Sistemas de Gestión', 1, 3, '13:15', '14:00'),
+  ('5K1', 'Sistemas de Gestión', 1, 4, '08:00', '11:10'),
+  ('5K2', 'Ciencia de Datos', 2, 1, '13:15', '15:40'),
+  ('5K2', 'Ciencia de Datos', 2, 3, '15:40', '18:05'),
+  ('5K2', 'Consultoría en Negocios Digitales', 2, 3, '13:15', '15:40'),
+  ('5K2', 'Consultoría en Negocios Digitales', 2, 5, '13:15', '15:40'),
+  ('5K2', 'Creatividad e Innovación en Ingeniería', 1, 3, '15:40', '18:05'),
+  ('5K2', 'Creatividad e Innovación en Ingeniería', 1, 5, '15:40', '18:05'),
+  ('5K2', 'Decisiones en Escenarios Complejos', 2, 3, '13:15', '15:40'),
+  ('5K2', 'Decisiones en Escenarios Complejos', 2, 5, '13:15', '15:40'),
+  ('5K2', 'Gerenciamiento Estratégico', 1, 3, '15:40', '18:05'),
+  ('5K2', 'Gerenciamiento Estratégico', 1, 5, '15:40', '18:05'),
+  ('5K2', 'Gestión Gerencial', 1, 3, '13:15', '15:40'),
+  ('5K2', 'Gestión Gerencial', 1, 4, '15:40', '18:05'),
+  ('5K2', 'Habilidades Blandas', 2, 4, '15:40', '18:05'),
+  ('5K2', 'Habilidades Blandas', 2, 5, '15:40', '18:05'),
+  ('5K2', 'Inteligencia Artificial', 2, 1, '15:40', '18:05'),
+  ('5K2', 'Inteligencia Artificial', 2, 4, '13:15', '15:40'),
+  ('5K2', 'Proyecto Final', NULL, 2, '13:15', '18:05'),
+  ('5K2', 'Seguridad en los Sistemas de Información', 1, 1, '12:05', '12:50'),
+  ('5K2', 'Seguridad en los Sistemas de Información', 1, 1, '13:15', '14:45'),
+  ('5K2', 'Seguridad en los Sistemas de Información', 1, 5, '13:15', '15:40'),
+  ('5K2', 'Sistemas de Gestión', 1, 1, '14:55', '18:05'),
+  ('5K2', 'Sistemas de Gestión', 1, 4, '12:05', '12:50'),
+  ('5K2', 'Sistemas de Gestión', 1, 4, '13:15', '15:40'),
+  ('5K3', 'Ciencia de Datos', 2, 3, '18:15', '20:40'),
+  ('5K3', 'Ciencia de Datos', 2, 5, '20:40', '23:05'),
+  ('5K3', 'Decisiones en Escenarios Complejos', 1, 1, '18:15', '20:40'),
+  ('5K3', 'Decisiones en Escenarios Complejos', 1, 4, '18:15', '20:40'),
+  ('5K3', 'Desarrollo con Tecnologías Blockchain', 2, 1, '20:40', '23:05'),
+  ('5K3', 'Desarrollo con Tecnologías Blockchain', 2, 4, '18:15', '20:40'),
+  ('5K3', 'Emprendimientos Tecnológicos', 2, 1, '20:40', '23:05'),
+  ('5K3', 'Emprendimientos Tecnológicos', 2, 5, '18:15', '20:40'),
+  ('5K3', 'Gerenciamiento Estratégico', 1, 1, '20:40', '23:05'),
+  ('5K3', 'Gerenciamiento Estratégico', 1, 5, '20:40', '23:05'),
+  ('5K3', 'Gestión Gerencial', 1, 1, '18:15', '20:40'),
+  ('5K3', 'Gestión Gerencial', 1, 4, '18:15', '20:40'),
+  ('5K3', 'Inteligencia Artificial', NULL, 3, '20:40', '23:05'),
+  ('5K3', 'Inteligencia Artificial', NULL, 4, '20:40', '23:05'),
+  ('5K3', 'Proyecto Final', NULL, 2, '18:15', '23:05'),
+  ('5K3', 'Seguridad en los Sistemas de Información', 1, 3, '18:15', '20:40'),
+  ('5K3', 'Seguridad en los Sistemas de Información', 1, 5, '18:15', '20:40'),
+  ('5K3', 'Testing de Software', 2, 1, '18:15', '20:40'),
+  ('5K3', 'Testing de Software', 2, 4, '18:15', '20:40'),
+  ('5K4', 'Ciencia de Datos', 1, 3, '18:15', '20:40'),
+  ('5K4', 'Ciencia de Datos', 1, 5, '18:15', '20:40'),
+  ('5K4', 'Consultoría en Negocios Digitales', 2, 1, '20:40', '23:05'),
+  ('5K4', 'Consultoría en Negocios Digitales', 2, 5, '20:40', '23:05'),
+  ('5K4', 'Creatividad y Desarrollo de Entornos Virtuales', 2, 1, '18:15', '20:40'),
+  ('5K4', 'Creatividad y Desarrollo de Entornos Virtuales', 2, 4, '17:20', '19:45'),
+  ('5K4', 'Emprendimientos Tecnológicos', 1, 3, '20:40', '23:05'),
+  ('5K4', 'Emprendimientos Tecnológicos', 1, 5, '20:40', '23:05'),
+  ('5K4', 'Gestión Gerencial', 1, 1, '17:20', '19:45'),
+  ('5K4', 'Gestión Gerencial', 1, 4, '17:20', '19:45'),
+  ('5K4', 'Integración de Aplicaciones en Entorno Web', 2, 1, '18:15', '20:40'),
+  ('5K4', 'Integración de Aplicaciones en Entorno Web', 2, 4, '17:20', '19:45'),
+  ('5K4', 'Proyecto Final', NULL, 2, '18:15', '23:05'),
+  ('5K4', 'Seguridad en los Sistemas de Información', 2, 3, '17:20', '19:45'),
+  ('5K4', 'Seguridad en los Sistemas de Información', 2, 5, '18:15', '20:40'),
+  ('5K4', 'Sistemas de Gestión', 1, 1, '19:55', '23:05'),
+  ('5K4', 'Sistemas de Gestión', 1, 4, '19:55', '23:05'),
+  ('5K4', 'Sistemas de Gestión', 2, 3, '19:55', '23:05'),
+  ('5K4', 'Sistemas de Gestión', 2, 4, '19:55', '23:05'),
+  ('5K5', 'Gestión Gerencial', 2, 1, '18:15', '20:40'),
+  ('5K5', 'Gestión Gerencial', 2, 4, '18:15', '19:45')),
+grupos AS (
+  SELECT DISTINCT curso, materia, pg_temp.palabras(materia) AS pp FROM datos
+),
+-- Materias del curso (sub = false) o de sus subgrupos, como 4K1A (sub = true)
+cand AS (
+  SELECT g.curso, g.materia, g.pp, d.id AS dictado_id, d.periodo_dictado::text AS periodo, m.nombre AS en_base, pg_temp.palabras(m.nombre) AS pm,
+         upper(trim(c.identificador)) <> upper(g.curso) AS sub
+  FROM grupos g
+  JOIN public.cursos c ON upper(trim(c.identificador)) = upper(g.curso) OR upper(trim(c.identificador)) ~ ('^' || upper(g.curso) || '[A-Z]$')
+  JOIN public.dictados d ON d.curso_id = c.id
+  JOIN public.materias m ON m.id = d.materia_id
+),
+-- Dos palabras coinciden si son iguales, una empieza con la otra o tienen
+-- las mismas 6 primeras letras (por errores de tipeo como "Estadísitica").
+puntaje AS (
+  SELECT curso, materia, dictado_id, periodo, en_base, sub,
+    CASE WHEN pp = pm THEN 2 ELSE greatest(
+      (SELECT count(*) FROM unnest(pp) a WHERE EXISTS (SELECT 1 FROM unnest(pm) b WHERE a = b OR (length(a) >= 4 AND b LIKE a || '%') OR (length(b) >= 4 AND a LIKE b || '%') OR (length(a) >= 6 AND length(b) >= 6 AND left(a, 6) = left(b, 6))))::numeric / greatest(cardinality(pp), 1),
+      (SELECT count(*) FROM unnest(pm) b WHERE EXISTS (SELECT 1 FROM unnest(pp) a WHERE a = b OR (length(a) >= 4 AND b LIKE a || '%') OR (length(b) >= 4 AND a LIKE b || '%') OR (length(a) >= 6 AND length(b) >= 6 AND left(a, 6) = left(b, 6))))::numeric / greatest(cardinality(pm), 1)
+    ) - abs(cardinality(pp) - cardinality(pm)) * 0.01 END AS s
+  FROM cand
+),
+-- Primero las del curso; los subgrupos solo si el curso no la tiene
+nivel AS (
+  SELECT *, min(sub::int) OVER (PARTITION BY curso, materia) AS mejor FROM puntaje WHERE s >= 0.6
+),
+orden AS (
+  SELECT *, row_number() OVER w AS n, lead(s) OVER w AS siguiente
+  FROM nivel WHERE sub::int = mejor
+  WINDOW w AS (PARTITION BY curso, materia ORDER BY s DESC)
+),
+-- Una sola materia que coincide (o una claramente mejor que la otra). En
+-- subgrupos puede haber más de una (4K1A del 1.º y 4K1B del 2.º): van todas
+-- las que empatan arriba, y cada una recibe solo los horarios de su cuatri.
+elegido AS (
+  SELECT curso, materia, dictado_id, periodo, sub, en_base FROM orden o
+  WHERE (NOT sub AND n = 1 AND (siguiente IS NULL OR s - siguiente >= 0.04))
+     OR (sub AND s = (SELECT max(x.s) FROM orden x WHERE x.curso = o.curso AND x.materia = o.materia))
+),
+guardados AS (
+  INSERT INTO public.horarios (dictado_id, cuatri, dia, desde, hasta)
+  SELECT e.dictado_id, x.cuatri, x.dia, x.desde::time, x.hasta::time
+  FROM datos x JOIN elegido e USING (curso, materia)
+  -- En un subgrupo de un solo cuatrimestre (4K1A, 4K1B), solo los de ese cuatrimestre
+  WHERE NOT (e.sub AND ((e.periodo = 'PRIMER_CUATRIMESTRE' AND x.cuatri = 2) OR (e.periodo = 'SEGUNDO_CUATRIMESTRE' AND x.cuatri = 1)))
+  ON CONFLICT (dictado_id, (COALESCE(cuatri, 0)), dia, desde) DO NOTHING
+  RETURNING dictado_id
+),
+sin AS (
+  SELECT g.curso, g.materia,
+    CASE WHEN NOT EXISTS (SELECT 1 FROM public.cursos c WHERE upper(trim(c.identificador)) = upper(g.curso)) THEN 'el curso no está en la base'
+         WHEN EXISTS (SELECT 1 FROM orden o WHERE o.curso = g.curso AND o.materia = g.materia) THEN 'se parece a más de una: ' || (SELECT string_agg(o.en_base, ' / ') FROM orden o WHERE o.curso = g.curso AND o.materia = g.materia AND o.n <= 2)
+         ELSE 'el curso no tiene esa materia en la base' END AS motivo
+  FROM grupos g
+  WHERE NOT EXISTS (SELECT 1 FROM elegido e WHERE e.curso = g.curso AND e.materia = g.materia)
+)
+SELECT
+  CASE
+    WHEN (SELECT count(*) FROM elegido) = 0 THEN 'NO GUARDÉ NADA: no encontré ningún curso con sus materias. Pasame lo que dice no_encontre.'
+    WHEN (SELECT count(*) FROM sin) = 0 THEN 'LISTO: todos los horarios quedaron cargados'
+    ELSE 'LISTO, CON FALTANTES: guardé los que encontré. Pasame lo que dice no_encontre.'
+  END AS resultado,
+  (SELECT count(*) FROM guardados) AS horarios_nuevos,
+  (SELECT count(*) FROM (SELECT DISTINCT curso, materia FROM elegido) e) || ' de ' || (SELECT count(*) FROM grupos) AS materias_en_cursos_con_horario,
+  (SELECT string_agg(curso || ' · ' || materia || ' (' || motivo || ')', E'\n' ORDER BY curso, materia) FROM sin) AS no_encontre,
+  (SELECT string_agg(m.nombre || ' en ' || upper(c.identificador) || ': ' || coalesce((SELECT string_agg(p.nombre_completo, ' y ' ORDER BY p.nombre_completo) FROM public.dictado_profesores dp JOIN public.profesores p ON p.id = dp.profesor_id WHERE dp.dictado_id = d.id), 'sin profesores'), E'\n' ORDER BY c.identificador, m.nombre)
+   FROM public.dictados d JOIN public.materias m ON m.id = d.materia_id JOIN public.cursos c ON c.id = d.curso_id
+   WHERE pg_temp.norma(m.nombre) LIKE 'creatividad%' OR upper(trim(c.identificador)) IN ('5K5', '4K1A', '4K1B')) AS cursos_arreglados,
+  coalesce((SELECT string_agg(viejo || ' → ' || nuevo, E'\n') FROM arreglados), 'ninguno (o ya estaban bien)') AS nombres_arreglados;

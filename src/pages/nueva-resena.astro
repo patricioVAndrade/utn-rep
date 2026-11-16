@@ -1,18 +1,23 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import HeaderNav from '../components/HeaderNav.astro';
-import { supabase } from '../lib/supabase';
+import Icon from '../components/Icon.astro';
+import { supabase, createSupabaseServerClient } from '../lib/supabase';
+import { anioLabel, turnoLabel } from '../lib/format';
+import { safeReturnTo } from '../lib/redirect';
+import { estaBloqueada } from '../lib/perfil';
 
 const user = Astro.locals.user;
+const bloqueada = user ? await estaBloqueada(createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies }).client, user.id) : false;
 
-// Verificar si viene con dictado preseleccionado
+// ¿Viene con curso o materia ya elegidos?
 const dictadoIdParam = Astro.url.searchParams.get('dictado');
-
-// Verificar si viene con materia preseleccionada (desde página de materia)
 const materiaIdParam = Astro.url.searchParams.get('materia');
 
-// Guardar de dónde vino el usuario para redirigir después de enviar
-const fromParam = Astro.url.searchParams.get('from') || '';
+// A dónde volver después de publicar (solo rutas internas)
+const fromRaw = Astro.url.searchParams.get('from');
+const fromParam = fromRaw ? safeReturnTo(fromRaw) : '';
+
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
 
 let dictadoInfo: any = null;
 if (dictadoIdParam) {
@@ -25,10 +30,9 @@ if (dictadoIdParam) {
     `)
     .eq('id', dictadoIdParam)
     .single();
-  dictadoInfo = data;
+  if (data) dictadoInfo = { ...data, cursos: one((data as any).cursos), materias: one((data as any).materias) };
 }
 
-// Info de materia preseleccionada
 let materiaPreseleccionada: any = null;
 if (materiaIdParam && !dictadoIdParam) {
   const { data } = await supabase
@@ -39,9 +43,9 @@ if (materiaIdParam && !dictadoIdParam) {
   materiaPreseleccionada = data;
 }
 
-// Materias para el selector (solo si no viene con dictado)
+// Materias para el selector (solo si no viene con curso)
 let materias: any[] = [];
-if (!dictadoIdParam) {
+if (!dictadoInfo) {
   const { data } = await supabase
     .from('materias')
     .select('id, nombre, nivel')
@@ -50,442 +54,488 @@ if (!dictadoIdParam) {
   materias = data || [];
 }
 
-const nivel = dictadoInfo?.materias?.nivel || materiaPreseleccionada?.nivel || 3;
-const nivelColors: Record<number, string> = {
-  1: "from-blue-500 to-blue-600",
-  2: "from-green-500 to-green-600",
-  3: "from-orange-500 to-orange-600",
-  4: "from-red-500 to-red-600",
-  5: "from-purple-500 to-purple-600",
-};
-const headerBg = (dictadoInfo || materiaPreseleccionada) ? (nivelColors[nivel] || "from-stone-700 to-stone-900") : "from-stone-700 to-stone-900";
+// Cursos que ya reseñaste (la base no deja dos reseñas del mismo curso)
+let yaResenados: number[] = [];
+if (user) {
+  const { client: userClient } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+  const { data } = await userClient.from('resenas').select('dictado_id').eq('user_id', user.id);
+  yaResenados = (data || []).map((r: any) => r.dictado_id);
+}
+const yaResenoEste = !!dictadoInfo && yaResenados.includes(dictadoInfo.id);
 
 const currentYear = new Date().getFullYear();
+const materiaCtx = dictadoInfo?.materias || materiaPreseleccionada;
+const crumbs = [
+  { label: 'Materias', href: '/' },
+  ...(materiaCtx ? [{ label: materiaCtx.nombre, href: `/materia/${materiaCtx.id}` }] : []),
+  ...(dictadoInfo ? [{ label: dictadoInfo.cursos?.identificador || 'Curso', href: `/dictado/${dictadoInfo.id}` }] : []),
+  { label: 'Escribir una reseña' },
+];
 ---
 
-<Layout title="Nueva Reseña - UTN REP">
-
-  <!-- Header -->
-  <header class={`bg-gradient-to-r ${headerBg} text-white relative overflow-hidden`}>
-    <div class="absolute inset-0 dot-pattern opacity-30"></div>
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-10">
-      <HeaderNav user={user} />
-      {dictadoInfo && (
-        <a href={`/dictado/${dictadoIdParam}`} class="inline-flex items-center gap-2 text-white/70 hover:text-white mb-2 transition-colors text-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-          </svg>
-          Volver a {dictadoInfo.cursos.identificador}
-        </a>
-      )}
-      {!dictadoInfo && materiaPreseleccionada && (
-        <a href={`/materia/${materiaPreseleccionada.id}`} class="inline-flex items-center gap-2 text-white/70 hover:text-white mb-2 transition-colors text-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-          </svg>
-          Volver a {materiaPreseleccionada.nombre}
-        </a>
-      )}
-      <h1 class="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight flex items-center gap-3">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-        Nueva Reseña
-      </h1>
-      {dictadoInfo && (
-        <p class="text-white/80 mt-2">
-          {dictadoInfo.materias.nombre} · {dictadoInfo.cursos.identificador} · Turno {dictadoInfo.cursos.turno}
-        </p>
-      )}
-
-    </div>
-  </header>
-
-  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-    
-    {/* Auth guard: must be logged in */}
-    {!user ? (
-      <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-8 text-center">
-        <div class="flex justify-center mb-4">
-          <svg class="w-14 h-14 text-neutral-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+<Layout title="Escribir una reseña - UTN REP" tab="escribir" crumbs={crumbs}>
+  <div class="layout">
+    <div class="main">
+      {bloqueada ? (
+        <div class="notice bad" role="alert">
+          <Icon name="alert" />
+          <div><b>Tu cuenta está bloqueada</b><p>Un moderador la bloqueó: podés leer el sitio, pero no escribir, votar ni reportar. Si creés que es un error, <a href="mailto:patriciovandrade@gmail.com?subject=Cuenta%20bloqueada">escribinos</a>.</p></div>
         </div>
-        <h2 class="text-xl font-heading font-bold text-neutral-100 mb-2">Iniciá sesión para escribir una reseña</h2>
-        <p class="text-neutral-500 mb-2 text-sm">
-          Necesitás una cuenta para poder dejar tu opinión. Es rápido y seguro.
-        </p>
-        <p class="text-neutral-600 mb-6 text-xs">
-          Tu nombre no se mostrará si elegís publicar como anónimo.
-        </p>
-        <button id="login-btn-main" class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold px-8 py-4 rounded-xl hover:opacity-90 transition-all shadow-lg cursor-pointer">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-          </svg>
-          Iniciar Sesión
-        </button>
-      </div>
-    ) : (
-    <div>
-    <!-- Mensajes -->
-    <div id="msg-success" class="hidden mb-6 bg-green-900/30 border border-green-700 text-green-400 px-6 py-4 rounded-2xl">
-      <p class="font-bold flex items-center gap-2"><svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ¡Reseña enviada!</p>
-      <p class="text-sm mt-1">Gracias por compartir tu experiencia.</p>
-    </div>
-    <div id="msg-error" class="hidden mb-6 bg-red-900/30 border border-red-700 text-red-400 px-6 py-4 rounded-2xl">
-      <p class="font-bold flex items-center gap-2"><svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Hubo un error</p>
-      <p class="text-sm mt-1" id="msg-error-text">No se pudo enviar la reseña. Intentá de nuevo.</p>
-    </div>
+      ) : !user ? (
+        <div class="empty">
+          <h1 style="margin:0;font:bold 16px var(--f-title)"><Icon name="lock" class="ico" /> Iniciá sesión para escribir una reseña</h1>
+          <span>Necesitás una cuenta para dejar tu opinión. Es rápido y no pide contraseña.</span>
+          <span class="sub">Si elegís publicarla como anónima, tu nombre no se muestra.</span>
+          <button id="login-btn-main" type="button" class="btn primary" data-login><Icon name="user" /> Iniciar sesión</button>
+        </div>
+      ) : yaResenoEste ? (
+        <div class="empty">
+          <h1 style="margin:0;font:bold 16px var(--f-title)">Ya reseñaste este curso</h1>
+          <span>Podés editar tu reseña de {dictadoInfo.materias?.nombre}, {dictadoInfo.cursos?.identificador} desde la página del curso.</span>
+          <a class="btn primary" href={`/dictado/${dictadoInfo.id}`}><Icon name="edit" /> Ir a mi reseña</a>
+        </div>
+      ) : (
+        <>
+          <div id="msg-borrador" class="notice hidden" role="status">
+            <Icon name="info" />
+            <span><b>Recuperamos tu borrador</b> <span id="borrador-fecha"></span> <button type="button" id="descartar-borrador" class="linklike">Descartarlo y empezar de cero</button></span>
+          </div>
+          <div id="msg-success" class="notice ok hidden" role="status">
+            <Icon name="check" />
+            <div><b>¡Reseña publicada!</b><p>Gracias por contar tu experiencia. Un segundo…</p></div>
+          </div>
+          <div id="msg-error" class="notice bad hidden" role="alert">
+            <Icon name="alert" />
+            <div><b>Falta algo</b><p id="msg-error-text">Probá de nuevo.</p></div>
+          </div>
 
-    <form id="review-form" class="space-y-6">
-      
-      {/* Modo completo: Seleccionar materia y curso */}
-      {!dictadoInfo && (
-        <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6 space-y-5">
-          <h2 class="font-heading font-bold text-lg text-neutral-100 flex items-center gap-2">
-            <span class="bg-amber-900/30 text-amber-400 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg></span>
-            ¿Qué materia y curso cursaste?
-          </h2>
-          
-          <div>
-            <label for="materia-select" class="block text-sm font-semibold text-neutral-300 mb-2">Materia</label>
-            <select 
-              id="materia-select" 
-              class={`w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#242424] text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all ${materiaPreseleccionada ? 'opacity-70 cursor-not-allowed' : ''}`}
-              required
-              disabled={!!materiaPreseleccionada}
-            >
-              <option value="">Seleccioná una materia...</option>
-              {[1, 2, 3, 4, 5].map((niv) => {
-                const materiasNivel = materias.filter(m => m.nivel === niv);
-                return materiasNivel.length > 0 && (
-                  <optgroup label={`${niv}º Año`}>
-                    {materiasNivel.map(m => (
-                      <option value={m.id} selected={materiaPreseleccionada?.id === m.id}>{m.nombre}</option>
-                    ))}
-                  </optgroup>
-                );
-              })}
-            </select>
-            {materiaPreseleccionada && (
-              <input type="hidden" id="materia-hidden" value={materiaPreseleccionada.id} />
+          <form id="review-form" class="form" novalidate>
+            <h1 class="fhead">
+              <span>{dictadoInfo ? `Nueva reseña para ${dictadoInfo.materias?.nombre}, curso ${dictadoInfo.cursos?.identificador}` : 'Nueva reseña'}</span>
+              <span class="draft-note">Se guarda como borrador mientras escribís</span>
+            </h1>
+            <ol class="stepper" aria-label="Pasos">
+              {!dictadoInfo && <li data-paso="1"><span class="n">1</span> Materia y curso</li>}
+              <li data-paso="2"><span class="n">{dictadoInfo ? 1 : 2}</span> Tu experiencia</li>
+              <li data-paso="3"><span class="n">{dictadoInfo ? 2 : 3}</span> Revisar y publicar</li>
+            </ol>
+
+            {!dictadoInfo && (
+              <div class="paso" data-paso="1">
+                <div class="fgrid">
+                  <label for="materia-select">Materia<small>Elegí la materia que cursaste.</small></label>
+                  <div class="field">
+                    <select id="materia-select" required>
+                      <option value="">Elegí una materia…</option>
+                      {[1, 2, 3, 4, 5].map((niv) => {
+                        const lista = materias.filter((m) => m.nivel === niv);
+                        return lista.length > 0 && (
+                          <optgroup label={anioLabel(niv)}>
+                            {lista.map((m) => <option value={m.id} selected={materiaPreseleccionada?.id === m.id}>{m.nombre}</option>)}
+                          </optgroup>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <label for="curso-select">Curso<small>Por ejemplo 2K3. Cada curso tiene su equipo docente.</small></label>
+                  <div class="field">
+                    <select id="curso-select" required disabled>
+                      <option value="">{materiaPreseleccionada ? 'Cargando cursos…' : 'Primero elegí una materia'}</option>
+                    </select>
+                    <span class="help hidden" id="curso-ya">Los cursos que ya reseñaste aparecen deshabilitados: tu reseña se edita desde el curso.</span>
+                  </div>
+
+                  <label for="anio-cursado">¿Cuándo la cursaste?</label>
+                  <div class="field">
+                    <select id="anio-cursado" required>
+                      <option value="">Elegí el año…</option>
+                      {Array.from({ length: 10 }, (_, i) => currentYear - i).map((year) => <option value={year}>{year}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div class="fbar">
+                  <a class="btn quiet" href={fromParam || '/'}>Cancelar</a>
+                  <button type="button" class="btn primary" data-ir="2">Seguir: contar mi experiencia</button>
+                </div>
+              </div>
             )}
-          </div>
 
-          <div>
-            <label for="curso-select" class="block text-sm font-semibold text-neutral-300 mb-2">Curso / Cátedra</label>
-            <select 
-              id="curso-select" 
-              class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#242424] text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              required
-              disabled={!materiaPreseleccionada}
-            >
-              <option value="">{materiaPreseleccionada ? 'Cargando cursos...' : 'Primero seleccioná una materia'}</option>
-            </select>
-          </div>
-        </div>
+            <div class="paso" data-paso="2">
+              <div class="fgrid">
+                {!dictadoInfo ? (
+                  <>
+                    <span class="lab">Materia y curso<small>Lo elegiste en el paso anterior.</small></span>
+                    <div class="field"><span><b id="resumen-curso"></b> <button type="button" class="linklike" data-ir="1">Cambiar</button></span></div>
+                  </>
+                ) : (
+                  <>
+                    <input type="hidden" id="dictado-id-hidden" value={dictadoIdParam} />
+                    <span class="lab">Curso</span>
+                    <div class="field"><span><b>{dictadoInfo.materias?.nombre}</b>, curso {dictadoInfo.cursos?.identificador}, turno {turnoLabel(dictadoInfo.cursos?.turno).toLowerCase()}.</span></div>
+
+                    <label for="anio-cursado">¿Cuándo la cursaste?</label>
+                    <div class="field">
+                      <select id="anio-cursado" required>
+                        <option value="">Elegí el año…</option>
+                        {Array.from({ length: 10 }, (_, i) => currentYear - i).map((year) => <option value={year}>{year}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <span class="lab" id="lab-cal">Puntaje<small>¿Cómo fue tu experiencia en general?</small></span>
+                <div class="field">
+                  <div class="star-pick" id="star-rating" role="radiogroup" aria-labelledby="lab-cal">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button type="button" data-star={star} class="star-btn" role="radio" aria-checked="false" aria-label={`${star} estrella${star > 1 ? 's' : ''}`}>★</button>
+                    ))}
+                  </div>
+                  <input type="hidden" id="calificacion" name="calificacion" value="0" />
+                  <span id="rating-label" class="rate-word">Tocá una estrella para puntuar</span>
+                </div>
+
+                <span class="lab" id="lab-cond">¿Cómo te fue?<small>Opcional</small></span>
+                <div class="field">
+                  <div class="seg cond-pick" role="radiogroup" aria-labelledby="lab-cond">
+                    <button type="button" role="radio" data-cond="PROMOCIONADO" aria-checked="false" aria-pressed="false">Promocioné</button>
+                    <button type="button" role="radio" data-cond="REGULAR" aria-checked="false" aria-pressed="false">Regularicé</button>
+                    <button type="button" role="radio" data-cond="LIBRE" aria-checked="false" aria-pressed="false">Quedé libre</button>
+                    <button type="button" role="radio" data-cond="" aria-checked="true" aria-pressed="true">Prefiero no contarlo</button>
+                  </div>
+                  <input type="hidden" id="condicion-final" value="" />
+                </div>
+
+                <label for="comentario">Tu opinión<small>Contá lo que te hubiera servido saber antes de cursar.</small></label>
+                <div class="field">
+                  <textarea id="comentario" rows="7" maxlength="2000" required placeholder="¿Cómo son las clases? ¿Y los parciales? ¿Los profes explican bien? Cualquier dato sirve."></textarea>
+                  <span class="help"><span id="contador">0</span> de 2000 caracteres. Hablá de la cursada, con respeto: las reseñas con insultos se borran.</span>
+                </div>
+
+                <span class="lab">Privacidad</span>
+                <div class="field">
+                  <label class="check"><input type="checkbox" id="es-anonima" /> <span>Publicarla como anónima. Tu nombre no se muestra a nadie; solo un moderador puede verlo si la reseña es reportada.</span></label>
+                </div>
+              </div>
+              <div class="fbar">
+                {dictadoInfo
+                  ? <a class="btn quiet" href={fromParam || `/dictado/${dictadoInfo.id}`}>Cancelar</a>
+                  : <button type="button" class="btn quiet" data-ir="1">Volver al paso anterior</button>}
+                <button type="button" class="btn primary" data-ir="3">Continuar a revisar</button>
+              </div>
+            </div>
+
+            <div class="paso" data-paso="3">
+              <div class="review-preview">
+                <p class="sub">Así se va a ver tu reseña:</p>
+                <article class="post">
+                  <div class="post-head"><span id="prev-curso"></span><span class="tag" id="prev-anio"></span></div>
+                  <div class="post-main">
+                    <div class="author">
+                      <div class="avatar" id="prev-avatar"></div>
+                      <span class="uname" id="prev-nombre"></span>
+                      <span id="prev-cond"></span>
+                    </div>
+                    <div class="message">
+                      <div class="rate-line"><span class="stars" id="prev-stars"></span> <b id="prev-nota"></b></div>
+                      <p id="prev-texto" style="white-space:pre-line"></p>
+                    </div>
+                  </div>
+                </article>
+              </div>
+              <div class="fbar">
+                <button type="button" class="btn quiet" data-ir="2">Volver a editar</button>
+                <button type="submit" id="btn-submit" class="btn primary"><Icon name="pen" /> Publicar reseña</button>
+              </div>
+            </div>
+          </form>
+        </>
       )}
-
-      {dictadoInfo && (
-        <input type="hidden" id="dictado-id-hidden" value={dictadoIdParam} />
-      )}
-
-      <!-- Calificación -->
-      <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
-        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-4 flex items-center gap-2">
-          <span class="bg-amber-900/30 text-amber-400 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg></span>
-          ¿Cómo calificarías tu experiencia?
-        </h2>
-        
-        <div class="flex items-center justify-center gap-2 sm:gap-3" id="star-rating">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button 
-              type="button"
-              data-star={star}
-              class="star-btn text-4xl sm:text-5xl text-neutral-300 hover:text-yellow-400 transition-all duration-150 hover:scale-110 active:scale-95 cursor-pointer"
-              aria-label={`${star} estrella${star > 1 ? 's' : ''}`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-        <input type="hidden" id="calificacion" name="calificacion" value="0" required />
-        <p id="rating-label" class="text-center text-sm text-neutral-500 mt-3">Tocá una estrella para calificar</p>
-      </div>
-
-      <!-- Año de cursado -->
-      <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
-        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-4 flex items-center gap-2">
-          <span class="bg-blue-900/30 text-blue-400 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></span>
-          ¿En qué año cursaste?
-        </h2>
-        <select 
-          id="anio-cursado" 
-          class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#242424] text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all"
-          required
-        >
-          <option value="">Seleccioná el año...</option>
-          {Array.from({length: 10}, (_, i) => currentYear - i).map((year) => (
-            <option value={year}>{year}</option>
-          ))}
-        </select>
-      </div>
-
-      <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
-        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-4 flex items-center gap-2">
-          <span class="bg-purple-900/30 text-purple-400 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg></span>
-          ¿En qué condición quedaste? (Opcional)
-        </h2>
-        <select 
-          id="condicion-final" 
-          class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#242424] text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all"
-        >
-          <option value="">Prefiero no contestar</option>
-          <option value="PROMOCIONADO">Promocionado (Aprobación Directa)</option>
-          <option value="REGULAR">Regular</option>
-          <option value="LIBRE">Libre</option>
-        </select>
-      </div>
-
-      <!-- Comentario -->
-      <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6">
-        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-4 flex items-center gap-2">
-          <span class="bg-neutral-800 text-neutral-400 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></span>
-          Tu opinión
-        </h2>
-        <textarea 
-          id="comentario"
-          class="w-full px-4 py-3 rounded-xl border border-neutral-700 bg-[#242424] text-neutral-100 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-amber-400 transition-all resize-none"
-          rows="5"
-          placeholder="Contá tu experiencia: ¿Cómo son las clases? ¿Los parciales? ¿Los profes explican bien? Cualquier dato es útil..."
-          required
-        ></textarea>
-        <p class="text-xs text-neutral-500 mt-2">Sé respetuoso/a con los docentes.</p>
-        <!-- Opción anónima (inline) -->
-        <label class="flex items-center gap-2.5 cursor-pointer group mt-3 pt-3 border-t border-neutral-700/40">
-          <div class="relative flex-shrink-0">
-            <input type="checkbox" id="es-anonima" class="peer sr-only" />
-            <div class="w-4 h-4 rounded border-2 border-neutral-600 bg-neutral-800 peer-checked:bg-amber-500 peer-checked:border-amber-500 transition-all"></div>
-            <svg class="absolute inset-0 m-auto w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
-          </div>
-          <span class="text-sm text-neutral-400 group-hover:text-amber-400 transition-colors select-none" id="anonima-hint">Publicar como anónimo</span>
-        </label>
-      </div>
-
-      <!-- Botón enviar -->
-      <button 
-        type="submit" 
-        id="btn-submit"
-        class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:opacity-90 text-white font-bold text-lg px-8 py-4 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-        </svg>
-        Enviar Reseña
-      </button>
-    </form>
     </div>
-    )}
 
-  </main>
+    <aside class="side">
+      <section class="panel guide">
+        <h3>Una buena reseña</h3>
+        <div class="in">
+          <ul>
+            <li class="good">Cuenta cómo son las clases y los parciales.</li>
+            <li class="good">Dice qué te sirvió para aprobar.</li>
+            <li class="good">Aclara en qué año cursaste.</li>
+            <li class="bad">No insulta ni ataca a nadie.</li>
+            <li class="bad">No comparte datos personales.</li>
+          </ul>
+        </div>
+      </section>
+      <section class="panel">
+        <h3>Una reseña por curso</h3>
+        <div class="in">
+          <span>Podés reseñar cada curso una vez y editarla cuando quieras. Si recursaste, reseñá cada curso por separado.</span>
+        </div>
+      </section>
+    </aside>
+  </div>
 
-  <script define:vars={{ dictadoIdParam, fromParam, supabaseUrl: import.meta.env.PUBLIC_SUPABASE_URL, supabaseKey: import.meta.env.PUBLIC_SUPABASE_ANON_KEY }}>
-    // ========== STAR RATING ==========
-    let selectedRating = 0;
-    const labels = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
-    const starBtns = document.querySelectorAll('.star-btn');
-    const calInput = document.getElementById('calificacion');
-    const ratingLabel = document.getElementById('rating-label');
+  <script define:vars={{
+    dictadoIdParam: dictadoInfo ? dictadoIdParam : null,
+    dictadoLabel: dictadoInfo ? `${dictadoInfo.materias?.nombre}, ${dictadoInfo.cursos?.identificador}` : null,
+    materiaInicial: materiaPreseleccionada ? String(materiaPreseleccionada.id) : '',
+    yaResenados,
+    // Sin < ni >: define:vars de Astro 5 no escapa bien </script> (auditoría 16/11)
+    nombreUsuario: (user?.name || '').replace(/[<>]/g, ''),
+    supabaseUrl: import.meta.env.PUBLIC_SUPABASE_URL,
+    supabaseKey: import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  }}>
+    const form = document.getElementById('review-form');
+    if (form) {
+      const $ = (id) => document.getElementById(id);
+      const materiaSelect = $('materia-select');
+      const cursoSelect = $('curso-select');
+      const anioSelect = $('anio-cursado');
+      const calInput = $('calificacion');
+      const condInput = $('condicion-final');
+      const comentario = $('comentario');
+      const anonima = $('es-anonima');
+      const msgError = $('msg-error');
+      const msgErrorText = $('msg-error-text');
 
-    starBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        selectedRating = parseInt(btn.dataset.star);
-        calInput.value = selectedRating;
-        ratingLabel.textContent = labels[selectedRating];
-        ratingLabel.classList.remove('text-neutral-500');
-        ratingLabel.classList.add('text-neutral-300', 'font-medium');
-        
-        starBtns.forEach(b => {
-          const star = parseInt(b.dataset.star);
-          if (star <= selectedRating) {
-            b.classList.remove('text-neutral-300');
-            b.classList.add('text-yellow-400');
-          } else {
-            b.classList.remove('text-yellow-400');
-            b.classList.add('text-neutral-300');
-          }
-        });
-      });
-
-      btn.addEventListener('mouseenter', () => {
-        const hoverStar = parseInt(btn.dataset.star);
-        starBtns.forEach(b => {
-          if (parseInt(b.dataset.star) <= hoverStar) b.classList.add('text-yellow-300');
-        });
-      });
-      btn.addEventListener('mouseleave', () => {
-        starBtns.forEach(b => {
-          b.classList.remove('text-yellow-300');
-          const star = parseInt(b.dataset.star);
-          if (star <= selectedRating) {
-            b.classList.remove('text-neutral-300');
-            b.classList.add('text-yellow-400');
-          } else {
-            b.classList.remove('text-yellow-400');
-            b.classList.add('text-neutral-300');
-          }
-        });
-      });
-    });
-
-    // ========== MATERIA → CURSO DINÁMICO ==========
-    const materiaSelect = document.getElementById('materia-select');
-    const cursoSelect = document.getElementById('curso-select');
-    const materiaHidden = document.getElementById('materia-hidden');
-
-    async function loadCursos(materiaId) {
-      if (!cursoSelect) return;
-      cursoSelect.innerHTML = '<option value="">Cargando cursos...</option>';
-      cursoSelect.disabled = true;
-
-      if (!materiaId) {
-        cursoSelect.innerHTML = '<option value="">Primero seleccioná una materia</option>';
-        return;
+      function error(texto) {
+        msgErrorText.textContent = texto;
+        msgError.classList.remove('hidden');
+        msgError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
       }
+      const limpiarError = () => msgError.classList.add('hidden');
 
-      try {
-        const res = await fetch(supabaseUrl + '/rest/v1/dictados?materia_id=eq.' + materiaId + '&select=id,cursos(identificador,turno)', {
-          headers: { 'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey }
+      // ========== ESTRELLAS ==========
+      const labels = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
+      const starBtns = document.querySelectorAll('.star-btn');
+      const ratingLabel = $('rating-label');
+      const pintar = (hasta, clase) => starBtns.forEach((b) => b.classList.toggle(clase, parseInt(b.dataset.star) <= hasta));
+      function setRating(n) {
+        calInput.value = n;
+        ratingLabel.textContent = n ? n + ' de 5: ' + labels[n] : 'Tocá una estrella para puntuar';
+        ratingLabel.classList.toggle('set', !!n);
+        pintar(n, 'on');
+        starBtns.forEach((b) => b.setAttribute('aria-checked', parseInt(b.dataset.star) === n ? 'true' : 'false'));
+      }
+      starBtns.forEach((btn) => {
+        btn.addEventListener('click', () => { setRating(parseInt(btn.dataset.star)); guardar(); });
+        btn.addEventListener('mouseenter', () => pintar(parseInt(btn.dataset.star), 'hov'));
+        btn.addEventListener('mouseleave', () => pintar(0, 'hov'));
+      });
+
+      // ========== CÓMO TE FUE ==========
+      const condBtns = document.querySelectorAll('[data-cond]');
+      function setCond(v) {
+        condInput.value = v;
+        condBtns.forEach((b) => {
+          const on = b.dataset.cond === v;
+          b.setAttribute('aria-checked', String(on));
+          b.setAttribute('aria-pressed', String(on));
         });
-        const dictados = await res.json();
+      }
+      condBtns.forEach((b) => b.addEventListener('click', () => { setCond(b.dataset.cond); guardar(); }));
 
-        if (dictados.length === 0) {
-          cursoSelect.innerHTML = '<option value="">No hay cursos para esta materia</option>';
+      // ========== CONTADOR ==========
+      const contador = $('contador');
+      const contar = () => { contador.textContent = comentario.value.trim().length; };
+      comentario.addEventListener('input', contar);
+
+      // ========== MATERIA → CURSO ==========
+      async function loadCursos(materiaId, elegir) {
+        if (!cursoSelect) return;
+        cursoSelect.innerHTML = '<option value="">Cargando cursos…</option>';
+        cursoSelect.disabled = true;
+        if (!materiaId) {
+          cursoSelect.innerHTML = '<option value="">Primero elegí una materia</option>';
           return;
         }
-
-        dictados.sort((a, b) => a.cursos.identificador.localeCompare(b.cursos.identificador));
-
-        cursoSelect.innerHTML = '<option value="">Elegí un curso...</option>';
-        dictados.forEach(d => {
-          const opt = document.createElement('option');
-          opt.value = d.id;
-          opt.textContent = d.cursos.identificador + ' - Turno ' + d.cursos.turno;
-          cursoSelect.appendChild(opt);
-        });
-        cursoSelect.disabled = false;
-      } catch (err) {
-        console.error('Error cargando cursos:', err);
-        cursoSelect.innerHTML = '<option value="">Error al cargar cursos</option>';
+        try {
+          const res = await fetch(supabaseUrl + '/rest/v1/dictados?materia_id=eq.' + encodeURIComponent(materiaId) + '&select=id,cursos(identificador,turno)', {
+            headers: { apikey: supabaseKey, Authorization: 'Bearer ' + supabaseKey },
+          });
+          const dictados = await res.json();
+          if (!Array.isArray(dictados) || dictados.length === 0) {
+            cursoSelect.innerHTML = '<option value="">No hay cursos cargados para esta materia</option>';
+            return;
+          }
+          dictados.sort((a, b) => (a.cursos?.identificador || '').localeCompare(b.cursos?.identificador || '', 'es', { numeric: true }));
+          cursoSelect.innerHTML = '<option value="">Elegí un curso…</option>';
+          let hayYa = false;
+          dictados.forEach((d) => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            const turno = (d.cursos?.turno || '').toLowerCase();
+            const ya = yaResenados.includes(d.id);
+            if (ya) hayYa = true;
+            opt.disabled = ya;
+            opt.textContent = (d.cursos?.identificador || 'Curso') + (turno ? ' · Turno ' + turno : '') + (ya ? ' (ya lo reseñaste)' : '');
+            cursoSelect.appendChild(opt);
+          });
+          $('curso-ya')?.classList.toggle('hidden', !hayYa);
+          cursoSelect.disabled = false;
+          if (elegir && !yaResenados.includes(Number(elegir))) cursoSelect.value = String(elegir);
+        } catch (err) {
+          console.error('Error cargando cursos:', err);
+          cursoSelect.innerHTML = '<option value="">No se pudieron cargar los cursos</option>';
+        }
       }
-    }
+      materiaSelect?.addEventListener('change', () => { loadCursos(materiaSelect.value); guardar(); });
+      cursoSelect?.addEventListener('change', guardar);
 
-    // Si viene con materia preseleccionada, cargar cursos automáticamente
-    if (materiaHidden) {
-      loadCursos(materiaHidden.value);
-    }
+      // ========== BORRADOR ==========
+      const CLAVE = 'borradorResena';
+      const leerBorrador = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || 'null'); } catch { return null; } };
+      let timer = null;
+      function guardar() {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          const datos = {
+            dictado: dictadoIdParam || cursoSelect?.value || '',
+            materia: materiaSelect?.value || '',
+            anio: anioSelect.value,
+            calificacion: parseInt(calInput.value) || 0,
+            condicion: condInput.value,
+            comentario: comentario.value,
+            anonima: anonima.checked,
+            fecha: Date.now(),
+          };
+          const vacio = !datos.calificacion && !datos.comentario.trim();
+          try { vacio ? localStorage.removeItem(CLAVE) : localStorage.setItem(CLAVE, JSON.stringify(datos)); } catch {}
+        }, 400);
+      }
+      [anioSelect, comentario].forEach((el) => el.addEventListener('input', guardar));
+      anonima.addEventListener('change', guardar);
 
-    if (materiaSelect && cursoSelect) {
-      materiaSelect.addEventListener('change', async () => {
-        const materiaId = materiaSelect.value;
-        await loadCursos(materiaId);
+      const borrador = leerBorrador();
+      const sirve = borrador && (borrador.comentario?.trim() || borrador.calificacion)
+        && (dictadoIdParam ? String(borrador.dictado) === String(dictadoIdParam) : !materiaInicial || borrador.materia === materiaInicial);
+      if (sirve) {
+        if (materiaSelect && borrador.materia) materiaSelect.value = borrador.materia;
+        if (borrador.anio) anioSelect.value = borrador.anio;
+        setRating(borrador.calificacion || 0);
+        setCond(borrador.condicion || '');
+        comentario.value = borrador.comentario || '';
+        anonima.checked = !!borrador.anonima;
+        contar();
+        const d = new Date(borrador.fecha);
+        $('borrador-fecha').textContent = '(del ' + d.toLocaleDateString('es-AR') + ' a las ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) + ').';
+        $('msg-borrador').classList.remove('hidden');
+      }
+      $('descartar-borrador')?.addEventListener('click', () => {
+        try { localStorage.removeItem(CLAVE); } catch {}
+        location.reload();
+      });
+      const materiaACargar = materiaSelect?.value || materiaInicial;
+      if (materiaACargar) loadCursos(materiaACargar, sirve ? borrador.dictado : '');
+
+      // ========== PASOS ==========
+      const pasos = document.querySelectorAll('.paso');
+      const items = document.querySelectorAll('.stepper li');
+      const orden = Array.from(pasos).map((p) => p.dataset.paso);
+      let actual = orden[0];
+
+      function cursoElegido() {
+        if (dictadoLabel) return dictadoLabel;
+        const materia = materiaSelect.options[materiaSelect.selectedIndex]?.textContent || '';
+        const curso = (cursoSelect.options[cursoSelect.selectedIndex]?.textContent || '').split(' · ')[0];
+        return materia + ', ' + curso;
+      }
+
+      function validar(paso) {
+        if (paso === '1') {
+          if (!materiaSelect.value || !cursoSelect.value) return error('Elegí la materia y el curso.');
+          if (!anioSelect.value) return error('Elegí el año en que cursaste.');
+        }
+        if (paso === '2') {
+          if (!anioSelect.value) return error('Elegí el año en que cursaste.');
+          if (!(parseInt(calInput.value) >= 1)) return error('Elegí un puntaje de 1 a 5 estrellas.');
+          if (comentario.value.trim().length < 10) return error('Escribí tu opinión sobre la cursada (al menos 10 caracteres).');
+        }
+        return true;
+      }
+
+      function preview() {
+        const n = parseInt(calInput.value) || 0;
+        $('prev-curso').textContent = cursoElegido();
+        $('prev-anio').textContent = 'Cursó en ' + anioSelect.value;
+        const nombre = anonima.checked ? 'Anónimo' : nombreUsuario;
+        $('prev-nombre').textContent = nombre;
+        $('prev-avatar').textContent = anonima.checked ? '?' : (nombre.trim()[0] || '?').toUpperCase();
+        const conds = { PROMOCIONADO: ['Promocionó', 'prom'], REGULAR: ['Regularizó', 'reg'], LIBRE: ['Quedó libre', 'libre'] };
+        const c = conds[condInput.value];
+        $('prev-cond').innerHTML = '';
+        if (c) { const s = document.createElement('span'); s.className = 'cond ' + c[1]; s.textContent = c[0]; $('prev-cond').appendChild(s); }
+        $('prev-stars').innerHTML = '★★★★★'.split('').map((x, i) => '<span' + (i < n ? '' : ' class="off"') + '>★</span>').join('');
+        $('prev-nota').textContent = n + ' de 5';
+        $('prev-texto').textContent = comentario.value.trim();
+      }
+
+      function ir(paso, conFoco) {
+        limpiarError();
+        actual = paso;
+        pasos.forEach((p) => p.classList.toggle('hidden', p.dataset.paso !== paso));
+        const idx = orden.indexOf(paso);
+        items.forEach((li) => {
+          const i = orden.indexOf(li.dataset.paso);
+          li.classList.toggle('done', i < idx);
+          if (i === idx) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+        });
+        if (paso === '2' && $('resumen-curso')) $('resumen-curso').textContent = cursoElegido() + '. Cursaste en ' + anioSelect.value + '.';
+        if (paso === '3') preview();
+        if (conFoco) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      document.querySelectorAll('[data-ir]').forEach((b) => b.addEventListener('click', () => {
+        const destino = b.dataset.ir;
+        // Para avanzar, el paso actual tiene que estar completo
+        if (orden.indexOf(destino) > orden.indexOf(actual)) {
+          for (const p of orden.slice(orden.indexOf(actual), orden.indexOf(destino))) {
+            if (!validar(p)) return;
+          }
+        }
+        ir(destino, true);
+      }));
+      ir(orden[0], false);
+
+      // ========== PUBLICAR ==========
+      const btnSubmit = $('btn-submit');
+      const btnOriginal = btnSubmit.innerHTML;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (actual !== '3') return;
+        for (const p of orden.slice(0, -1)) if (!validar(p)) return ir(p, true);
+        const dictadoId = dictadoIdParam || cursoSelect.value;
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<span class="spin"></span> Publicando…';
+        try {
+          const res = await fetch('/api/resenas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              dictado_id: parseInt(dictadoId),
+              calificacion_general: parseInt(calInput.value),
+              anio_cursado: parseInt(anioSelect.value),
+              comentario: comentario.value.trim(),
+              es_anonima: anonima.checked,
+              condicion_final: condInput.value || null,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Error ' + res.status);
+          clearTimeout(timer);
+          try { localStorage.removeItem(CLAVE); } catch {}
+          $('msg-success').classList.remove('hidden');
+          $('msg-success').scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => { window.location.href = '/resena-publicada?curso=' + dictadoId; }, 700);
+        } catch (err) {
+          console.error('Error enviando reseña:', err);
+          msgError.querySelector('b').textContent = 'No se pudo publicar';
+          error(err.message || 'No se pudo publicar la reseña. Probá de nuevo.');
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = btnOriginal;
+        }
       });
     }
-
-    // ========== ENVIAR RESEÑA ==========
-    const form = document.getElementById('review-form');
-    const btnSubmit = document.getElementById('btn-submit');
-    const msgSuccess = document.getElementById('msg-success');
-    const msgError = document.getElementById('msg-error');
-    const msgErrorText = document.getElementById('msg-error-text');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      msgSuccess.classList.add('hidden');
-      msgError.classList.add('hidden');
-
-      let dictadoId = dictadoIdParam;
-      if (!dictadoId) dictadoId = cursoSelect?.value;
-
-      const calificacion = parseInt(calInput.value);
-      const anio = parseInt(document.getElementById('anio-cursado').value);
-      const comentario = document.getElementById('comentario').value.trim();
-
-      if (!dictadoId) {
-        msgErrorText.textContent = 'Seleccioná una materia y un curso.';
-        msgError.classList.remove('hidden');
-        return;
-      }
-      if (!calificacion || calificacion < 1) {
-        msgErrorText.textContent = 'Seleccioná una calificación (1 a 5 estrellas).';
-        msgError.classList.remove('hidden');
-        return;
-      }
-      if (!anio) {
-        msgErrorText.textContent = 'Seleccioná el año en que cursaste.';
-        msgError.classList.remove('hidden');
-        return;
-      }
-      if (!comentario) {
-        msgErrorText.textContent = 'Escribí un comentario sobre tu experiencia.';
-        msgError.classList.remove('hidden');
-        return;
-      }
-
-      btnSubmit.disabled = true;
-      btnSubmit.innerHTML = '<span class="animate-spin inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full"></span> Enviando...';
-
-      const condicionFinal = document.getElementById('condicion-final').value || null;
-
-      try {
-        const res = await fetch('/api/resenas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            dictado_id: parseInt(dictadoId),
-            calificacion_general: calificacion,
-            anio_cursado: anio,
-            comentario: comentario,
-            es_anonima: document.getElementById('es-anonima')?.checked || false,
-            condicion_final: condicionFinal
-          })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Error ' + res.status);
-        }
-
-        // Redirigir al origen después de un envío exitoso
-        // Si vino de un dictado específico, volver ahí. Si no, al home.
-        let redirectUrl = '/';
-        if (fromParam) {
-          redirectUrl = fromParam;
-        } else if (dictadoIdParam) {
-          redirectUrl = '/dictado/' + dictadoIdParam;
-        }
-        
-        // Breve delay para que se vea el mensaje de éxito
-        msgSuccess.classList.remove('hidden');
-        msgSuccess.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(() => {
-          window.location.href = redirectUrl;
-        }, 1500);
-
-      } catch (err) {
-        console.error('Error enviando reseña:', err);
-        msgErrorText.textContent = err.message || 'No se pudo enviar la reseña. Intentá de nuevo.';
-        msgError.classList.remove('hidden');
-      } finally {
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Enviar Reseña';
-      }
-    });
-
-    // ========== CHECKBOX ANÓNIMA - hint text ==========
-    const esAnonimaCheck = document.getElementById('es-anonima');
-    const anonimaHint = document.getElementById('anonima-hint');
-    if (esAnonimaCheck && anonimaHint) {
-      // No text change — the label stays as "Publicar como anónimo"
-    }
   </script>
-
 </Layout>

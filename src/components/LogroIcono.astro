@@ -1,0 +1,14 @@
+---
+/** Medalla de un logro. Apagada (off) cuando todavía no se ganó. */
+import { logroPorId } from '../lib/logros';
+
+interface Props { id: string; off?: boolean }
+const { id, off = false } = Astro.props;
+const l = logroPorId(id);
+const titulo = l ? (off ? `${l.nombre}: ${l.como.toLowerCase()} (todavía no)` : l.nombre) : id;
+---
+{l && (
+  <span class:list={['logro', l.clase, { off }]} title={titulo} role="img" aria-label={l.nombre}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" set:html={l.svg} />
+  </span>
+)}

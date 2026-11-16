@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createSupabaseServerClient } from '../../lib/supabase';
-import { json, readJson } from '../../lib/http';
+import { json, readJson, esBloqueo, cuentaBloqueada } from '../../lib/http';
 import { parseBody, reporteSchema } from '../../lib/validation';
 
 /**
@@ -37,6 +37,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .insert({ resena_id, user_id: user.id, motivo });
 
   if (insertError) {
+    if (esBloqueo(insertError)) return cuentaBloqueada();
     console.error('Error inserting report:', insertError);
     return json({ error: 'No se pudo enviar el reporte. Intentá de nuevo.' }, 500);
   }

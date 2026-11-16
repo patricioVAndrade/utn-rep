@@ -1,56 +1,95 @@
 // Interacciones de la página /dictado/[id]: orden, paginación, edición, borrado, reportes y votos.
+import { editadaEl } from '../lib/format';
 function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Error desconocido';
 }
 
-// ========== PAGINATION ==========
-const showMoreBtn = document.getElementById('show-more-btn') as HTMLButtonElement | null;
-if (showMoreBtn) {
-  showMoreBtn.addEventListener('click', () => {
-    document.querySelectorAll('.review-extra').forEach(el => {
-      el.classList.remove('hidden', 'review-extra');
-    });
-    showMoreBtn.remove();
-  });
+// ========== ORDEN Y PÁGINAS ==========
+const POR_PAGINA = 10;
+const reviewsList = document.getElementById('reviews-list') as HTMLElement | null;
+const botonesOrden = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-orden]'));
+const pagers = Array.from(document.querySelectorAll<HTMLElement>('[data-pager]'));
+let pagina = 0;
+
+function tarjetas(): HTMLElement[] {
+  return Array.from(reviewsList?.querySelectorAll<HTMLElement>('.review-card') || []);
 }
 
-// ========== SORT ==========
-const sortSelect = document.getElementById('sort-select') as HTMLSelectElement | null;
-const reviewsList = document.getElementById('reviews-list') as HTMLElement | null;
-
-if (sortSelect && reviewsList) {
-  sortSelect.addEventListener('change', () => {
-    // Show all when sorting
-    document.querySelectorAll('.review-extra').forEach(el => {
-      el.classList.remove('hidden', 'review-extra');
-    });
-    showMoreBtn?.remove();
-
-    const cards = Array.from(reviewsList.querySelectorAll('.review-card'));
-
-    cards.sort((a, b) => {
-      const dateA = a.getAttribute('data-date') || '';
-      const dateB = b.getAttribute('data-date') || '';
-      const ratingA = parseFloat(a.getAttribute('data-rating') || '0');
-      const ratingB = parseFloat(b.getAttribute('data-rating') || '0');
-      const votosA = parseInt(a.getAttribute('data-votos') || '0');
-      const votosB = parseInt(b.getAttribute('data-votos') || '0');
-
-      switch (sortSelect.value) {
-        case 'newest': return dateB.localeCompare(dateA);
-        case 'oldest': return dateA.localeCompare(dateB);
-        case 'highest': return ratingB - ratingA;
-        case 'lowest': return ratingA - ratingB;
-        case 'useful': return votosB - votosA;
-        default: return 0;
-      }
-    });
-
-    cards.forEach(card => reviewsList.appendChild(card));
+function ordenar(criterio: string) {
+  if (!reviewsList) return;
+  const cards = tarjetas();
+  const num = (el: Element, k: string) => parseFloat(el.getAttribute(k) || '0');
+  const fecha = (el: Element) => el.getAttribute('data-date') || '';
+  cards.sort((a, b) => {
+    if (criterio === 'newest') return fecha(b).localeCompare(fecha(a));
+    if (criterio === 'lowest') return num(a, 'data-rating') - num(b, 'data-rating') || fecha(b).localeCompare(fecha(a));
+    return num(b, 'data-votos') - num(a, 'data-votos') || fecha(b).localeCompare(fecha(a));
   });
+  cards.forEach((c) => reviewsList.appendChild(c));
+}
+
+function paginar(p: number, subir = false) {
+  const cards = tarjetas();
+  const total = Math.max(1, Math.ceil(cards.length / POR_PAGINA));
+  pagina = Math.min(Math.max(p, 0), total - 1);
+  cards.forEach((c, i) => c.classList.toggle('hidden', Math.floor(i / POR_PAGINA) !== pagina));
+  pagers.forEach((pg) => {
+    pg.innerHTML = '';
+    if (total < 2) return;
+    const label = document.createElement('span');
+    label.className = 'sub';
+    label.textContent = 'Página';
+    pg.appendChild(label);
+    for (let i = 0; i < total; i++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pg';
+      b.textContent = String(i + 1);
+      if (i === pagina) b.setAttribute('aria-current', 'page');
+      b.addEventListener('click', () => paginar(i, true));
+      pg.appendChild(b);
+    }
+    if (pagina < total - 1) {
+      const sig = document.createElement('button');
+      sig.type = 'button';
+      sig.className = 'pg';
+      sig.textContent = 'Siguiente';
+      sig.addEventListener('click', () => paginar(pagina + 1, true));
+      pg.appendChild(sig);
+    }
+  });
+  if (subir) document.getElementById('resenas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+botonesOrden.forEach((b) => b.addEventListener('click', () => {
+  botonesOrden.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+  ordenar(b.dataset.orden || 'useful');
+  paginar(0);
+}));
+
+if (reviewsList) {
+  ordenar(botonesOrden.find((b) => b.getAttribute('aria-pressed') === 'true')?.dataset.orden || 'useful');
+  // Si el link apunta a una reseña, abrir la página donde está
+  const destino = location.hash.startsWith('#resena-') ? document.querySelector(location.hash) : null;
+  const idx = destino ? tarjetas().indexOf(destino as HTMLElement) : -1;
+  paginar(idx >= 0 ? Math.floor(idx / POR_PAGINA) : 0);
+  if (destino) destino.scrollIntoView({ block: 'start' });
 }
 
 // ========== EDIT ==========
+const CONDICIONES: Record<string, [string, string]> = { PROMOCIONADO: ['Promocionó', 'prom'], REGULAR: ['Regularizó', 'reg'], LIBRE: ['Quedó libre', 'libre'] };
+function pintarCondicion(card: HTMLElement, valor: string) {
+  let pill = card.querySelector('.author .cond') as HTMLElement | null;
+  const c = CONDICIONES[valor];
+  if (!c) { pill?.remove(); return; }
+  if (!pill) {
+    pill = document.createElement('span');
+    card.querySelector('.author')?.append(pill);
+  }
+  pill.className = `cond ${c[1]}`;
+  pill.textContent = c[0];
+}
+
 document.querySelectorAll('.edit-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const card = btn.closest('.review-card') as HTMLElement | null;
@@ -80,6 +119,7 @@ document.querySelectorAll('.save-edit-btn').forEach((btn) => {
     const resenaId = card.getAttribute('data-id');
     const textarea = card.querySelector('.edit-textarea') as HTMLTextAreaElement | null;
     const newComment = textarea?.value?.trim();
+    const condSelect = card.querySelector('.edit-condicion') as HTMLSelectElement | null;
 
     if (!newComment || newComment.length < 10) {
       alert('El comentario debe tener al menos 10 caracteres.');
@@ -93,7 +133,7 @@ document.querySelectorAll('.save-edit-btn').forEach((btn) => {
       const res = await fetch('/api/resenas/' + resenaId, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ _method: 'PUT', comentario: newComment }),
+        body: JSON.stringify({ _method: 'PUT', comentario: newComment, condicion_final: condSelect?.value ?? undefined }),
       });
       const text = await res.text();
       let data;
@@ -107,6 +147,9 @@ document.querySelectorAll('.save-edit-btn').forEach((btn) => {
         comment.classList.remove('hidden');
       }
       card.querySelector('.review-edit-form')?.classList.add('hidden');
+      pintarCondicion(card, condSelect?.value || '');
+      const editada = card.querySelector('.editada');
+      if (editada && data.updated_at) editada.textContent = ` · ${editadaEl(data.updated_at)}`;
     } catch (err) {
       alert(getErrorMessage(err));
     } finally {
@@ -170,8 +213,6 @@ document.querySelectorAll('.report-btn').forEach((btn) => {
       if (!res.ok) throw new Error(data.error || 'Error');
 
       btn.textContent = '✓ Reportada';
-      btn.classList.remove('text-neutral-600', 'hover:text-red-400');
-      btn.classList.add('text-neutral-500');
       (btn as HTMLButtonElement).disabled = true;
     } catch (err) {
       alert(getErrorMessage(err));
@@ -182,15 +223,11 @@ document.querySelectorAll('.report-btn').forEach((btn) => {
 
 // ========== VOTOS ==========
 // El estado inicial viene del servidor (data-votada); la base guarda un voto por usuario.
-const VOTADA_CLASSES = ['bg-amber-500/10', 'text-amber-400', 'border-amber-500/30'];
-const NEUTRA_CLASSES = ['bg-[#2a2a2a]', 'hover:bg-[#333333]', 'text-neutral-400', 'border-neutral-700/50'];
-
 function pintarVoto(btn: HTMLButtonElement, votada: boolean, votos: number) {
   btn.dataset.votada = votada ? 'true' : 'false';
   btn.setAttribute('aria-pressed', votada ? 'true' : 'false');
-  btn.classList.remove(...(votada ? NEUTRA_CLASSES : VOTADA_CLASSES));
-  btn.classList.add(...(votada ? VOTADA_CLASSES : NEUTRA_CLASSES));
-  btn.querySelector('svg')?.setAttribute('fill', votada ? 'currentColor' : 'none');
+  btn.classList.toggle('pressed', votada);
+  btn.classList.toggle('quiet', !votada);
   const countSpan = btn.querySelector('.votos-count');
   if (countSpan) countSpan.textContent = String(Math.max(0, votos));
   btn.closest('.review-card')?.setAttribute('data-votos', String(Math.max(0, votos)));

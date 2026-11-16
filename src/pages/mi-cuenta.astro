@@ -1,0 +1,501 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+import Avatar from '../components/Avatar.astro';
+import Escudo from '../components/Escudo.astro';
+import LogroIcono from '../components/LogroIcono.astro';
+import { LOGROS, progresoRango, rango } from '../lib/logros';
+import { createSupabaseServerClient } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabase-admin';
+import { COLORES, DIBUJOS, claseColor, leerPerfil } from '../lib/perfil';
+import { NOMBRE_VALIDO } from '../lib/validation';
+import { PREFERENCIAS_EDITABLES } from '../lib/avisos';
+import { MAIL_POR_DEFECTO } from '../lib/mail';
+import { telegramListo } from '../lib/telegram';
+
+import { isAdmin } from '../lib/admin';
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/');
+
+const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+const [perfil, { data: auth }, { data: seguidasRaw }, { data: prefsRaw }, { count: cantResenas }, { data: logrosRaw }, { data: telegram }] = await Promise.all([
+  leerPerfil(client, user.id),
+  client.auth.getUser(),
+  client.from('seguimientos').select('materia_id, mail, materias ( id, nombre, nivel )').eq('user_id', user.id).order('created_at', { ascending: true }),
+  client.from('preferencias_aviso').select('tipo, canal, activo').eq('user_id', user.id),
+  client.from('resenas').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+  client.from('logros_usuario').select('logro, ganado_at').eq('user_id', user.id),
+  // Telegram (migración 18); sin la migración, null
+  client.from('telegram_cuentas').select('usuario, vinculado_at').eq('user_id', user.id).maybeSingle(),
+]);
+const hayTelegram = telegramListo();
+// Quien eligió la foto de Google antes de la migración 8 todavía no la tiene guardada para las reseñas
+if (perfil.foto === 'google' && typeof user.avatar === 'string' && user.avatar.startsWith('https://') && user.avatar.length <= 500) {
+  try { await supabaseAdmin.from('perfiles').update({ foto_url: user.avatar }).eq('user_id', user.id).is('foto_url', null); } catch { /* no es grave */ }
+}
+// Rango y logros (migración 8)
+const nResenas = cantResenas || 0;
+const miRango = rango(nResenas);
+const prog = progresoRango(nResenas);
+const ganados = new Set((logrosRaw || []).map((l: any) => l.logro));
+const logrosOrden = [...LOGROS.filter((l) => ganados.has(l.id)), ...LOGROS.filter((l) => !ganados.has(l.id))];
+// Sin fila, el aviso está prendido
+const prendido = (tipos: string[], canal = 'sitio') => !(prefsRaw || []).some((p: any) => tipos.includes(p.tipo) && p.canal === canal && p.activo === false);
+// Por mail (migración 17): sin fila, lo de MAIL_POR_DEFECTO
+const prendidoMail = (tipos: string[]) => {
+  const fila = (prefsRaw || []).find((p: any) => p.tipo === tipos[0] && p.canal === 'mail');
+  return fila ? fila.activo !== false : MAIL_POR_DEFECTO[tipos[0]] === true;
+};
+// Por Telegram (migración 18): sin fila, sí
+const seguidas = (seguidasRaw || [])
+  .map((x: any) => ({ mail: x.mail, materia: Array.isArray(x.materias) ? x.materias[0] : x.materias }))
+  .filter((x: any) => x.materia)
+  .sort((a: any, b: any) => a.materia.nivel - b.materia.nivel || a.materia.nombre.localeCompare(b.materia.nombre));
+const cuenta = auth?.user;
+const nombreGoogle = cuenta?.user_metadata?.full_name || cuenta?.user_metadata?.name || user.email.split('@')[0] || 'Usuario';
+const nombre = perfil.nombre_mostrar || nombreGoogle;
+const nombreValido = NOMBRE_VALIDO.test(nombre);
+// El mail se prende o apaga para todo junto: está prendido si algún aviso llega por mail
+const mailActivo = PREFERENCIAS_EDITABLES.some((p) => prendidoMail(p.tipos));
+const proveedor = ({ google: 'Google', github: 'GitHub', email: 'Link por mail' } as Record<string, string>)[cuenta?.app_metadata?.provider || ''] || 'Link por mail';
+const desde = cuenta?.created_at ? new Date(cuenta.created_at).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) : null;
+const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pausa_hasta).getTime() > Date.now();
+---
+
+<Layout title="Mi cuenta - UTN REP" description="Cómo te ven en UTN REP, tus años de cursada y tu cuenta." tab="mis" crumbs={[{ label: 'Mi cuenta' }]}>
+  <div class="layout">
+    <div class="main">
+      <div class="topic">
+        <div>
+          <h1>Mi cuenta</h1>
+        </div>
+        {isAdmin(user.id) && <div class="actions"><a class="btn quiet" href="/admin"><Icon name="gear" /> Panel de admin</a></div>}
+      </div>
+
+      <form class="form" id="como-te-ven" onsubmit="return false">
+        <div class="fhead"><span>Cómo te ven</span><span class="draft-note" data-estado aria-live="polite"></span></div>
+        <div class="fgrid">
+          <label for="nombre">Nombre a mostrar</label>
+          <div class="field">
+            {!nombreValido && <div class="notice bad" id="nombre-aviso"><Icon name="alert" /><span>Tu nombre tiene números o símbolos. Elegí uno con letras para que salga en tus reseñas.</span></div>}
+            <input type="text" id="nombre" maxlength="40" value={perfil.nombre_mostrar || ''} placeholder={nombreGoogle} autocomplete="nickname" />
+            <span class="help">Dejalo vacío para usar "{nombreGoogle}".</span>
+          </div>
+
+          <div class="lab" id="lab-foto">Foto</div>
+          <div class="field">
+            <div class="avatar-pick" role="radiogroup" aria-labelledby="lab-foto">
+              <label><input type="radio" name="foto" value="inicial" checked={perfil.foto === 'inicial'} /><Avatar nombre={nombre} color={perfil.color} /><b>Tu inicial</b></label>
+              {user.avatar && <label><input type="radio" name="foto" value="google" checked={perfil.foto === 'google'} /><Avatar nombre={nombre} foto="google" google={user.avatar} /><b>Tu foto de {proveedor === 'GitHub' ? 'GitHub' : 'Google'}</b></label>}
+              <label><input type="radio" name="foto" value="dibujo" checked={perfil.foto === 'dibujo'} /><span class:list={['av set', claseColor(perfil.color)]}>{DIBUJOS.slice(0, 9).map((d) => <i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" set:html={d.svg} /></i>)}</span><b>Un dibujo</b></label>
+            </div>
+            <div class:list={['dibujos', { hidden: perfil.foto !== 'dibujo' }]} role="radiogroup" aria-label="Dibujo">
+              {DIBUJOS.map((d) => (
+                <label title={d.nombre}><input type="radio" name="dibujo" value={d.id} checked={(perfil.dibujo || 1) === d.id} /><Avatar nombre={nombre} foto="dibujo" dibujo={d.id} color={perfil.color} class="sm" /><span class="sr">{d.nombre}</span></label>
+              ))}
+            </div>
+            <div class:list={['colores', { hidden: perfil.foto === 'google' && !!user.avatar }]} role="radiogroup" aria-label="Color">
+              {COLORES.map((c) => (
+                <label title={c.nombre}><input type="radio" name="color" value={c.id} checked={(perfil.color || 'azul') === c.id} /><i class={`c-${c.id}`}></i><span class="sr">{c.nombre}</span></label>
+              ))}
+            </div>
+          </div>
+
+          <div class="lab" id="lab-privacidad">Privacidad</div>
+          <div class="field">
+            <div class="seg" role="radiogroup" aria-labelledby="lab-privacidad">
+              <button type="button" role="radio" data-privacidad="publico" aria-checked={perfil.mostrar_ficha ? 'true' : 'false'} aria-pressed={perfil.mostrar_ficha ? 'true' : 'false'}>Perfil público</button>
+              <button type="button" role="radio" data-privacidad="privado" aria-checked={perfil.mostrar_ficha ? 'false' : 'true'} aria-pressed={perfil.mostrar_ficha ? 'false' : 'true'}>Perfil privado</button>
+            </div>
+            <span class="help" id="privacidad-help">{perfil.mostrar_ficha
+              ? 'Quien toque tu nombre ve tu rango, cuántas reseñas y experiencias de finales escribiste y tus logros. Nunca qué materias reseñaste.'
+              : 'Quien toque tu nombre ve solo tu nombre.'}</span>
+          </div>
+        </div>
+      </form>
+
+      <section class="panel" id="logros">
+        <h3>Rango y logros</h3>
+        <div class="in">
+          <div class="rank-prog">
+            {miRango ? <Escudo rango={miRango.id} /> : <span></span>}
+            <div>
+              {miRango
+                ? <><b>{miRango.nombre}</b>{`, ${nResenas} ${nResenas === 1 ? 'reseña' : 'reseñas'}`}</>
+                : <><b>Todavía sin rango</b>: con tu primera reseña sos Ingresante</>}
+              <div class="pbar"><b style={`width:${prog.pct}%`}></b></div>
+              <span class="sub">{prog.siguiente
+                ? <>{`Te ${prog.faltan === 1 ? 'falta' : 'faltan'} ${prog.faltan} para `}<Escudo rango={prog.siguiente.id} />{` ${prog.siguiente.nombre}`}</>
+                : 'Llegaste al rango más alto.'}</span>
+            </div>
+          </div>
+          <div class="logro-grid">
+            {logrosOrden.map((l) => {
+              const tiene = ganados.has(l.id);
+              return (
+                <div class:list={['lg', { off: !tiene }]}>
+                  <LogroIcono id={l.id} off={!tiene} />
+                  <span>{l.nombre}{!tiene && <small>{l.como}</small>}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="avisos">
+        <h2>Notificaciones</h2>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>Por dónde</b></div>
+          <div class="acct-val">
+            <span class="sub">En <a href="/avisos">Avisos</a>, siempre.</span>
+            {telegram ? (
+              <div id="telegram">
+                <span><Icon name="check" /> Por Telegram{telegram.usuario ? <>, como <b>{telegram.usuario}</b></> : null}. Mientras esté conectado no te mandamos mails.</span>
+                <div class="acts-row"><button type="button" class="btn quiet" id="tg-desconectar">Desconectar Telegram</button></div>
+              </div>
+            ) : (
+              <>
+                <label class="toggle"><input type="checkbox" id="por-mail" checked={mailActivo} /><span class="tg"></span><span>Por mail <small class="sub">(un resumen por día como máximo, solo de lo que no viste)</small></span></label>
+                {hayTelegram && (
+                  <div id="telegram">
+                    <div class="acts-row"><button type="button" class="btn quiet" id="tg-conectar">Conectar Telegram</button></div>
+                    <span class="sub">Te llegan al momento, con el link directo. Se abre el bot: tocá <b>Iniciar</b> y volvé a esta página.</span>
+                  </div>
+                )}
+              </>
+            )}
+            <p class="sub" id="tg-ok" aria-live="polite"></p>
+          </div>
+        </div>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>Qué te avisamos</b></div>
+          <div class="acct-val">
+            {PREFERENCIAS_EDITABLES.map((p) => (
+              <label class="toggle"><input type="checkbox" data-tipos={p.tipos.join(',')} checked={prendido(p.tipos)} /><span class="tg"></span><span>{p.texto}{p.detalle && <small class="sub"> ({p.detalle})</small>}</span></label>
+            ))}
+            <span class="sub">Si un moderador te pide que edites una reseña, te avisamos siempre.</span>
+            <p class="sub" id="avisos-ok" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="seguis">
+        <h3>Materias que seguís</h3>
+        <div class="in">
+          {seguidas.length
+            ? seguidas.map((x: any) => (
+              <div class="follow" data-materia={x.materia.id}>
+                <span class:list={['yr', `y${x.materia.nivel}`]}>{x.materia.nivel}.º</span>
+                <a href={`/materia/${x.materia.id}`}>{x.materia.nombre}</a>
+                <button type="button" class="linklike quitar" data-dejar>Dejar de seguir</button>
+              </div>
+            ))
+            : <span class="sub" id="sin-seguidas">Todavía no seguís ninguna. Cada materia tiene el botón "Seguir materia".</span>}
+          {seguidas.length > 0 && <span class="sub" data-canales>Las reseñas y los finales nuevos te llegan en Avisos{telegram ? ' y por Telegram' : mailActivo ? ' y por mail' : ''}.</span>}
+        </div>
+      </section>
+
+      <section class="panel" id="tus-anios">
+        <h2>Preferencias</h2>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>Años desplegados en el inicio</b></div>
+          <div class="acct-val">
+            <div class="yr-pick" id="mis-anios" data-guardados={JSON.stringify(perfil.anios_cursada)} data-perfil={perfil.guardado ? '1' : ''}>
+              {[1, 2, 3, 4, 5].map((n) => <label><input type="checkbox" value={n} checked={perfil.anios_cursada.includes(n)} /> {n}.º año</label>)}
+            </div>
+            <span class="sub">En <a href="/mis-resenas">Mis reseñas</a> te mostramos las materias de esos años que todavía no reseñaste.</span>
+            <p class="sub" id="anios-ok" aria-live="polite"></p>
+          </div>
+        </div>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>¿Cómo te fue?</b></div>
+          <div class="acct-val">
+            <label class="toggle"><input type="checkbox" id="preguntar" checked={perfil.preguntar_como_te_fue} /><span class="tg"></span><span>Recordarme contar cómo me fue en las materias que reseñé</span></label>
+            {pausada && perfil.preguntar_como_te_fue && <span class="sub" id="pausa">Lo pausaste con "Ahora no": vuelve el {new Date(perfil.como_te_fue_pausa_hasta!).toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' })}.</span>}
+            <p class="sub" id="preguntar-ok" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="cuenta">
+        <h2>Cuenta</h2>
+        <div class="acct-row">
+          <div class="acct-lbl"><b>Datos</b></div>
+          <div class="acct-val">
+            <div class="facts">
+              <div><span>Ingresás con</span><b>{proveedor}</b></div>
+              <div><span>Mail</span><b>{user.email || '—'}</b></div>
+              {desde && <div><span>En UTN REP desde</span><b>{desde}</b></div>}
+            </div>
+            <div class="acts-row">
+              <form method="post" action="/api/auth/logout"><button type="submit" class="btn quiet" data-logout>Cerrar sesión</button></form>
+              <button type="button" class="btn quiet danger" id="abrir-borrar"><Icon name="trash" /> Borrar mi cuenta</button>
+            </div>
+            <form class="borrar hidden" id="form-borrar">
+              <b>¿Qué hacemos con lo que publicaste?</b>
+              <label class="check"><input type="radio" name="resenas" value="anonimas" checked /> <span>Dejar mis reseñas y experiencias de finales como <b>anónimas</b>. Le siguen sirviendo a otros y ya nadie las puede asociar a vos.</span></label>
+              <label class="check"><input type="radio" name="resenas" value="borrar" /> <span><b>Borrarlas</b> junto con la cuenta.</span></label>
+              <label for="confirmar-borrar">Para confirmar, escribí <b>BORRAR</b>. No se puede deshacer.</label>
+              <input id="confirmar-borrar" class="ainput sm" autocomplete="off" />
+              <div class="acts-row">
+                <button type="submit" class="btn danger" id="confirmar-btn" disabled><Icon name="trash" /> Borrar mi cuenta</button>
+                <button type="button" class="btn quiet" id="cancelar-borrar">Cancelar</button>
+              </div>
+              <p class="sub" id="borrar-error" role="alert"></p>
+            </form>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="side">
+      <section class="panel">
+        <h3>Así te ven los demás</h3>
+        <div class="in">
+          <div class="author preview" id="vista-previa">
+            <Avatar nombre={nombre} foto={perfil.foto} dibujo={perfil.dibujo} google={user.avatar} color={perfil.color} />
+            <span class="uname" id="vista-nombre">{nombre}</span>
+          </div>
+          <span class="sub">En las anónimas sale "Anónimo".</span>
+        </div>
+      </section>
+    </aside>
+  </div>
+</Layout>
+
+<script>
+  import { DIBUJOS, claseColor } from '../lib/perfil';
+  import { NOMBRE_VALIDO } from '../lib/validation';
+  const $ = (id: string) => document.getElementById(id)!;
+  const estado = document.querySelector<HTMLElement>('#como-te-ven [data-estado]')!;
+
+  async function guardar(cambios: Record<string, unknown>, aviso: HTMLElement, ok = 'Guardado') {
+    aviso.textContent = 'Guardando…';
+    try {
+      const res = await fetch('/api/perfil', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cambios) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo guardar.');
+      aviso.textContent = ok;
+      return true;
+    } catch (e) {
+      aviso.textContent = (e as Error).message;
+      return false;
+    }
+  }
+
+  // Vista previa
+  const google = document.querySelector<HTMLImageElement>('.av.photo img')?.src || '';
+  const nombreInput = $('nombre') as HTMLInputElement;
+  const pintar = () => {
+    const nombre = nombreInput.value.trim() || nombreInput.placeholder;
+    $('vista-nombre').textContent = nombre;
+    const foto = document.querySelector<HTMLInputElement>('input[name="foto"]:checked')?.value || 'inicial';
+    const dibujo = Number(document.querySelector<HTMLInputElement>('input[name="dibujo"]:checked')?.value || 1);
+    const color = claseColor(document.querySelector<HTMLInputElement>('input[name="color"]:checked')?.value);
+    const av = document.querySelector<HTMLElement>('#vista-previa .av')!;
+    av.className = 'av';
+    if (color && !(foto === 'google' && google)) av.classList.add(color);
+    av.replaceChildren();
+    if (foto === 'google' && google) {
+      av.classList.add('photo');
+      const img = document.createElement('img');
+      img.src = google; img.alt = ''; img.referrerPolicy = 'no-referrer';
+      av.append(img);
+    } else if (foto === 'dibujo') {
+      av.classList.add('draw');
+      av.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${(DIBUJOS.find((d) => d.id === dibujo) || DIBUJOS[0]).svg}</svg>`;
+    } else {
+      av.textContent = nombre.charAt(0).toUpperCase();
+    }
+    document.querySelectorAll<HTMLElement>('.avatar-pick label:first-child .av').forEach((x) => { x.textContent = nombre.charAt(0).toUpperCase(); });
+  };
+
+  // Nombre: se guarda al salir del campo o con Enter
+  let ultimoNombre = nombreInput.value.trim();
+  const guardarNombre = async () => {
+    const v = nombreInput.value.trim();
+    if (v === ultimoNombre) return;
+    if (v && v.length < 2) { estado.textContent = 'El nombre tiene que tener al menos 2 caracteres.'; return; }
+    if (v && !NOMBRE_VALIDO.test(v)) { estado.textContent = 'Usá solo letras y espacios en tu nombre.'; return; }
+    if (await guardar({ nombre_mostrar: v }, estado, v ? 'Nombre guardado' : `Vuelve a salir "${nombreInput.placeholder}"`)) {
+      ultimoNombre = v;
+      if (!v || NOMBRE_VALIDO.test(v)) document.getElementById('nombre-aviso')?.remove();
+      const saludo = document.querySelector('.me-link');
+      if (saludo) saludo.textContent = v || nombreInput.placeholder;
+    }
+  };
+  nombreInput.addEventListener('input', pintar);
+  nombreInput.addEventListener('change', guardarNombre);
+  nombreInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guardarNombre(); } });
+
+  // Foto
+  document.querySelectorAll<HTMLInputElement>('input[name="foto"]').forEach((r) => r.addEventListener('change', () => {
+    document.querySelector('.dibujos')!.classList.toggle('hidden', r.value !== 'dibujo');
+    document.querySelector('.colores')!.classList.toggle('hidden', r.value === 'google');
+    pintar();
+    const dibujo = Number(document.querySelector<HTMLInputElement>('input[name="dibujo"]:checked')?.value || 1);
+    guardar(r.value === 'dibujo' ? { foto: 'dibujo', dibujo } : { foto: r.value }, estado, 'Foto guardada');
+  }));
+  document.querySelectorAll<HTMLInputElement>('input[name="dibujo"]').forEach((r) => r.addEventListener('change', () => {
+    pintar();
+    guardar({ foto: 'dibujo', dibujo: Number(r.value) }, estado, 'Dibujo guardado');
+  }));
+
+  // Color de la inicial o del dibujo (migración 20)
+  document.querySelectorAll<HTMLInputElement>('input[name="color"]').forEach((r) => r.addEventListener('change', () => {
+    const clase = claseColor(r.value);
+    document.querySelectorAll<HTMLElement>('.avatar-pick .av:not(.photo), .dibujos .av').forEach((av) => {
+      av.classList.remove('c-verde', 'c-rojo', 'c-violeta', 'c-naranja', 'c-gris');
+      if (clase) av.classList.add(clase);
+    });
+    pintar();
+    guardar({ color: r.value }, estado, 'Color guardado');
+  }));
+
+  // Privacidad: perfil público o privado
+  const ayudaPrivacidad = $('privacidad-help');
+  document.querySelectorAll<HTMLButtonElement>('[data-privacidad]').forEach((b) => b.addEventListener('click', () => {
+    const publico = b.dataset.privacidad === 'publico';
+    document.querySelectorAll<HTMLButtonElement>('[data-privacidad]').forEach((o) => {
+      o.setAttribute('aria-checked', String(o === b));
+      o.setAttribute('aria-pressed', String(o === b));
+    });
+    ayudaPrivacidad.textContent = publico
+      ? 'Quien toque tu nombre ve tu rango, cuántas reseñas y experiencias de finales escribiste y tus logros. Nunca qué materias reseñaste.'
+      : 'Quien toque tu nombre ve solo tu nombre.';
+    guardar({ mostrar_ficha: publico }, estado, publico ? 'Tu perfil es público' : 'Tu perfil es privado');
+  }));
+
+  // Años de cursada: en tu cuenta y, para que el inicio abra rápido, también en este navegador
+  const CLAVE = 'misAnios';
+  const caja = $('mis-anios');
+  const okAnios = $('anios-ok');
+  const marcados = () => Array.from(caja.querySelectorAll<HTMLInputElement>('input:checked')).map((c) => Number(c.value));
+  const espejo = (lista: number[]) => { try { localStorage.setItem(CLAVE, JSON.stringify(lista.map(String))); } catch {} };
+  // Si antes los elegiste solo en este navegador, los pasamos a tu cuenta
+  const guardados: number[] = JSON.parse(caja.dataset.guardados || '[]');
+  let locales: number[] = [];
+  try { locales = (JSON.parse(localStorage.getItem(CLAVE) || '[]') as unknown[]).map(Number).filter((n) => n >= 1 && n <= 5); } catch {}
+  if (!guardados.length && locales.length) {
+    caja.querySelectorAll<HTMLInputElement>('input').forEach((c) => { c.checked = locales.includes(Number(c.value)); });
+    guardar({ anios_cursada: locales }, okAnios, 'Pasamos a tu cuenta los años que habías elegido en este navegador.');
+  } else {
+    espejo(guardados);
+  }
+  caja.querySelectorAll<HTMLInputElement>('input').forEach((cb) => cb.addEventListener('change', () => {
+    const lista = marcados();
+    espejo(lista);
+    guardar({ anios_cursada: lista }, okAnios, 'Guardado');
+  }));
+
+  // "¿Cómo te fue?"
+  ($('preguntar') as HTMLInputElement).addEventListener('change', (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    try { localStorage.removeItem('comoTeFue'); } catch {}
+    document.getElementById('pausa')?.remove();
+    guardar(on ? { preguntar_como_te_fue: true, pausar_como_te_fue: false } : { preguntar_como_te_fue: false }, $('preguntar-ok'), on ? 'Te lo vamos a recordar.' : 'No te lo recordamos más.');
+  });
+
+  // Materias que seguís
+  document.querySelectorAll<HTMLElement>('#seguis .follow').forEach((fila) => {
+    const materia_id = Number(fila.dataset.materia);
+    const enviar = async (cuerpo: Record<string, unknown>) => {
+      const res = await fetch('/api/seguir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ materia_id, ...cuerpo }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo.');
+    };
+    fila.querySelector<HTMLButtonElement>('[data-dejar]')!.addEventListener('click', async (e) => {
+      const b = e.currentTarget as HTMLButtonElement;
+      b.disabled = true;
+      try { await enviar({ seguir: false }); fila.remove(); } catch (err) { b.disabled = false; alert((err as Error).message); }
+    });
+  });
+
+  // Mail: se prende o apaga para todos los avisos y todas las materias que seguís
+  document.getElementById('por-mail')?.addEventListener('change', async (e) => {
+    const cb = e.target as HTMLInputElement;
+    const ok = $('avisos-ok');
+    ok.textContent = 'Guardando…';
+    try {
+      const res = await fetch('/api/avisos/preferencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ todos: true, canal: 'mail', activo: cb.checked }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo guardar.');
+      ok.textContent = cb.checked ? 'Listo, también te llegan por mail.' : 'Listo, ya no te llegan por mail.';
+      const linea = document.querySelector('[data-canales]');
+      if (linea) linea.textContent = `Las reseñas y los finales nuevos te llegan en Avisos${cb.checked ? ' y por mail' : ''}.`;
+    } catch (err) {
+      cb.checked = !cb.checked;
+      ok.textContent = (err as Error).message;
+    }
+  });
+
+  // Qué avisos querés
+  document.querySelectorAll<HTMLInputElement>('#avisos [data-tipos]').forEach((cb) => cb.addEventListener('change', async () => {
+    const ok = $('avisos-ok');
+    ok.textContent = 'Guardando…';
+    try {
+      const res = await fetch('/api/avisos/preferencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipos: cb.dataset.tipos!.split(','), canal: cb.dataset.canal || 'sitio', activo: cb.checked }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo guardar.');
+      ok.textContent = cb.checked ? 'Listo, te lo avisamos.' : 'Listo, no te lo avisamos más.';
+    } catch (e) {
+      cb.checked = !cb.checked;
+      ok.textContent = (e as Error).message;
+    }
+  }));
+
+  // Telegram (migración 18)
+  const tgOk = document.getElementById('tg-ok');
+  document.getElementById('tg-conectar')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    // La pestaña se abre ya (con el clic), si no el navegador la bloquea
+    const ventana = window.open('', '_blank');
+    b.disabled = true;
+    try {
+      const res = await fetch('/api/telegram/vincular', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'conectar' }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.link) throw new Error(data.error || 'No se pudo.');
+      if (ventana) ventana.location.href = data.link; else window.location.href = data.link;
+      if (tgOk) tgOk.innerHTML = 'Se abrió Telegram. Cuando toques <b>Iniciar</b>, <a href="/mi-cuenta#telegram">recargá esta página</a>.';
+    } catch (err) {
+      ventana?.close();
+      if (tgOk) tgOk.textContent = (err as Error).message;
+    } finally {
+      b.disabled = false;
+    }
+  });
+  document.getElementById('tg-desconectar')?.addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    b.disabled = true;
+    try {
+      const res = await fetch('/api/telegram/vincular', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'desconectar' }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo.');
+      window.location.reload();
+    } catch (err) {
+      b.disabled = false;
+      if (tgOk) tgOk.textContent = (err as Error).message;
+    }
+  });
+
+  // Borrar la cuenta
+  const formBorrar = $('form-borrar') as HTMLFormElement;
+  const confirmar = $('confirmar-borrar') as HTMLInputElement;
+  const btnBorrar = $('confirmar-btn') as HTMLButtonElement;
+  $('abrir-borrar').addEventListener('click', () => { formBorrar.classList.remove('hidden'); confirmar.focus(); });
+  $('cancelar-borrar').addEventListener('click', () => { formBorrar.classList.add('hidden'); confirmar.value = ''; btnBorrar.disabled = true; });
+  confirmar.addEventListener('input', () => { btnBorrar.disabled = confirmar.value.trim() !== 'BORRAR'; });
+  formBorrar.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btnBorrar.disabled = true;
+    const resenas = (formBorrar.querySelector<HTMLInputElement>('input[name="resenas"]:checked')?.value) || 'anonimas';
+    try {
+      const res = await fetch('/api/cuenta/borrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resenas, confirmacion: confirmar.value.trim() }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo borrar la cuenta.');
+      try { ['misAnios', 'comoTeFue', 'borradorResena', 'borradorFinal'].forEach((k) => localStorage.removeItem(k)); } catch {}
+      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null);
+      window.location.href = '/?cuenta_borrada=1';
+    } catch (err) {
+      $('borrar-error').textContent = (err as Error).message;
+      btnBorrar.disabled = false;
+    }
+  });
+</script>

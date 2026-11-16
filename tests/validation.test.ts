@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  borrarCuentaSchema,
   finalAccionSchema,
   finalCreateSchema,
   parseBody,
+  perfilSchema,
   reporteSchema,
   resenaCreateSchema,
   resenaEditSchema,
@@ -60,6 +62,18 @@ describe('resenaEditSchema', () => {
     expect(parseBody(resenaEditSchema, { comentario: 'muy corto' }).ok).toBe(false);
     expect(parseBody(resenaEditSchema, { comentario: 'Ahora sí es largo' })).toEqual({ ok: true, data: { comentario: 'Ahora sí es largo' } });
   });
+
+  it('deja completar "¿Cómo te fue?" sin tocar el texto', () => {
+    expect(parseBody(resenaEditSchema, { condicion_final: 'REGULAR' })).toEqual({ ok: true, data: { condicion_final: 'REGULAR' } });
+    expect(parseBody(resenaEditSchema, { condicion_final: '' })).toEqual({ ok: true, data: { condicion_final: null } });
+    expect(parseBody(resenaEditSchema, { condicion_final: 'APROBADO' }).ok).toBe(false);
+  });
+
+  it('no deja cambiar las estrellas ni mandar nada vacío', () => {
+    expect(parseBody(resenaEditSchema, {})).toEqual({ ok: false, error: 'No hay nada para cambiar.' });
+    const r = parseBody(resenaEditSchema, { comentario: 'Texto nuevo y largo', calificacion_general: 5 });
+    expect(r.ok && 'calificacion_general' in r.data).toBe(false);
+  });
 });
 
 describe('votoSchema', () => {
@@ -90,8 +104,14 @@ describe('finalCreateSchema', () => {
   it('convierte ids y años que llegan como string', () => {
     expect(parseBody(schema, final)).toEqual({
       ok: true,
-      data: { materia_id: 4, anio: 2024, mesa: 'Febrero', profesor_nombre: null, comentario: 'Tomaron un práctico largo.' },
+      data: { materia_id: 4, anio: 2024, mesa: 'Febrero', profesor_nombre: null, comentario: 'Tomaron un práctico largo.', con_nombre: false },
     });
+  });
+
+  it('es anónima salvo que pida publicar con su nombre', () => {
+    const r = parseBody(schema, { ...final, con_nombre: true });
+    expect(r.ok && r.data.con_nombre).toBe(true);
+    expect(parseBody(schema, { ...final, con_nombre: 'si' }).ok).toBe(false);
   });
 
   it('rechaza materia inválida, año fuera de rango y textos largos', () => {
@@ -107,5 +127,32 @@ describe('finalAccionSchema', () => {
     expect(parseBody(finalAccionSchema, { accion: 'eliminar', id: 2 })).toEqual({ ok: true, data: { accion: 'eliminar', id: 2 } });
     expect(parseBody(finalAccionSchema, { accion: 'editar', id: 2, comentario: 'corto' }).ok).toBe(false);
     expect(parseBody(finalAccionSchema, { accion: 'otra', id: 2 })).toEqual({ ok: false, error: 'Acción no válida.' });
+  });
+});
+
+describe('perfilSchema', () => {
+  it('limpia el nombre y lo deja vacío para volver al de Google', () => {
+    expect(parseBody(perfilSchema, { nombre_mostrar: '  Pato   A. ' })).toEqual({ ok: true, data: { nombre_mostrar: 'Pato A.' } });
+    expect(parseBody(perfilSchema, { nombre_mostrar: '' })).toEqual({ ok: true, data: { nombre_mostrar: null } });
+    expect(parseBody(perfilSchema, { nombre_mostrar: 'P' }).ok).toBe(false);
+    expect(parseBody(perfilSchema, { nombre_mostrar: 'x'.repeat(41) }).ok).toBe(false);
+  });
+
+  it('ordena los años sin repetir y rechaza años que no existen', () => {
+    expect(parseBody(perfilSchema, { anios_cursada: [3, '1', 3] })).toEqual({ ok: true, data: { anios_cursada: [1, 3] } });
+    expect(parseBody(perfilSchema, { anios_cursada: [6] }).ok).toBe(false);
+  });
+
+  it('no deja tocar otros campos', () => {
+    expect(parseBody(perfilSchema, { user_id: 'otro' }).ok).toBe(false);
+    expect(parseBody(perfilSchema, { foto: 'otra' }).ok).toBe(false);
+  });
+});
+
+describe('borrarCuentaSchema', () => {
+  it('pide elegir qué pasa con las reseñas y escribir BORRAR', () => {
+    expect(parseBody(borrarCuentaSchema, { resenas: 'anonimas', confirmacion: 'BORRAR' }).ok).toBe(true);
+    expect(parseBody(borrarCuentaSchema, { resenas: 'anonimas', confirmacion: 'borrar' })).toEqual({ ok: false, error: 'Escribí BORRAR para confirmar.' });
+    expect(parseBody(borrarCuentaSchema, { confirmacion: 'BORRAR' }).ok).toBe(false);
   });
 });

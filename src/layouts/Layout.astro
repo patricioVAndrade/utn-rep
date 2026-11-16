@@ -1,63 +1,124 @@
 ---
 import '../styles/global.css';
-import Analytics from '@vercel/analytics/astro'
+import Analytics from '@vercel/analytics/astro';
+import Icon from '../components/Icon.astro';
+import LogoRep from '../components/LogoRep.astro';
+import UserBar from '../components/UserBar.astro';
+import LoginModal from '../components/LoginModal.astro';
+import Bienvenida from '../components/Bienvenida.astro';
+import { textoAuthError } from '../lib/auth-error';
+import { createSupabaseServerClient } from '../lib/supabase';
+import { avisosSinLeer } from '../lib/avisos';
+import { NOMBRE_VALIDO } from '../lib/validation';
+
+/** 'mis' es "Mi espacio": Mis reseñas, Mi inscripción y Mi cuenta. */
+export type Tab = 'materias' | 'finales' | 'mis' | 'avisos' | 'ayuda' | 'escribir';
+export interface Crumb { label: string; href?: string }
 
 interface Props {
   title: string;
   description?: string;
   /** Imagen para previsualización en WhatsApp/Twitter (opcional) */
   ogImage?: string;
+  /** Título de la vista previa al compartir, si es distinto del de la pestaña */
+  ogTitle?: string;
   /** JSON-LD (Datos Estructurados) en formato string para Google (opcional) */
   schema?: string;
-  /** Extra padding en el footer para botones flotantes */
-  hasFloatingButton?: boolean;
+  /** Pestaña del banner que queda marcada */
+  tab?: Tab;
+  /** Migas de pan ("Estás en: …"). La última es la página actual. */
+  crumbs?: Crumb[];
+  /** Clase extra del foro (por ejemplo "home") */
+  forumClass?: string;
+  /** Panel de admin: mantiene su diseño oscuro original adentro del foro */
+  legacy?: boolean;
+  /** Franja para quien llega por un link compartido (?de=): qué es y dónde escribir */
+  compartido?: { que: string; escribir?: string };
 }
 
 const {
   title,
   description = 'Reseñas reales de materias, cátedras y profesores de Ingeniería en Sistemas — UTN FRC. Elegí mejor tu cursada.',
   ogImage = '/og-image.png',
+  ogTitle,
   schema,
-  hasFloatingButton = false,
+  tab,
+  crumbs,
+  forumClass,
+  legacy = false,
+  compartido = { que: 'esta página' },
 } = Astro.props;
 
+const user = Astro.locals.user;
+// Llegó por un link compartido (migración 9). La apertura la anota el navegador.
+const de = (Astro.url.searchParams.get('de') || '').toLowerCase();
+const llegoPorLink = /^[a-z0-9]{4,8}$/.test(de);
+// No se pudo entrar: el motivo viene en ?auth_error= (src/lib/auth-error.ts)
+// Nombre que no cumple las reglas del 14/11 (números o símbolos): se avisa en todas las páginas menos en Mi cuenta (Pato, 16/11)
+const nombreACambiar = !!user && !NOMBRE_VALIDO.test(user.name) && !Astro.url.pathname.startsWith('/mi-cuenta');
+const errorIngreso = user ? null : textoAuthError(Astro.url.searchParams.get('auth_error'));
 const canonicalURL = Astro.url.href;
 const siteURL = Astro.url.origin;
-
 const ogImageUrl = new URL(ogImage, siteURL).href;
+const anio = new Date().getFullYear();
+const cur = (t: Tab) => (tab === t ? 'page' : undefined);
+// Avisos sin leer: van en la pestaña y en la barra de abajo
+const sinLeer = user ? await avisosSinLeer(createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies }).client, user.id) : 0;
+const avisosTitulo = sinLeer ? `${sinLeer} aviso${sinLeer !== 1 ? 's' : ''} sin leer` : undefined;
+const cuenta = sinLeer > 99 ? '99+' : sinLeer;
+// Mi espacio: la segunda fila dice en cuál de tus páginas estás (va en lugar de "Estás en:")
+const espacio = !!user && tab === 'mis';
+const ruta = Astro.url.pathname.replace(/\/$/, '');
+const mia = (href: string) => (ruta === href ? 'page' : undefined);
 ---
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content={description} />
     <meta name="keywords" content="UTN FRC, reseñas materias UTN, opiniones cátedras UTN, ingeniería en sistemas, UTN Córdoba, cursada UTN, profesores UTN FRC, materias sistemas UTN" />
     <meta name="author" content="Patricio Valentín Andrade" />
     <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#133d68" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="canonical" href={canonicalURL} />
-    
+
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={ogTitle || title} />
     <meta property="og:description" content={description} />
     <meta property="og:locale" content="es_AR" />
     <meta property="og:site_name" content="UTN REP" />
     <meta property="og:image" content={ogImageUrl} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    
+
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
+    <meta name="twitter:title" content={ogTitle || title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    {legacy && (
+      <>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+      </>
+    )}
     <title>{title}</title>
+
+    <!-- Modo noche: se decide antes de pintar para que no parpadee -->
+    <script is:inline>
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem('tema'); } catch (e) {}
+        if (t !== 'light' && t !== 'dark') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
 
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
@@ -72,182 +133,380 @@ const ogImageUrl = new URL(ogImage, siteURL).href;
       }
     })} />
 
-    {schema && <script type="application/ld+json" set:html={schema} />}
+    {schema && <script type="application/ld+json" set:html={schema.replace(/</g, '\\u003c')} />}
   </head>
-  <body class="bg-[#1a1a1a] text-neutral-300 antialiased min-h-screen flex flex-col" style="font-family: 'Inter', system-ui, sans-serif;">
-    
-    <div class="bg-amber-500/10 border-b border-amber-500/20 text-amber-400 px-4 py-2.5 text-center text-sm sm:text-base flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 relative z-50">
-      <div class="flex items-center gap-2 font-medium">
-        <span><strong>¡Versión 2.0 (Beta)!</strong> Agregamos nuevas caracteristicas.</span>
-      </div>
-      <div class="inline-flex items-center gap-1.5 text-amber-300/90 text-sm">
-        ¿Encontraste un error? Escribime a: 
-        <code class="bg-amber-500/20 text-white px-2 py-0.5 rounded font-bold select-all cursor-copy transition-colors hover:bg-amber-500/30" title="Hacé clic para seleccionar">patriciovandrade@gmail.com</code>
-      </div>
+  <body class="foro" data-sesion={user ? '1' : undefined} data-de={llegoPorLink ? de : undefined}>
+    <a class="skip" href="#contenido">Saltar al contenido</a>
+
+    <div class:list={['forum', forumClass]}>
+      <header class="banner">
+        <div class="holes" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="logo">
+          <a href="/" aria-label="UTN REP, ver todas las materias"><LogoRep class="logo-rep" /></a>
+          <span class="lema">
+            <span class="l1">Reseñas de estudiantes, para estudiantes</span>
+            <span class="l2"><span class="larga">Ingeniería en Sistemas de Información</span><span class="corta">Ing. en Sistemas</span> · UTN-<span class="frc">FRC</span></span>
+          </span>
+        </div>
+        <div class="search" id="search-container">
+          <form role="search" action="/buscar" method="get" id="search-form">
+            <label class="sr" for="search-input">Buscar materia, curso o profesor</label>
+            <input id="search-input" type="search" name="q" placeholder="Buscar materia, curso o profe" autocomplete="off"
+              role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" />
+            <button class="btn secondary" type="submit"><Icon name="search" /><span>Buscar</span></button>
+          </form>
+          <span class="hint">Probá con "paradigmas", "2K3" o el apellido de un profe</span>
+          <div id="search-results" class="suggest hidden" role="listbox" aria-label="Resultados"></div>
+        </div>
+        <nav class="tabs" aria-label="Secciones">
+          <a href="/" aria-current={cur('materias')}><Icon name="book" />Materias</a>
+          <a href="/finales" aria-current={cur('finales')} data-nuevo="finales"><Icon name="final" />Experiencias de finales</a>
+          {user && <a href="/mis-resenas" aria-current={cur('mis')}><Icon name="user" />Mi espacio</a>}
+          {user && <a href="/avisos" aria-current={cur('avisos')} title={avisosTitulo}><Icon name="bell" />Avisos{sinLeer > 0 && <span class="cnt" aria-label={`${sinLeer} sin leer`}>{cuenta}</span>}</a>}
+          <a href="/sobre" aria-current={cur('ayuda')}><Icon name="info" />¿Cómo funciona?</a>
+          <a class="write-tab" href="/nueva-resena" aria-current={cur('escribir')}><Icon name="pen" /> Escribir una reseña</a>
+        </nav>
+      </header>
+
+      <UserBar user={user} />
+
+      {espacio && (
+        <nav class="subtabs" aria-label="Mi espacio">
+          <a href="/mis-resenas" aria-current={mia('/mis-resenas')}><Icon name="pen" />Mis reseñas</a>
+          <a href="/mi-inscripcion" aria-current={mia('/mi-inscripcion')}><Icon name="cal" />Mi inscripción</a>
+          <a href="/mi-cuenta" aria-current={mia('/mi-cuenta')}><Icon name="gear" />Mi cuenta</a>
+        </nav>
+      )}
+
+      {!espacio && crumbs && crumbs.length > 0 && (
+        <nav class="crumbs" aria-label="Estás en">
+          <span>Estás en:</span>
+          {crumbs.map((c, i) => (
+            <>
+              {i > 0 && <span class="sep" aria-hidden="true">›</span>}
+              {i === crumbs.length - 1 || !c.href
+                ? <strong aria-current={i === crumbs.length - 1 ? 'page' : undefined}>{c.label}</strong>
+                : <a href={c.href}>{c.label}</a>}
+            </>
+          ))}
+          {tab !== 'materias' && <a class="up" href="/">Ver todas las materias</a>}
+        </nav>
+      )}
+
+      <main id="contenido">
+        {errorIngreso && (
+          <div class="de-wrap" id="auth-error">
+            <div class="notice bad" role="alert"><Icon name="alert" /><div>{errorIngreso}</div></div>
+          </div>
+        )}
+        {nombreACambiar && (
+          <div class="de-wrap" id="nombre-a-cambiar">
+            <div class="notice"><Icon name="alert" /><div>Tu nombre tiene números o símbolos. Cambialo en <a href="/mi-cuenta#nombre">Mi cuenta</a>.</div></div>
+          </div>
+        )}
+        {llegoPorLink && !legacy && (
+          <div class="de-wrap" id="de-bar">
+            <div class="ln-bar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20.5l1.4-4.1A8.3 8.3 0 1112 20.3a8.3 8.3 0 01-4-1z" stroke-linejoin="round"/><path d="M9.2 8.6c-.3 2.9 2.6 6 5.8 6.1l1-1.5-2-1.1-1 .9a4.4 4.4 0 01-2-2l.8-1-.9-2.1z" fill="currentColor" stroke="none"/></svg>
+              <span><b>Te pasaron {compartido.que} por WhatsApp.</b>{compartido.escribir
+                ? <> ¿Ya cursaste? <a href={compartido.escribir}>Sumá tu reseña</a>, así sigue sirviendo en el grupo.</>
+                : <> Esto es UTN REP: reseñas de cursos escritas por estudiantes.</>}</span>
+              <button type="button" class="x" aria-label="Cerrar" data-de-cerrar>×</button>
+            </div>
+          </div>
+        )}
+        {legacy ? <div class="legacy"><slot /></div> : <slot />}
+      </main>
+
+      <footer class="foot">
+        <span>
+          <a href="/sobre">¿Cómo funciona?</a> | <a href="/terminos">Términos y condiciones</a> | <a href="mailto:patriciovandrade@gmail.com?subject=Error%20en%20UTN%20REP">Reportar un error</a> | <a class="cafe-link" href="https://cafecito.app/utnrep" target="_blank" rel="noopener noreferrer"><Icon name="cup" /> Invitame un cafecito</a>
+        </span>
+        <span>Desarrollado por Patricio Valentín Andrade, {anio}</span>
+      </footer>
+
+      <nav class:list={['bottombar', { cinco: !!user }]} aria-label="Navegación rápida">
+        <a href="/" aria-current={cur('materias')}><Icon name="book" /><span>Materias</span></a>
+        <a href="/finales" aria-current={cur('finales')}><Icon name="final" /><span>Finales</span></a>
+        <a class="write" href="/nueva-resena" aria-current={cur('escribir')}><Icon name="pen" /><span>Escribir</span></a>
+        {user
+          ? <>
+              <a href="/avisos" aria-current={cur('avisos')} title={avisosTitulo}><Icon name="bell" /><span>Avisos</span>{sinLeer > 0 && <span class="cnt" aria-label={`${sinLeer} sin leer`}>{cuenta}</span>}</a>
+              <a href="/mis-resenas" aria-current={cur('mis')}><Icon name="user" /><span>Mi espacio</span></a>
+            </>
+          : <button type="button" data-login><Icon name="user" /><span>Ingresar</span></button>}
+      </nav>
     </div>
 
-    <slot />
+    {!user && <LoginModal />}
+    {!legacy && <Bienvenida />}
 
     <Analytics />
-
-    <a 
-      href="https://cafecito.app/utnrep" 
-      target="_blank" 
-      rel="noopener noreferrer" 
-      class="cafecito-btn fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 bg-[#FFB000] text-black font-bold rounded-full shadow-lg transition-transform duration-300 hover:scale-105 px-3 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm border border-[#e69f00]"
-    >
-      <span class="text-base sm:text-lg">☕</span>
-      <span>Invitame un cafecito</span>
-    </a>
-    <footer class={`bg-[#111111] text-neutral-500 mt-auto ${hasFloatingButton ? 'pb-24 sm:pb-8' : ''}`}>
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div class="text-center sm:text-left">
-            <a href="/" class="font-heading font-bold text-white text-lg tracking-tight hover:text-amber-400 transition-colors">UTN REP</a>
-            <p class="text-sm mt-1">Tu opinión cuenta. Conocé la experiencia real de cada materia.</p>
-          </div>
-          <div class="flex items-center gap-4 text-sm">
-            <a href="/sobre" class="hover:text-white transition-colors">Sobre UTN REP</a>
-            <a href="/terminos" class="hover:text-white transition-colors">Términos Y Condiciones</a>
-            <a href="https://github.com/patricioVAndrade" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors" title="GitHub">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"></path></svg>
-            </a>
-          </div>
-        </div>
-        <div class="border-t border-neutral-800 mt-6 pt-6 text-center text-xs">
-          <p>Desarrollado por <span class="text-neutral-300 font-medium">Patricio Valentín Andrade</span> &mdash; {new Date().getFullYear()}</p>
-        </div>
-      </div>
-    </footer>
-
   </body>
 </html>
 
-<style>
-  .cafecito-btn {
-    animation: cafecito-glow 2.5s ease-in-out infinite alternate; /* Lo hice apenas más lento (2.5s) para que relaje más */
-  }
-
-  @keyframes cafecito-glow {
-    0% {
-      /* Brillo mínimo: muy cerquita del botón y casi transparente */
-      box-shadow: 0 0 4px 0px rgba(255, 176, 0, 0.2);
-    }
-    100% {
-      /* Brillo máximo: se expande menos y es menos opaco que antes */
-      box-shadow: 0 0 10px 2px rgba(255, 176, 0, 0.5);
-    }
-  }
-</style>
 <script>
-  // ========== LOGIN MODAL ==========
-  function initLoginModal() {
-    const loginBtn = document.getElementById('login-btn');
-    const loginBtnMain = document.getElementById('login-btn-main');
-    const modal = document.getElementById('login-modal');
-    const closeBtn = document.getElementById('close-modal');
+  // ========== LINKS COMPARTIDOS (?de=) ==========
+  import { iniciarLinks } from '../scripts/links';
+  iniciarLinks();
 
+  // ========== EN LÍNEA (contador, sin nombres) ==========
+  import { iniciarEnLinea } from '../scripts/en-linea';
+  iniciarEnLinea();
+
+  // ========== ÚLTIMA VISITA ==========
+  import { visitaAnterior, textoVisita } from '../scripts/visitas';
+  const anteriorVisita = visitaAnterior();
+  const spanVisita = document.getElementById('ultima-visita');
+  if (spanVisita && anteriorVisita) spanVisita.textContent = `Tu última visita: ${textoVisita(anteriorVisita)}`;
+
+  // "N nuevas" en la pestaña de finales: contadas desde tu visita anterior
+  async function finalesNuevos(desde: number) {
+    let fechas: string[] | null = null;
+    try {
+      const c = JSON.parse(sessionStorage.getItem('finalesUltimas') || 'null');
+      if (c && Date.now() - c.t < 5 * 60 * 1000) fechas = c.fechas;
+    } catch {}
+    if (!fechas) {
+      const r = await fetch('/api/finales/ultimas.json').catch(() => null);
+      if (!r?.ok) return;
+      fechas = ((await r.json()).fechas || []) as string[];
+      try { sessionStorage.setItem('finalesUltimas', JSON.stringify({ t: Date.now(), fechas })); } catch {}
+    }
+    const n = fechas.filter((f) => new Date(f).getTime() > desde).length;
+    if (!n) return;
+    document.querySelectorAll<HTMLAnchorElement>('a[href="/finales"]').forEach((a) => {
+      if (!a.closest('.tabs, .bottombar') || a.querySelector('.nuevo-tag')) return;
+      const tag = document.createElement('span');
+      a.querySelector('.nuevo-pill')?.remove();
+      tag.className = 'nuevo-tag';
+      tag.textContent = a.closest('.bottombar') ? String(n) : `${n} nueva${n !== 1 ? 's' : ''}`;
+      a.append(tag);
+    });
+  }
+  if (anteriorVisita) finalesNuevos(anteriorVisita);
+</script>
+
+<script>
+  // ========== MODO NOCHE ==========
+  const toggle = document.getElementById('theme-toggle');
+  const root = document.documentElement;
+  const pintar = () => toggle?.setAttribute('aria-pressed', root.getAttribute('data-theme') === 'dark' ? 'true' : 'false');
+  pintar();
+  toggle?.addEventListener('click', () => {
+    const nuevo = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', nuevo);
+    try { localStorage.setItem('tema', nuevo); } catch {}
+    pintar();
+  });
+</script>
+
+<script>
+  // ========== BUSCADOR DEL BANNER ==========
+  import { codigoCurso, coincide, esCodigoCurso, losParecidos, palabrasDe } from '../lib/buscar';
+  // Los datos se piden una sola vez, la primera vez que se usa el buscador.
+  type Materia = { id: number; nombre: string; nivel: number };
+  type Curso = { id: number; materiaId: number; curso: string; turno: string | null };
+  type Profe = { id: number; nombre: string; materias: string[] };
+  type Datos = { materias: Materia[]; cursos: Curso[]; profesores: Profe[] };
+
+  const input = document.getElementById('search-input') as HTMLInputElement | null;
+  const box = document.getElementById('search-results') as HTMLElement | null;
+  const container = document.getElementById('search-container');
+  const form = document.getElementById('search-form') as HTMLFormElement | null;
+
+  let datos: Datos | null = null;
+  let pedido: Promise<Datos | null> | null = null;
+  let sel = -1;
+
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+  function resaltar(texto: string, q: string) {
+    const i = norm(texto).indexOf(q);
+    if (i < 0 || !q) return esc(texto);
+    return esc(texto.slice(0, i)) + '<mark>' + esc(texto.slice(i, i + q.length)) + '</mark>' + esc(texto.slice(i + q.length));
+  }
+  const turnoCorto: Record<string, string> = { 'MAÑANA': 'Mañana', 'TARDE': 'Tarde', 'NOCHE': 'Noche' };
+
+  function cargar() {
+    if (!pedido) {
+      pedido = fetch('/api/buscar.json')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => (datos = d))
+        .catch(() => null);
+    }
+    return pedido;
+  }
+
+  function cerrar() {
+    box?.classList.add('hidden');
+    input?.setAttribute('aria-expanded', 'false');
+    sel = -1;
+  }
+
+  function opciones() {
+    return Array.from(box?.querySelectorAll<HTMLAnchorElement>('a') || []);
+  }
+
+  function marcar(i: number) {
+    const ops = opciones();
+    ops.forEach((a, j) => {
+      a.classList.toggle('sel', j === i);
+      a.setAttribute('aria-selected', j === i ? 'true' : 'false');
+    });
+    sel = i;
+    if (ops[i]) {
+      input?.setAttribute('aria-activedescendant', ops[i].id);
+      ops[i].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function pintarResultados() {
+    if (!input || !box) return;
+    const q = norm(input.value.trim());
+    if (q.length < 2) return cerrar();
+    if (!datos) {
+      box.innerHTML = '<div class="none">Buscando…</div>';
+      box.classList.remove('hidden');
+      return;
+    }
+    const nombreMateria = new Map(datos.materias.map((m) => [m.id, m.nombre]));
+    const palabras = palabrasDe(input.value);
+    // Tal cual y, si no hay nada, lo parecido (por si se escribió mal)
+    const buscarEn = <T,>(xs: T[], texto: (x: T) => string) => {
+      const tal = xs.filter((x) => coincide(palabras, texto(x)));
+      return tal.length ? tal : losParecidos(xs, texto, palabras);
+    };
+    const materias = buscarEn(datos.materias, (m) => m.nombre).slice(0, 6);
+    const qCurso = codigoCurso(input.value);
+    const cursos = esCodigoCurso(qCurso, true)
+      ? datos.cursos.filter((c) => codigoCurso(c.curso).startsWith(qCurso)).slice(0, 8)
+      : [];
+    const profes = buscarEn(datos.profesores, (p) => p.nombre).slice(0, 6);
+
+    let html = '';
+    let n = 0;
+    const item = (href: string, izq: string, der: string) =>
+      `<a id="sr-${n++}" role="option" href="${href}"><span>${izq}</span><span>${der}</span></a>`;
+    if (materias.length) {
+      html += '<h4>Materias</h4>' + materias.map((m) => item(`/materia/${m.id}`, resaltar(m.nombre, q), `${m.nivel}.º año`)).join('');
+    }
+    if (cursos.length) {
+      html += '<h4>Cursos</h4>' + cursos.map((c) => item(`/dictado/${c.id}`, `<b>${esc(c.curso)}</b> ${esc(nombreMateria.get(c.materiaId) || '')}`, esc(turnoCorto[c.turno || ''] || c.turno || ''))).join('');
+    }
+    if (profes.length) {
+      html += '<h4>Profesores</h4>' + profes.map((p) => item(`/profesor/${p.id}`, resaltar(p.nombre, q), esc(p.materias.slice(0, 2).join(', ') + (p.materias.length > 2 ? '…' : '')))).join('');
+    }
+    box.innerHTML = html || '<div class="none">No encontramos nada con eso. Probá con otra palabra.</div>';
+    box.classList.remove('hidden');
+    input.setAttribute('aria-expanded', 'true');
+    sel = -1;
+  }
+
+  if (input && box) {
+    let t: ReturnType<typeof setTimeout>;
+    input.addEventListener('focus', () => { cargar(); });
+    input.addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(async () => {
+        pintarResultados();
+        if (!datos) { await cargar(); pintarResultados(); }
+      }, 120);
+    });
+    input.addEventListener('keydown', (e) => {
+      const ops = opciones();
+      if (e.key === 'ArrowDown' && ops.length) { e.preventDefault(); marcar((sel + 1) % ops.length); }
+      else if (e.key === 'ArrowUp' && ops.length) { e.preventDefault(); marcar(sel <= 0 ? ops.length - 1 : sel - 1); }
+      else if (e.key === 'Escape') { cerrar(); }
+    });
+    // Enter con una sugerencia marcada va directo; si no, a la página de resultados
+    form?.addEventListener('submit', (e) => {
+      const ops = opciones();
+      if (sel >= 0 && ops[sel]) {
+        e.preventDefault();
+        window.location.href = ops[sel].href;
+      } else if (!input.value.trim()) {
+        e.preventDefault();
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (container && !container.contains(e.target as Node)) cerrar();
+    });
+  }
+</script>
+
+<script>
+  // ========== VENTANA DE INGRESO ==========
+  const modal = document.getElementById('login-modal');
+
+  function abrir() {
     if (!modal) return;
+    modal.classList.add('open');
+    (document.getElementById('ml-nombre') as HTMLInputElement | null)?.focus();
 
-    function openModal() {
-      modal?.classList.remove('hidden');
-      modal?.classList.add('flex');
-      (document.getElementById('ml-nombre') as HTMLInputElement | null)?.focus();
+    // Guardar la página actual para volver después de entrar
+    const currentPage = window.location.pathname + window.location.search;
+    const returnTo = encodeURIComponent(currentPage);
+    const googleLink = document.getElementById('oauth-google') as HTMLAnchorElement | null;
+    const githubLink = document.getElementById('oauth-github') as HTMLAnchorElement | null;
+    if (googleLink) googleLink.href = '/api/auth/login?provider=google&returnTo=' + returnTo;
+    if (githubLink) githubLink.href = '/api/auth/login?provider=github&returnTo=' + returnTo;
+    try { localStorage.setItem('auth_returnTo', currentPage); } catch {}
+    try { document.cookie = `auth_returnTo=${encodeURIComponent(currentPage)};path=/;max-age=600;SameSite=Lax`; } catch {}
+  }
 
-      // Save the current page URL for post-login redirect
-      const currentPage = window.location.pathname + window.location.search;
-      const returnTo = encodeURIComponent(currentPage);
+  function cerrarModal() {
+    modal?.classList.remove('open');
+  }
 
-      // Set returnTo on OAuth links
-      const googleLink = document.getElementById('oauth-google') as HTMLAnchorElement | null;
-      const githubLink = document.getElementById('oauth-github') as HTMLAnchorElement | null;
-      if (googleLink) googleLink.href = '/api/auth/login?provider=google&returnTo=' + returnTo;
-      if (githubLink) githubLink.href = '/api/auth/login?provider=github&returnTo=' + returnTo;
+  // Permite abrir el ingreso desde cualquier script (por ej. al votar sin sesión)
+  (window as any).openLoginModal = abrir;
 
-      // Also save to localStorage as universal fallback (for magic link, cross-tab, etc.)
-      try { localStorage.setItem('auth_returnTo', currentPage); } catch {}
+  if (modal) {
+    document.querySelectorAll('[data-login]').forEach((b) => b.addEventListener('click', abrir));
+    document.getElementById('close-modal')?.addEventListener('click', cerrarModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) cerrarModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) cerrarModal(); });
 
-      // Set a cookie too so the server-side middleware can redirect directly (avoids flash)
-      try { document.cookie = `auth_returnTo=${encodeURIComponent(currentPage)};path=/;max-age=600;SameSite=Lax`; } catch {}
-    }
-
-    function closeModal() {
-      modal?.classList.add('hidden');
-      modal?.classList.remove('flex');
-    }
-
-    // Permite abrir el login desde cualquier script (por ej. al votar sin sesión)
-    (window as any).openLoginModal = openModal;
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
-    });
-
-    loginBtn?.addEventListener('click', openModal);
-    loginBtnMain?.addEventListener('click', openModal);
-
-    closeBtn?.addEventListener('click', closeModal);
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-
-    // ========== TABS ==========
+    // Pestañas
     const tabEmail = document.getElementById('tab-email');
     const tabSocial = document.getElementById('tab-social');
     const panelEmail = document.getElementById('panel-email');
     const panelSocial = document.getElementById('panel-social');
+    const elegir = (mail: boolean) => {
+      tabEmail?.setAttribute('aria-selected', String(mail));
+      tabSocial?.setAttribute('aria-selected', String(!mail));
+      if (panelEmail) panelEmail.style.display = mail ? 'grid' : 'none';
+      if (panelSocial) panelSocial.style.display = mail ? 'none' : 'grid';
+    };
+    tabEmail?.addEventListener('click', () => elegir(true));
+    tabSocial?.addEventListener('click', () => elegir(false));
 
-    if (tabEmail && tabSocial && panelEmail && panelSocial) {
-      tabEmail.addEventListener('click', () => {
-        tabEmail.classList.add('text-amber-400', 'border-amber-400');
-        tabEmail.classList.remove('text-neutral-500', 'border-transparent');
-        tabSocial.classList.add('text-neutral-500', 'border-transparent');
-        tabSocial.classList.remove('text-amber-400', 'border-amber-400');
-        panelEmail.classList.remove('hidden');
-        panelSocial.classList.add('hidden');
-      });
-
-      tabSocial.addEventListener('click', () => {
-        tabSocial.classList.add('text-amber-400', 'border-amber-400');
-        tabSocial.classList.remove('text-neutral-500', 'border-transparent');
-        tabEmail.classList.add('text-neutral-500', 'border-transparent');
-        tabEmail.classList.remove('text-amber-400', 'border-amber-400');
-        panelSocial.classList.remove('hidden');
-        panelEmail.classList.add('hidden');
-      });
-    }
-
-    // ========== MAGIC LINK FORM ==========
-    const mlSubmit = document.getElementById('ml-submit');
+    // Link por mail
+    const mlSubmit = document.getElementById('ml-submit') as HTMLButtonElement | null;
     const mlNombre = document.getElementById('ml-nombre') as HTMLInputElement | null;
     const mlEmail = document.getElementById('ml-email') as HTMLInputElement | null;
     const mlMsg = document.getElementById('ml-msg');
 
+    const aviso = (tipo: 'ok' | 'bad', contenido: string | Node[]) => {
+      if (!mlMsg) return;
+      mlMsg.className = `msg ${tipo}`;
+      if (typeof contenido === 'string') mlMsg.textContent = contenido;
+      else mlMsg.replaceChildren(...contenido);
+    };
+
     if (mlSubmit && mlNombre && mlEmail && mlMsg) {
-      const btnOriginalHTML = mlSubmit.innerHTML;
+      const original = mlSubmit.innerHTML;
 
       mlSubmit.addEventListener('click', async () => {
         const nombre = mlNombre.value.trim();
         const email = mlEmail.value.trim().toLowerCase();
 
-        // Client-side quick validation
-        if (!nombre || nombre.length < 4) {
-          mlMsg.textContent = 'Ingresá tu nombre y apellido.';
-          mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-red-900/30 border border-red-700 text-red-400';
-          mlMsg.classList.remove('hidden');
-          return;
-        }
+        if (!nombre || nombre.length < 4) return aviso('bad', 'Escribí tu nombre y apellido.');
+        if (!email || !email.includes('@')) return aviso('bad', 'Escribí un mail válido.');
 
-        if (!email || !email.includes('@')) {
-          mlMsg.textContent = 'Ingresá un email válido.';
-          mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-red-900/30 border border-red-700 text-red-400';
-          mlMsg.classList.remove('hidden');
-          return;
-        }
-
-        (mlSubmit as HTMLButtonElement).disabled = true;
-        mlSubmit.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Enviando...';
+        mlSubmit.disabled = true;
+        mlSubmit.innerHTML = '<span class="spin"></span> Enviando…';
         mlMsg.classList.add('hidden');
 
         try {
@@ -256,73 +515,57 @@ const ogImageUrl = new URL(ogImage, siteURL).href;
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, nombre, returnTo: window.location.pathname + window.location.search }),
           });
-
           const data = await res.json();
 
           if (!res.ok) {
-            mlMsg.textContent = data.error || 'Error al enviar el link.';
-            mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-red-900/30 border border-red-700 text-red-400';
-            mlMsg.classList.remove('hidden');
-            (mlSubmit as HTMLButtonElement).disabled = false;
-            mlSubmit.innerHTML = btnOriginalHTML;
-          } else {
-            const detalle = document.createElement('span');
-            detalle.className = 'text-xs text-neutral-500';
-            const emailStrong = document.createElement('strong');
-            emailStrong.textContent = email;
-            detalle.append('Enviamos un link a ', emailStrong);
-            mlMsg.replaceChildren('✓ Revisá tu bandeja de entrada (y spam).', document.createElement('br'), detalle);
-            mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-green-900/30 border border-green-700 text-green-400';
-            mlMsg.classList.remove('hidden');
-            mlNombre.disabled = true;
-            mlEmail.disabled = true;
-
-            // Cooldown 30s
-            let cooldown = 30;
-            (mlSubmit as HTMLButtonElement).disabled = true;
-            mlSubmit.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Reenviar en ${cooldown}s`;
-            const cdInterval = setInterval(() => {
-              cooldown--;
-              if (cooldown <= 0) {
-                clearInterval(cdInterval);
-                (mlSubmit as HTMLButtonElement).disabled = false;
-                mlSubmit.innerHTML = btnOriginalHTML;
-                mlNombre.disabled = false;
-                mlEmail.disabled = false;
-              } else {
-                mlSubmit.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Reenviar en ${cooldown}s`;
-              }
-            }, 1000);
-
-            // Listen for login in another tab
-            const onFocus = () => {
-              // Check if a session cookie appeared (page will have user after reload)
-              window.location.reload();
-            };
-            window.addEventListener('focus', onFocus);
-            // Also listen for storage event (cross-tab communication)
-            const onStorage = (e: StorageEvent) => {
-              if (e.key === 'supabase.auth.token' || e.key?.startsWith('sb-')) {
-                window.location.reload();
-              }
-            };
-            window.addEventListener('storage', onStorage);
+            aviso('bad', data.error || 'No pudimos mandar el link.');
+            mlSubmit.disabled = false;
+            mlSubmit.innerHTML = original;
+            return;
           }
+
+          const detalle = document.createElement('span');
+          const fuerte = document.createElement('strong');
+          fuerte.textContent = email;
+          detalle.append('Lo mandamos a ', fuerte, '.');
+          aviso('ok', [document.createTextNode('Revisá tu bandeja de entrada (y el spam). '), detalle]);
+          mlNombre.disabled = true;
+          mlEmail.disabled = true;
+
+          // Espera de 30 s antes de poder reenviar
+          let cooldown = 30;
+          const texto = () => `Reenviar en ${cooldown} s`;
+          mlSubmit.textContent = texto();
+          const cd = setInterval(() => {
+            cooldown--;
+            if (cooldown <= 0) {
+              clearInterval(cd);
+              mlSubmit.disabled = false;
+              mlSubmit.innerHTML = original;
+              mlNombre.disabled = false;
+              mlEmail.disabled = false;
+            } else {
+              mlSubmit.textContent = texto();
+            }
+          }, 1000);
+
+          // Si entra desde otra pestaña, recargar esta
+          window.addEventListener('focus', () => window.location.reload());
+          window.addEventListener('storage', (e: StorageEvent) => {
+            if (e.key === 'supabase.auth.token' || e.key?.startsWith('sb-')) window.location.reload();
+          });
         } catch {
-          mlMsg.textContent = 'Error de conexión. Intentá de nuevo.';
-          mlMsg.className = 'text-sm text-center rounded-xl px-4 py-3 bg-red-900/30 border border-red-700 text-red-400';
-          mlMsg.classList.remove('hidden');
-          (mlSubmit as HTMLButtonElement).disabled = false;
-          mlSubmit.innerHTML = btnOriginalHTML;
+          aviso('bad', 'Error de conexión. Probá de nuevo.');
+          mlSubmit.disabled = false;
+          mlSubmit.innerHTML = original;
         }
       });
     }
   }
-
-  initLoginModal();
 </script>
 
 <script>
+  // Volver a la página donde estaba antes de entrar
   try {
     const returnTo = localStorage.getItem('auth_returnTo');
     if (returnTo) {
