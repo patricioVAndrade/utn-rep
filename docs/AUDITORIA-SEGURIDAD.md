@@ -25,11 +25,11 @@ No encontré nada grave. Encontré un problema medio (los nombres se podían sal
 | Una cuenta bloqueada podía editar sus experiencias de finales. | Bajo | `/api/finales/acciones` revisa el bloqueo antes de editar. |
 | El JSON del buscador de Google (schema) no escapaba `<`. Hoy lo arma el sitio, pero un nombre de materia raro lo podía romper. | Bajo | Se escapa. |
 | En Escribir reseña, tu nombre viaja en un `<script>` y Astro 5 no lo escapa del todo. Solo te afectaba a vos y ya no se puede con la migración 21. | Bajo | Se le sacan `<` y `>`. |
-| Dependencias viejas con avisos de seguridad. | Bajo | `astro` 5.18.2, `satori` 0.63.2 y `npm audit fix`. La imagen al compartir sale igual. |
+| Dependencias viejas con avisos de seguridad. | Bajo | Astro 7, adaptador de Vercel 11, Vitest 4, `satori` 0.63 y `npm audit fix`. `npm audit` da 0. |
 
 ## Lo que queda (riesgo bajo)
 
-- **Astro 5 y el adaptador de Vercel tienen avisos que solo se arreglan pasando a Astro 7.** Los graves son de partes que el sitio no usa: optimización de imágenes AVIF (no usamos `astro:assets` ni `/_image`), páginas de error prerenderizadas (no hay), ISR (no está prendido), `define:vars` (solo lleva el código CSRF y tu propio nombre, ya limpio) y nombres de slot o atributos dinámicos (no hay). `vitest` y `tinypool` solo corren en las pruebas, nunca en el sitio. Pasar a Astro 7 son dos versiones grandes de golpe; conviene hacerlo antes de la tanda de pruebas para que las pruebas cubran la versión final.
+- ~~Astro 5 y el adaptador de Vercel tenían avisos que solo se arreglaban pasando a Astro 7.~~ Hecho el 16/11 (elegiste actualizar antes de las pruebas): Astro 7.4, adaptador de Vercel 11, Vitest 4 y Zod 4. `npm audit` da 0 avisos. La imagen al compartir lleva `boxSizing: border-box` explícito, porque con Astro 7 el servidor de desarrollo la dibujaba corrida.
 - **`/api/telegram/despachar` tiene un límite global.** Alguien podría gastarlo y demorar los avisos de Telegram hasta el repaso diario del cron. No filtra nada.
 - **La imagen al compartir (`/og/...`) y `/api/inscripcion/opciones` no tienen límite.** Vercel cachea las imágenes; lo peor es gastar tiempo de funciones.
 - **La CSP permite `unsafe-inline`.** Lo necesitan los scripts en línea de Astro. Sacarlo es un cambio grande y el escapado ya cubre el riesgo.

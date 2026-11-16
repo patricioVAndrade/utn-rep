@@ -5,7 +5,7 @@ import { json, readJson } from '../../lib/http';
 import { parseBody } from '../../lib/validation';
 
 const schema = z.object({
-  materia_id: z.coerce.number({ invalid_type_error: 'Materia inválida.' }).int('Materia inválida.').positive('Materia inválida.'),
+  materia_id: z.coerce.number({ error: 'Materia inválida.' }).int('Materia inválida.').positive('Materia inválida.'),
   seguir: z.boolean().optional(),
   mail: z.boolean().optional(),
 });

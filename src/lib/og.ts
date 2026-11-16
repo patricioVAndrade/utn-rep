@@ -27,7 +27,8 @@ const ANIOS: Record<number, string> = { 1: '#2f6fb5', 2: '#2c8549', 3: '#1b7a8c'
 type Nodo = { type: string; props: Record<string, unknown> };
 const h = (type: string, style: Record<string, unknown>, ...children: unknown[]): Nodo => ({
   type,
-  props: { style: { display: 'flex', ...style }, children: children.length === 1 ? children[0] : children },
+  // border-box explícito: con Astro 7, en el servidor de desarrollo satori tomaba content-box por defecto
+  props: { style: { display: 'flex', boxSizing: 'border-box', ...style }, children: children.length === 1 ? children[0] : children },
 });
 
 // Logo F2 (src/lib/logo.ts) como imagen: satori dibuja el SVG tal cual

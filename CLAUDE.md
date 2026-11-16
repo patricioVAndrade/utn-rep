@@ -6,7 +6,7 @@ Leé esto antes de tocar el código. Resume de qué se trata el proyecto, qué s
 
 UTN REP (https://utnrep.app) es un sitio de reseñas de materias, cursos y profesores de Ingeniería en Sistemas de la UTN Facultad Regional Córdoba. Lo mantiene Patricio Valentín Andrade (Pato). El público son estudiantes: los textos van en español rioplatense con voseo ("Escribí", "Contá", "Iniciá sesión").
 
-Stack: Astro 5 con SSR en Vercel, Supabase (Postgres, Auth y RLS), Tailwind v4 y TypeScript. Ver `README.md` para la arquitectura.
+Stack: Astro 7 (desde el 16/11; validación con Zod 4 de `astro/zod`) con SSR en Vercel, Supabase (Postgres, Auth y RLS), Tailwind v4 y TypeScript. Ver `README.md` para la arquitectura.
 
 ## Terminología (no mezclar)
 

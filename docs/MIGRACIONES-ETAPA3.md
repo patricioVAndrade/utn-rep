@@ -221,7 +221,7 @@ Las tres tocan la tabla `resenas`, así que van juntas.
 - **Archivo:** `supabase/migrations/20261115000000_perfil_color.sql` (necesita la 5 y la 9). Vuelta atrás: `supabase/rollback/20261115000000_perfil_color.sql`.
 - **Verificación esperada:** `true · true · true`.
 
-### 21. Nombres controlados por la base (auditoría del 16/11) — **lista para correr en prueba, código subido**
+### 21. Nombres controlados por la base (auditoría del 16/11) — **corrida en prueba el 16/11, código subido**
 
 - Hasta ahora la regla del nombre (solo letras, sin palabras marcadas) la controlaba solo `/api/perfil`. Alguien con su sesión podía escribir directo en `perfiles` o cambiar el nombre de su cuenta de Google o GitHub y saltearla. Ahora la base frena el nombre nuevo que no cumple (error `NM001`).
 - Los nombres que ya están no se tocan: solo se controla uno nuevo o cambiado (el aviso de "Cambialo en Mi cuenta" sigue igual).

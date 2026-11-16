@@ -14,19 +14,28 @@
     "gen:types": "supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" > src/lib/database.types.ts"
   },
   "dependencies": {
-    "@astrojs/vercel": "^9.0.4",
+    "@astrojs/vercel": "^11.0.22",
     "@resvg/resvg-js": "^2.6.2",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "@tailwindcss/vite": "^4.2.0",
     "@vercel/analytics": "^1.6.1",
-    "astro": "^5.18.2",
+    "astro": "^7.4.12",
     "satori": "^0.63.2",
     "tailwindcss": "^4.2.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7"
+    "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "overrides": {
+    "@vercel/routing-utils": {
+      "path-to-regexp": "6.3.0"
+    },
+    "fflate": "0.7.5"
   }
 }

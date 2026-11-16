@@ -5,7 +5,7 @@ import { json, readJson } from '../../../lib/http';
 import { parseBody } from '../../../lib/validation';
 
 const schema = z.object({
-  accion: z.enum(['leer', 'borrar'], { errorMap: () => ({ message: 'Acción no válida.' }) }),
+  accion: z.enum(['leer', 'borrar'], { error: 'Acción no válida.' }),
   id: z.coerce.number().int().positive().optional(),
 });
 
