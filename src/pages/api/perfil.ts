@@ -35,7 +35,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (campos.foto && campos.foto !== 'dibujo') cambios.dibujo = null;
   if (!Object.keys(cambios).length) return json({ error: 'No hay nada para guardar.' }, 400);
 
-  const { error } = await client.from('perfiles').upsert({ user_id: user.id, ...cambios }, { onConflict: 'user_id' });
+  // Primero se cambia la fila y, si todavía no existe, se crea. No va con upsert: la base
+  // solo deja cambiar algunas columnas (migración 5, sin user_id) y el upsert las cambia todas,
+  // así que respondía "permission denied for table perfiles".
+  const cambiada = await client.from('perfiles').update(cambios).eq('user_id', user.id).select('user_id');
+  let error = cambiada.error;
+  if (!error && !cambiada.data?.length) {
+    ({ error } = await client.from('perfiles').insert({ user_id: user.id, ...cambios }));
+    // Si otra pestaña la creó justo antes, se cambia la que quedó
+    if (error?.code === '23505') ({ error } = await client.from('perfiles').update(cambios).eq('user_id', user.id));
+  }
   if (error) {
     if (esBloqueo(error)) return cuentaBloqueada();
     // La base también controla el nombre (migración 21)

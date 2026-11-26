@@ -34,14 +34,20 @@ describe('POST /api/perfil (migraciones 5 y 8)', () => {
   });
   it('guarda el nombre (limpio) en la cuenta y en la sesión', async () => {
     expect((await p({ nombre_mostrar: '  Sofi   R. ' })).status).toBe(200);
-    const u = base.de('perfiles', 'upsert')[0];
+    const c = base.de('perfiles', 'update')[0];
+    expect(c.cliente).toBe('sesion');
+    expect(c.pasos[0][1][0]).toEqual({ nombre_mostrar: 'Sofi R.' });
+    expect(tiene(c, 'eq', 'user_id', 'u-1')).toBe(true);
+    // No había fila: la crea (sin upsert, que la base no deja por los permisos de columnas)
+    const u = base.de('perfiles', 'insert')[0];
     expect(u.cliente).toBe('sesion');
     expect(u.pasos[0][1][0]).toEqual({ user_id: 'u-1', nombre_mostrar: 'Sofi R.' });
+    expect(base.de('perfiles', 'upsert')).toHaveLength(0);
     expect(base.nombreSesion).toEqual([{ data: { nombre_mostrar: 'Sofi R.' } }]);
   });
   it('años de cursada sin repetir y ordenados; pausar "¿Cómo te fue?" 30 días', async () => {
     await p({ anios_cursada: [3, 1, 3], pausar_como_te_fue: true });
-    const fila: any = base.de('perfiles', 'upsert')[0].pasos[0][1][0];
+    const fila: any = base.de('perfiles', 'insert')[0].pasos[0][1][0];
     expect(fila.anios_cursada).toEqual([1, 3]);
     const dias = (new Date(fila.como_te_fue_pausa_hasta).getTime() - Date.now()) / 86400000;
     expect(Math.round(dias)).toBe(30);
@@ -50,28 +56,40 @@ describe('POST /api/perfil (migraciones 5 y 8)', () => {
   it('foto "google": la URL la guarda el servidor (clave de servicio); otra foto la borra', async () => {
     base.usuario = { id: 'u-1', user_metadata: { avatar_url: 'https://lh3.googleusercontent.com/a/x' } };
     await p({ foto: 'google' });
-    const f = base.de('perfiles', 'update')[0];
-    expect(f.cliente).toBe('admin');
+    const f = base.de('perfiles', 'update').find((l) => l.cliente === 'admin')!;
     expect(f.pasos[0][1][0]).toEqual({ foto_url: 'https://lh3.googleusercontent.com/a/x' });
     expect(tiene(f, 'eq', 'user_id', 'u-1')).toBe(true);
-    expect((base.de('perfiles', 'upsert')[0].pasos[0][1][0] as any).dibujo).toBeNull();
+    expect((base.de('perfiles', 'insert')[0].pasos[0][1][0] as any).dibujo).toBeNull();
 
     base.reset();
     await p({ foto: 'inicial' });
-    expect(base.de('perfiles', 'update')[0].pasos[0][1][0]).toEqual({ foto_url: null });
+    expect(base.de('perfiles', 'update').find((l) => l.cliente === 'admin')!.pasos[0][1][0]).toEqual({ foto_url: null });
   });
   it('una URL de foto que no es https no se guarda', async () => {
     base.usuario = { id: 'u-1', user_metadata: { avatar_url: 'javascript:alert(1)' } };
     await p({ foto: 'google' });
-    expect(base.de('perfiles', 'update')[0].pasos[0][1][0]).toEqual({ foto_url: null });
+    expect(base.de('perfiles', 'update').find((l) => l.cliente === 'admin')!.pasos[0][1][0]).toEqual({ foto_url: null });
   });
   it('cuenta bloqueada → 403; otro error → 500', async () => {
-    base.respuestas['perfiles.upsert'] = { error: { code: 'UB001' } };
+    base.respuestas['perfiles.update'] = { error: { code: 'UB001' } };
     const r = await p({ nombre_mostrar: 'Sofía' });
     expect(r.status).toBe(403);
     expect(r.body.error).toContain('bloqueada');
-    base.respuestas['perfiles.upsert'] = { error: { code: 'XX000', message: 'x' } };
+    base.respuestas['perfiles.update'] = { error: { code: 'XX000', message: 'x' } };
     expect((await p({ nombre_mostrar: 'Sofía' })).status).toBe(500);
+    base.reset();
+    base.respuestas['perfiles.insert'] = { error: { code: 'XX000', message: 'x' } };
+    expect((await p({ nombre_mostrar: 'Sofía' })).status).toBe(500);
+  });
+  it('si la fila ya existe, solo la cambia (no la crea de nuevo)', async () => {
+    base.respuestas['perfiles.update'] = { data: [{ user_id: 'u-1' }], error: null };
+    expect((await p({ color: 'verde' })).status).toBe(200);
+    expect(base.de('perfiles', 'insert')).toHaveLength(0);
+  });
+  it('si otra pestaña la creó justo antes (23505), la cambia', async () => {
+    base.respuestas['perfiles.insert'] = { error: { code: '23505' } };
+    expect((await p({ nombre_mostrar: 'Sofía' })).status).toBe(200);
+    expect(base.de('perfiles', 'update').filter((l) => l.cliente === 'sesion')).toHaveLength(2);
   });
 });
 
