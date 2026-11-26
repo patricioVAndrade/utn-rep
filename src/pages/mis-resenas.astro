@@ -97,7 +97,7 @@ const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: 
 const recorte = (t: string, n = 110) => (t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t);
 ---
 
-<Layout title="Mis reseñas - UTN REP" description="Las reseñas que publicaste en UTN REP." tab="mis" crumbs={[{ label: 'Mis reseñas' }]}>
+<Layout noindex title="Mis reseñas - UTN REP" description="Las reseñas que publicaste en UTN REP." tab="mis" crumbs={[{ label: 'Mis reseñas' }]}>
   <div class="layout">
     <div class="main">
       <div class="topic">

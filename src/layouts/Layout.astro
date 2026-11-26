@@ -10,6 +10,7 @@ import { textoAuthError } from '../lib/auth-error';
 import { createSupabaseServerClient } from '../lib/supabase';
 import { avisosSinLeer } from '../lib/avisos';
 import { NOMBRE_VALIDO } from '../lib/validation';
+import { DOMINIO, datosDelSitio, esSitioDePrueba, jsonLd, migasDePan, urlCanonica } from '../lib/seo';
 
 /** 'mis' es "Mi espacio": Mis reseñas, Mi inscripción y Mi cuenta. */
 export type Tab = 'materias' | 'finales' | 'mis' | 'avisos' | 'ayuda' | 'escribir';
@@ -24,6 +25,8 @@ interface Props {
   ogTitle?: string;
   /** JSON-LD (Datos Estructurados) en formato string para Google (opcional) */
   schema?: string;
+  /** Página que no tiene que salir en Google (búsquedas, cuenta, formularios) */
+  noindex?: boolean;
   /** Pestaña del banner que queda marcada */
   tab?: Tab;
   /** Migas de pan ("Estás en: …"). La última es la página actual. */
@@ -42,6 +45,7 @@ const {
   ogImage = '/og-image.png',
   ogTitle,
   schema,
+  noindex = false,
   tab,
   crumbs,
   forumClass,
@@ -57,7 +61,10 @@ const llegoPorLink = /^[a-z0-9]{4,8}$/.test(de);
 // Nombre que no cumple las reglas del 14/11 (números o símbolos): se avisa en todas las páginas menos en Mi cuenta (Pato, 16/11)
 const nombreACambiar = !!user && !NOMBRE_VALIDO.test(user.name) && !Astro.url.pathname.startsWith('/mi-cuenta');
 const errorIngreso = user ? null : textoAuthError(Astro.url.searchParams.get('auth_error'));
-const canonicalURL = Astro.url.href;
+// Para Google: una sola dirección por página (sin ?de=, ?q=…) y nada de los Preview
+const canonicalURL = urlCanonica(Astro.url);
+const robots = noindex || legacy || Astro.url.pathname.startsWith('/admin') || esSitioDePrueba(Astro.url) ? 'noindex, follow' : 'index, follow, max-image-preview:large';
+const migas = !noindex && crumbs && crumbs.length > 0 ? migasDePan(DOMINIO, [{ label: 'Inicio', href: '/' }, ...crumbs.filter((c, i) => c.href !== '/' && (c.href || i === crumbs.length - 1))], canonicalURL) : null;
 const siteURL = Astro.url.origin;
 const ogImageUrl = new URL(ogImage, siteURL).href;
 const anio = new Date().getFullYear();
@@ -76,11 +83,13 @@ const mia = (href: string) => (ruta === href ? 'page' : undefined);
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content={description} />
-    <meta name="keywords" content="UTN FRC, reseñas materias UTN, opiniones cátedras UTN, ingeniería en sistemas, UTN Córdoba, cursada UTN, profesores UTN FRC, materias sistemas UTN" />
     <meta name="author" content="Patricio Valentín Andrade" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={robots} />
     <meta name="theme-color" content="#133d68" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icono-192.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -120,18 +129,8 @@ const mia = (href: string) => (ruta === href ? 'page' : undefined);
       })();
     </script>
 
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "UTN REP",
-      "url": siteURL,
-      "description": "Reseñas y opiniones de materias, cátedras y profesores de Ingeniería en Sistemas de la UTN FRC.",
-      "inLanguage": "es-AR",
-      "publisher": {
-        "@type": "Organization",
-        "name": "UTN REP"
-      }
-    })} />
+    <script type="application/ld+json" set:html={jsonLd(datosDelSitio(DOMINIO))} />
+    {migas && <script type="application/ld+json" set:html={jsonLd(migas)} />}
 
     {schema && <script type="application/ld+json" set:html={schema.replace(/</g, '\\u003c')} />}
   </head>

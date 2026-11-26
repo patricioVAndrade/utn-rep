@@ -32,7 +32,7 @@ const aniosRecientes = [0, 1, 2, 3].map((i) => currentYear - i);
 const aniosViejos = Array.from({ length: Math.max(0, currentYear - 4 - 2015 + 1) }, (_, i) => currentYear - 4 - i);
 ---
 
-<Layout
+<Layout noindex
   title="Compartir mi experiencia - UTN REP"
   tab="finales"
   crumbs={[{ label: 'Experiencias de finales', href: '/finales' }, { label: 'Compartir mi experiencia' }]}
