@@ -24,6 +24,7 @@ export const GET: APIRoute = async ({ url, site }) => {
   urls.push({ loc: '/finales', priority: '0.6' });
   urls.push({ loc: '/sobre', priority: '0.4' });
   urls.push({ loc: '/terminos', priority: '0.3' });
+  urls.push({ loc: '/privacidad', priority: '0.3' });
 
   // Niveles (1-5)
   for (let i = 1; i <= 5; i++) {

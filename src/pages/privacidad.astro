@@ -1,0 +1,124 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeaderNav from '../components/HeaderNav.astro';
+
+const user = Astro.locals.user;
+---
+
+<Layout title="Política de Privacidad - UTN REP" description="Qué datos guarda UTN REP, para qué los usa y cómo podés borrarlos.">
+
+  <header class="bg-gradient-to-r from-stone-700 to-stone-900 text-white relative overflow-hidden">
+    <div class="absolute inset-0 dot-pattern opacity-30"></div>
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-10">
+      <HeaderNav user={user} />
+      <h1 class="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight flex items-center gap-3">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"></path></svg>
+        Política de Privacidad
+      </h1>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-6">
+
+    <div class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6 sm:p-8 space-y-6">
+
+      <p class="text-neutral-400 text-sm leading-relaxed">
+        Esta página explica qué datos guarda <strong class="text-neutral-200">UTN REP</strong> (utnrep.app),
+        para qué los usa y qué podés hacer con ellos. UTN REP es un proyecto estudiantil sin fines de lucro
+        y no tiene relación oficial con la Universidad Tecnológica Nacional.
+      </p>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">1. Qué datos guardamos</h2>
+        <ul class="text-neutral-400 text-sm leading-relaxed list-disc list-inside space-y-2">
+          <li><strong class="text-neutral-200">Datos de tu cuenta:</strong> cuando iniciás sesión con Google, GitHub o con un link por email, guardamos tu nombre, tu email y tu foto de perfil (si el proveedor la comparte).</li>
+          <li><strong class="text-neutral-200">Lo que publicás:</strong> tus reseñas, experiencias de finales y votos.</li>
+          <li><strong class="text-neutral-200">Datos técnicos:</strong> tu dirección IP se usa por un tiempo corto para limitar la cantidad de intentos y evitar abusos. También usamos estadísticas de visitas anónimas (Vercel Analytics), que no usan cookies ni te identifican.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">2. Qué datos de Google usamos</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          Si entrás con Google, solo pedimos tu <strong class="text-neutral-200">nombre, email y foto de perfil</strong>.
+          No accedemos a tus contactos, archivos, correos ni a ningún otro dato de tu cuenta de Google.
+          El uso de esa información se ajusta a la
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:text-amber-300 underline">Política de datos del usuario de los servicios de API de Google</a>,
+          incluidos los requisitos de uso limitado.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">3. Para qué los usamos</h2>
+        <ul class="text-neutral-400 text-sm leading-relaxed list-disc list-inside space-y-2">
+          <li>Para que puedas iniciar sesión y publicar.</li>
+          <li>Para mostrar tu nombre y tu foto junto a lo que publicás.</li>
+          <li>Para moderar el contenido y evitar spam o abusos.</li>
+          <li>Para mandarte avisos por email que vos hayas pedido.</li>
+        </ul>
+        <p class="text-neutral-400 text-sm leading-relaxed mt-3">
+          <strong class="text-neutral-200">Tu email nunca se muestra públicamente.</strong> No usamos tus datos para publicidad.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">4. Con quién se comparten</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          <strong class="text-neutral-200">No vendemos ni compartimos tus datos con terceros.</strong>
+          Solo los procesan los servicios que hacen funcionar el sitio: Supabase (base de datos e inicio de sesión),
+          Vercel (hosting) y el servicio que manda los emails. Tu contraseña de Google o GitHub nunca pasa por nosotros:
+          el inicio de sesión lo maneja directamente el proveedor que elijas.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">5. Cookies</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          Usamos solo las cookies necesarias para mantener tu sesión iniciada y proteger los formularios.
+          No usamos cookies de publicidad ni de seguimiento.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">6. Cuánto tiempo los guardamos y cómo borrarlos</h2>
+        <ul class="text-neutral-400 text-sm leading-relaxed list-disc list-inside space-y-2">
+          <li>Guardamos tus datos mientras tengas una cuenta en UTN REP.</li>
+          <li>Podés borrar tus reseñas cuando quieras desde el sitio.</li>
+          <li>Si querés que borremos tu cuenta y todos tus datos, escribinos por el contacto de abajo y lo hacemos.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">7. Contacto</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          Para cualquier consulta sobre tus datos, escribinos a través de
+          <a href="https://github.com/patricioVAndrade" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:text-amber-300 underline">GitHub</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="font-heading font-bold text-lg text-neutral-100 mb-3">8. Cambios en esta política</h2>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          Si cambiamos esta política, vamos a actualizar la fecha de abajo. También podés leer los
+          <a href="/terminos" class="text-amber-400 hover:text-amber-300 underline">Términos y Condiciones</a>.
+        </p>
+      </section>
+
+      <div class="border-t border-neutral-700 pt-4">
+        <p class="text-xs text-neutral-500">
+          Última actualización: Noviembre 2026
+        </p>
+      </div>
+
+    </div>
+
+    <div class="text-center">
+      <a href="/" class="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 font-semibold text-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        Volver al inicio
+      </a>
+    </div>
+
+  </main>
+
+</Layout>
