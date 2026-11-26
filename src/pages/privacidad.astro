@@ -1,0 +1,70 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Política de Privacidad - UTN REP"
+  description="Qué datos guarda UTN REP, para qué los usa y cómo podés borrarlos."
+  crumbs={[{ label: 'Privacidad' }]}
+>
+  <div class="layout narrow">
+    <div class="main">
+      <section class="panel">
+        <h1 style="font-size:13px">Política de privacidad</h1>
+        <div class="prose">
+          <p>Esta página explica qué datos guarda <b>UTN REP</b> (utnrep.app), para qué los usa y qué podés hacer con ellos.
+          UTN REP es un proyecto estudiantil sin fines de lucro y no tiene relación oficial con la Universidad Tecnológica Nacional.</p>
+
+          <h2>1. Qué datos guardamos</h2>
+          <ul>
+          <li><b>Datos de tu cuenta:</b> cuando entrás con un link al mail, con Google o con GitHub, guardamos tu nombre, tu mail y tu foto de perfil (si tu cuenta la tiene).</li>
+          <li><b>Lo que publicás:</b> tus reseñas, experiencias de finales, votos y lo que elijas en Mi inscripción.</li>
+          <li><b>Telegram:</b> si lo conectás, guardamos el número de chat solo para mandarte tus avisos.</li>
+          <li><b>Datos técnicos:</b> tu dirección IP se usa por un tiempo corto para limitar intentos y evitar abusos. Para contar visitas y estudiantes en línea usamos un código al azar guardado en tu navegador, que no dice quién sos, y estadísticas anónimas de Vercel Analytics.</li>
+          </ul>
+
+          <h2>2. Qué datos de Google usamos</h2>
+          <p>Si entrás con Google, solo pedimos tu <b>nombre, mail y foto de perfil</b>.
+          No accedemos a tus contactos, archivos, correos ni a ningún otro dato de tu cuenta de Google.
+          El uso de esa información se ajusta a la
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Política de datos del usuario de los servicios de API de Google</a>,
+          incluidos los requisitos de uso limitado.</p>
+
+          <h2>3. Para qué los usamos</h2>
+          <ul>
+          <li>Para que puedas entrar y publicar.</li>
+          <li>Para mostrar tu nombre y tu foto junto a lo que publicás. Si publicás como Anónimo, tu nombre no se muestra, pero el administrador puede verlo para moderar.</li>
+          <li>Para moderar el contenido y evitar spam o abusos.</li>
+          <li>Para mandarte los avisos que activaste, por mail o por Telegram.</li>
+          </ul>
+          <p><b>Tu mail nunca se muestra públicamente.</b> No usamos tus datos para publicidad.</p>
+
+          <h2>4. Con quién se comparten</h2>
+          <p><b>No vendemos ni compartimos tus datos con terceros.</b>
+          Solo los procesan los servicios que hacen funcionar el sitio: Supabase (base de datos e inicio de sesión),
+          Vercel (hosting), Brevo (envío de mails) y Telegram (si lo conectás).
+          No guardamos contraseñas: el inicio de sesión lo manejan el link al mail o el proveedor que elijas.</p>
+
+          <h2>5. Cookies</h2>
+          <p>Usamos solo las cookies necesarias para mantener tu sesión iniciada y proteger los formularios.
+          No usamos cookies de publicidad ni de seguimiento.</p>
+
+          <h2>6. Cuánto tiempo los guardamos y cómo borrarlos</h2>
+          <ul>
+          <li>Guardamos tus datos mientras tengas una cuenta en UTN REP.</li>
+          <li>Podés eliminar tus reseñas cuando quieras, y borrar tu cuenta desde <a href="/mi-cuenta">Mi cuenta</a>.</li>
+          <li>Los mails de avisos se pueden apagar desde Mi cuenta o con el link que viene en cada mail, y Telegram se puede desconectar cuando quieras.</li>
+          </ul>
+
+          <h2>7. Contacto</h2>
+          <p>Para cualquier consulta sobre tus datos, escribinos a <a href="mailto:patriciovandrade@gmail.com?subject=Privacidad%20en%20UTN%20REP">patriciovandrade@gmail.com</a>.</p>
+
+          <h2>8. Cambios en esta política</h2>
+          <p>Si cambiamos esta política, vamos a actualizar la fecha de abajo. También podés leer los <a href="/terminos">Términos y condiciones</a>.</p>
+
+          <p class="sub">Última actualización: noviembre de 2026</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</Layout>
