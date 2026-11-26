@@ -38,7 +38,6 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
       cursos ( id, identificador, anio_carrera, turno ),
       materias ( id, nombre, nivel ),
       dictado_profesores (
-        id,
         profesor_id,
         profesores ( id, nombre_completo )
       )
