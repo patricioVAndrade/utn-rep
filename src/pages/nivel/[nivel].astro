@@ -92,7 +92,8 @@ const autores = await autoresDeResenas(Object.values(ultima).map((u) => u.id));
 ---
 
 <Layout
-  title={`Materias de ${label} - UTN REP`}
+  title={`${NOMBRES[nivelNum] || label} de Sistemas: opiniones de materias y cursos - UTN FRC`}
+  description={`Opiniones de estudiantes sobre las materias de ${NOMBRES[nivelNum]?.toLowerCase() || label} de Ingeniería en Sistemas de la UTN FRC: ${(materias || []).map((m) => m.nombre).slice(0, 8).join(', ')}.`}
   ogImage={`/og/anio/${nivelNum}.png`}
   tab="materias"
   crumbs={[{ label: 'Materias', href: '/' }, { label }]}

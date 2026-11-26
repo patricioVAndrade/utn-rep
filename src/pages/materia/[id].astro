@@ -9,6 +9,7 @@ import FinalesPanel from '../../components/FinalesPanel.astro';
 import Quien from '../../components/Quien.astro';
 import { autoresDeResenas } from '../../lib/fichas';
 import { supabase } from '../../lib/supabase';
+import { DOMINIO } from '../../lib/seo';
 import { anioLabel, compararCursos, nota, tiempoRelativo } from '../../lib/format';
 
 const { id } = Astro.params;
@@ -125,18 +126,34 @@ const fecha = (iso: string | null) => {
   return dias < 7 ? tiempoRelativo(iso) : new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-// SEO y datos estructurados
-const seoTitle = `Reseñas de ${materia.nombre} - UTN FRC`;
-const seoDescription = `Leé opiniones, calificaciones y recomendaciones para cursar ${materia.nombre} en Ingeniería en Sistemas de la UTN FRC. Enterate qué cursos son los mejores y cómo son los finales.`;
+// SEO y datos estructurados: que responda a "¿qué curso elijo para esta materia?"
+const mejor = conResenas.find((f: any) => f.count >= 2);
+const profesDe = (f: any) => f.profes.map((p: any) => p.nombre_completo).slice(0, 2).join(' y ');
+const seoTitle = `${materia.nombre}: opiniones y qué curso elegir - UTN FRC`;
+const seoDescription = [
+  totalResenas
+    ? `¿Qué curso elegir para ${materia.nombre} en la UTN FRC? ${totalResenas} reseña${totalResenas !== 1 ? 's' : ''} de estudiantes sobre ${lista.length} curso${lista.length !== 1 ? 's' : ''}.`
+    : `¿Qué curso elegir para ${materia.nombre} en la UTN FRC? Opiniones de estudiantes sobre sus ${lista.length} curso${lista.length !== 1 ? 's' : ''}.`,
+  mejor ? `El mejor puntuado es ${mejor.cursos?.identificador}${mejor.profes.length ? `, con ${profesDe(mejor)}` : ''} (${nota(mejor.promedio)} ★).` : '',
+  'Profesores, horarios y cuántos promocionan.',
+].filter(Boolean).join(' ');
 const schemaObject: any = {
   '@context': 'https://schema.org/',
   '@type': 'Course',
-  name: `${materia.nombre} - UTN FRC`,
+  name: materia.nombre,
   description: seoDescription,
-  provider: { '@type': 'Organization', name: 'UTN FRC', sameAs: 'https://frc.utn.edu.ar/' },
+  inLanguage: 'es-AR',
+  provider: { '@type': 'CollegeOrUniversity', name: 'UTN Facultad Regional Córdoba', sameAs: 'https://www.frc.utn.edu.ar/' },
+  hasCourseInstance: lista.map((d: any) => ({
+    '@type': 'CourseInstance',
+    name: d.cursos?.identificador,
+    courseMode: 'Onsite',
+    url: `${DOMINIO}/dictado/${d.id}`,
+    ...(d.dictado_profesores?.length ? { instructor: (d.dictado_profesores || []).map((dp: any) => one(dp.profesores)).filter(Boolean).map((p: any) => ({ '@type': 'Person', name: p.nombre_completo })) } : {}),
+  })),
 };
 if (totalResenas > 0) {
-  schemaObject.aggregateRating = { '@type': 'AggregateRating', ratingValue: promedioGeneral.toFixed(1), reviewCount: totalResenas.toString() };
+  schemaObject.aggregateRating = { '@type': 'AggregateRating', ratingValue: promedioGeneral.toFixed(1), bestRating: '5', worstRating: '1', reviewCount: totalResenas.toString() };
 }
 const escribir = `/nueva-resena?materia=${id}&from=/materia/${id}`;
 ---

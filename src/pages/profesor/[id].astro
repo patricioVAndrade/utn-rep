@@ -92,8 +92,8 @@ const recorte = (t: string, n = 120) => (t.length > n ? t.slice(0, n).replace(/\
 // SEO y datos estructurados
 const nombresMaterias = materiasOrdenadas.map((m) => m.materia.nombre).join(', ');
 const materiasTexto = nombresMaterias ? ` Materias que dicta: ${nombresMaterias}.` : '';
-const seoTitle = `${profesor.nombre_completo}: reseñas de sus cursos - UTN FRC`;
-const seoDescription = `Qué dicen los alumnos de los cursos de ${profesor.nombre_completo} en la UTN FRC.${materiasTexto}`;
+const seoTitle = `${profesor.nombre_completo}: opiniones de alumnos - UTN FRC`;
+const seoDescription = `Opiniones de estudiantes sobre los cursos de ${profesor.nombre_completo} en la UTN FRC.${totalResenas ? ` ${nota(promedio)} ★ en ${totalResenas} reseña${totalResenas !== 1 ? 's' : ''}.` : ''}${materiasTexto}`;
 const schemaProfesor = JSON.stringify({
   '@context': 'https://schema.org/',
   '@type': 'Person',

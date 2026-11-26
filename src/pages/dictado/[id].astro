@@ -154,12 +154,39 @@ const otros = (otrosRaw || [])
   .map((d: any) => ({ id: d.id, curso: one(d.cursos), st: statsOtros.get(d.id) }))
   .sort((a: any, b: any) => (b.st?.cantidad ? b.st.promedio : -1) - (a.st?.cantidad ? a.st.promedio : -1) || compararCursos(a.curso?.identificador, b.curso?.identificador));
 const totalCursos = (otrosRaw || []).length;
+
+// SEO: el curso con sus profesores, para quien busca "1K3 análisis opiniones" o el nombre del profe
+const nombreCurso = `${curso?.identificador || ''} de ${materia?.nombre || ''}`;
+const profesTexto = profesores.map((p: any) => p.nombre_completo).join(', ');
+const seoDescription = [
+  `Opiniones del curso ${nombreCurso} en la UTN FRC${profesTexto ? `, con ${profesTexto}` : ''}.`,
+  totalResenas ? `${nota(promedio)} ★ en ${totalResenas} reseña${totalResenas !== 1 ? 's' : ''} de estudiantes.` : '',
+  'Cómo se aprueba, horarios y qué dicen los alumnos.',
+].filter(Boolean).join(' ');
+const schemaCurso: any = {
+  '@context': 'https://schema.org/',
+  '@type': 'Course',
+  name: `${materia?.nombre || ''} (${curso?.identificador || ''})`,
+  description: seoDescription,
+  inLanguage: 'es-AR',
+  provider: { '@type': 'CollegeOrUniversity', name: 'UTN Facultad Regional Córdoba', sameAs: 'https://www.frc.utn.edu.ar/' },
+  hasCourseInstance: [{
+    '@type': 'CourseInstance',
+    name: curso?.identificador || '',
+    courseMode: 'Onsite',
+    ...(profesores.length ? { instructor: profesores.map((p: any) => ({ '@type': 'Person', name: p.nombre_completo })) } : {}),
+  }],
+};
+if (totalResenas > 0) {
+  schemaCurso.aggregateRating = { '@type': 'AggregateRating', ratingValue: promedio.toFixed(1), bestRating: '5', worstRating: '1', reviewCount: String(totalResenas) };
+}
 ---
 
 <Layout
   compartido={{ que: 'este curso', escribir }}
-  title={`${curso?.identificador || ''} - ${materia?.nombre || ''} - UTN REP`}
-  description={`Reseñas del curso ${curso?.identificador || ''} de ${materia?.nombre || ''} en la UTN FRC: nota, cuántos promocionan y qué dicen los alumnos.`}
+  title={`${nombreCurso}: opiniones y profesores - UTN FRC`}
+  description={seoDescription}
+  schema={JSON.stringify(schemaCurso)}
   ogImage={`/og/curso/${id}.png`}
   ogTitle={totalResenas
     ? `${materia?.nombre || ''} ${curso?.identificador || ''}: ${promedio.toFixed(1).replace('.', ',')} ★ en ${totalResenas} reseña${totalResenas === 1 ? '' : 's'} | UTN REP`

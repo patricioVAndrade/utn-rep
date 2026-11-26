@@ -1,60 +1,46 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '../lib/supabase';
+import { DOMINIO } from '../lib/seo';
 
 /**
  * GET /sitemap.xml
- * Generates a dynamic sitemap with all materias, dictados, profesores, and niveles.
+ * Materias, cursos, profesores y años. La fecha de cada materia y curso es la
+ * de su última reseña (Google no le hace caso a una fecha que cambia siempre).
  */
-export const GET: APIRoute = async ({ url, site }) => {
-  // Usar el dominio canónico (astro.config `site`) aunque el request llegue por *.vercel.app
-  const origin = (site ?? url).origin;
-
-  // Fetch all entities
-  const [{ data: materias }, { data: dictados }, { data: profesores }] = await Promise.all([
+export const GET: APIRoute = async () => {
+  const [{ data: materias }, { data: dictados }, { data: profesores }, { data: resenas }] = await Promise.all([
     supabase.from('materias').select('id').order('id'),
-    supabase.from('dictados').select('id').order('id'),
+    supabase.from('dictados').select('id, materia_id').order('id'),
     supabase.from('profesores').select('id').order('id'),
+    supabase.from('resenas_publicas').select('dictado_id, created_at').order('created_at', { ascending: false }).limit(20000),
   ]);
 
-  const urls: Array<{ loc: string; priority: string }> = [];
-
-  // Static pages
-  urls.push({ loc: '/', priority: '1.0' });
-  urls.push({ loc: '/nueva-resena', priority: '0.6' });
-  urls.push({ loc: '/finales', priority: '0.6' });
-  urls.push({ loc: '/sobre', priority: '0.4' });
-  urls.push({ loc: '/terminos', priority: '0.3' });
-  urls.push({ loc: '/privacidad', priority: '0.3' });
-
-  // Niveles (1-5)
-  for (let i = 1; i <= 5; i++) {
-    urls.push({ loc: `/nivel/${i}`, priority: '0.8' });
-  }
-
-  // Materias
-  (materias || []).forEach(m => {
-    urls.push({ loc: `/materia/${m.id}`, priority: '0.7' });
+  const dia = (iso: string) => iso.slice(0, 10);
+  const ultimaCurso = new Map<number, string>();
+  (resenas || []).forEach((r: any) => { if (!ultimaCurso.has(r.dictado_id)) ultimaCurso.set(r.dictado_id, dia(r.created_at)); });
+  const ultimaMateria = new Map<number, string>();
+  (dictados || []).forEach((d: any) => {
+    const f = ultimaCurso.get(d.id);
+    if (f && f > (ultimaMateria.get(d.materia_id) || '')) ultimaMateria.set(d.materia_id, f);
   });
+  const ultimaSitio = [...ultimaMateria.values()].sort().pop();
 
-  // Dictados
-  (dictados || []).forEach(d => {
-    urls.push({ loc: `/dictado/${d.id}`, priority: '0.6' });
-  });
-
-  // Profesores
-  (profesores || []).forEach(p => {
-    urls.push({ loc: `/profesor/${p.id}`, priority: '0.5' });
-  });
-
-  const today = new Date().toISOString().split('T')[0];
+  const urls: Array<{ loc: string; lastmod?: string }> = [
+    { loc: '/', lastmod: ultimaSitio },
+    { loc: '/recientes', lastmod: ultimaSitio },
+    { loc: '/finales' },
+    { loc: '/sobre' },
+    { loc: '/terminos' },
+    { loc: '/privacidad' },
+  ];
+  for (let i = 1; i <= 5; i++) urls.push({ loc: `/nivel/${i}` });
+  (materias || []).forEach((m: any) => urls.push({ loc: `/materia/${m.id}`, lastmod: ultimaMateria.get(m.id) }));
+  (dictados || []).forEach((d: any) => urls.push({ loc: `/dictado/${d.id}`, lastmod: ultimaCurso.get(d.id) }));
+  (profesores || []).forEach((p: any) => urls.push({ loc: `/profesor/${p.id}` }));
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map(u => `  <url>
-    <loc>${origin}${u.loc}</loc>
-    <lastmod>${today}</lastmod>
-    <priority>${u.priority}</priority>
-  </url>`).join('\n')}
+${urls.map((u) => `  <url><loc>${DOMINIO}${u.loc}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}</url>`).join('\n')}
 </urlset>`;
 
   return new Response(xml, {

@@ -90,7 +90,7 @@ const og = compartida && enCuatri
   : { description: 'Simulá tu inscripción: elegí un curso de cada materia mirando sus reseñas y fijate si se pisan los horarios.' };
 ---
 
-<Layout title="Mi inscripción" tab="mis" crumbs={[{ label: 'Mi inscripción' }]} {...og}>
+<Layout noindex title="Mi inscripción" tab="mis" crumbs={[{ label: 'Mi inscripción' }]} {...og}>
   <div class:list={['layout', { single: compartida }]}>
     <div class="main" id="mi-inscripcion" data-modo={datos.modo}>
       <div class="topic">
