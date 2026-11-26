@@ -166,7 +166,7 @@ html[data-theme="dark"] .foro .tabs a[aria-current] { color: var(--ink); }
 /* Acciones chicas que tienen que verse tocables: Quitar, Dejar de seguir */
 .linklike.quitar { color: var(--link-claro); text-decoration: underline; text-underline-offset: 2px; font-size: 12px; }
 .me-link { font-weight: bold; }
-.mini-av { width: 20px; height: 20px; border: 1px solid var(--line); object-fit: cover; vertical-align: middle; }
+.mini-av { display: inline-block; width: 20px; height: 20px; border: 1px solid var(--line); object-fit: cover; vertical-align: middle; }
 
 .switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font: inherit; color: var(--ink); background: none; border: 0; padding: 0; }
 .switch::before { content: ""; width: 30px; height: 16px; border-radius: 8px; background: var(--star-off); box-shadow: inset 0 1px 2px var(--shadow); flex: none;

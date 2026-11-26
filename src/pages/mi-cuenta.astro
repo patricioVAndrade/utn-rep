@@ -151,7 +151,7 @@ const pausada = perfil.como_te_fue_pausa_hasta && new Date(perfil.como_te_fue_pa
             <span class="sub">En <a href="/avisos">Avisos</a>, siempre.</span>
             {telegram ? (
               <div id="telegram">
-                <span><Icon name="check" /> Por Telegram{telegram.usuario ? <>, como <b>{telegram.usuario}</b></> : null}. Mientras esté conectado no te mandamos mails.</span>
+                <span><Icon name="check" class="ico" /> Por Telegram{telegram.usuario ? <>, como <b>{telegram.usuario}</b></> : null}. Mientras esté conectado no te mandamos mails.</span>
                 <div class="acts-row"><button type="button" class="btn quiet" id="tg-desconectar">Desconectar Telegram</button></div>
               </div>
             ) : (
