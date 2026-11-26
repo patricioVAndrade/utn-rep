@@ -1,0 +1,83 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Stars from '../components/Stars.astro';
+import Icon from '../components/Icon.astro';
+import { supabase } from '../lib/supabase';
+import { tiempoRelativo } from '../lib/format';
+
+// Todas las reseñas, de la más nueva a la más vieja, de a 30
+const POR_PAGINA = 30;
+const pagina = Math.max(1, parseInt(Astro.url.searchParams.get('pagina') || '1') || 1);
+const desde = (pagina - 1) * POR_PAGINA;
+
+const { data: resenasRaw, count } = await supabase
+  .from('resenas_publicas')
+  .select('id, dictado_id, comentario, calificacion_general, created_at, es_anonima, nombre_usuario', { count: 'exact' })
+  .order('created_at', { ascending: false })
+  .range(desde, desde + POR_PAGINA - 1);
+
+const resenas = resenasRaw || [];
+const total = count || 0;
+const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+
+const one = (x: any) => (Array.isArray(x) ? x[0] || null : x || null);
+let dictadoInfo = new Map<number, { materia: string; curso: string; nivel: number }>();
+if (resenas.length > 0) {
+  const { data } = await supabase
+    .from('dictados')
+    .select('id, materias ( nombre, nivel ), cursos ( identificador )')
+    .in('id', [...new Set(resenas.map((r) => r.dictado_id))]);
+  dictadoInfo = new Map((data || []).map((d: any) => [d.id, { materia: one(d.materias)?.nombre || 'Materia', nivel: one(d.materias)?.nivel || 0, curso: one(d.cursos)?.identificador || '' }]));
+}
+const recorte = (t: string, n = 160) => (t.length > n ? t.slice(0, n).replace(/\s+\S*$/, '') + '…' : t);
+const link = (p: number) => (p === 1 ? '/recientes' : `/recientes?pagina=${p}`);
+---
+
+<Layout
+  title={pagina > 1 ? `Reseñas recientes, página ${pagina} - UTN REP` : 'Reseñas recientes - UTN REP'}
+  tab="materias"
+  crumbs={[{ label: 'Materias', href: '/' }, { label: 'Reseñas recientes' }]}
+>
+  <div class="layout single">
+    <div class="main">
+      <div class="topic">
+        <div>
+          <h1>Reseñas recientes</h1>
+          <p>{total.toLocaleString('es-AR')} reseña{total !== 1 ? 's' : ''} en total, de la más nueva a la más vieja.</p>
+        </div>
+        <div class="actions">
+          <a class="btn primary" href="/nueva-resena"><Icon name="pen" /> Escribir una reseña</a>
+        </div>
+      </div>
+
+      {resenas.length > 0 ? (
+        <div class="feed boxed">
+          {resenas.map((r) => {
+            const d = dictadoInfo.get(r.dictado_id);
+            return (
+              <div>
+                <span>{d?.nivel ? <><span class:list={['yr', `y${d.nivel}`]}>{d.nivel}.º</span> </> : ''}<a href={`/dictado/${r.dictado_id}#resena-${r.id}`}>{d?.materia}{d?.curso ? `, ${d.curso}` : ''}</a> <Stars value={r.calificacion_general} /></span>
+                <span class="sub">"{recorte(r.comentario || '')}" {tiempoRelativo(r.created_at)}, por {r.es_anonima ? <i>Anónimo</i> : (r.nombre_usuario || 'Estudiante')}</span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div class="empty">
+          <b>Todavía no hay reseñas.</b>
+          <a class="btn primary" href="/nueva-resena">Escribí la primera</a>
+        </div>
+      )}
+
+      {paginas > 1 && (
+        <nav class="pager" aria-label="Páginas">
+          {pagina > 1 && <a class="pg" href={link(pagina - 1)}>Anterior</a>}
+          {Array.from({ length: paginas }, (_, i) => i + 1)
+            .filter((p) => p === 1 || p === paginas || Math.abs(p - pagina) <= 2)
+            .map((p) => <a class="pg" href={link(p)} aria-current={p === pagina ? 'page' : undefined}>{p}</a>)}
+          {pagina < paginas && <a class="pg" href={link(pagina + 1)}>Siguiente</a>}
+        </nav>
+      )}
+    </div>
+  </div>
+</Layout>

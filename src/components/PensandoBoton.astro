@@ -1,0 +1,80 @@
+---
+/**
+ * Botón "Lo estoy pensando" de un curso (F29, migración 12). Suma el curso a
+ * Mi inscripción. Sin sesión la lista queda en el navegador.
+ */
+import Icon from './Icon.astro';
+import { createSupabaseServerClient } from '../lib/supabase';
+
+interface Props {
+  dictadoId: number;
+}
+const { dictadoId } = Astro.props;
+const user = Astro.locals.user;
+let esta = false;
+if (user) {
+  const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+  // Sin la migración 12 la tabla no existe: el botón arranca apagado
+  const { data } = await client.from('inscripcion_cursos').select('dictado_id').eq('user_id', user.id).eq('dictado_id', dictadoId).maybeSingle();
+  esta = !!data;
+}
+---
+<span class="pensando-w">
+  <button type="button" class:list={['btn', esta ? 'pressed' : 'quiet']} aria-pressed={esta ? 'true' : 'false'} data-pensando={dictadoId} aria-describedby={`pensando-ayuda-${dictadoId}`}>
+    <Icon name="check" /> <span>{esta ? 'En Mi inscripción' : 'Lo estoy pensando'}</span>
+  </button>
+  <button type="button" class="ayuda-q" aria-label="¿Para qué sirve?" aria-expanded="false" data-ayuda>?</button>
+  <span class="ayuda-pop" role="tooltip" id={`pensando-ayuda-${dictadoId}`}>Suma este curso a tu simulador de Mi inscripción, para armar tu semana y ver si se pisan los horarios. Además te avisamos cuando haya reseñas nuevas de este curso.</span>
+</span>
+
+<script>
+  import { api, conSesion, guardarLocal, leerLocal, traerLocal } from '../scripts/inscripcion';
+
+  // "?": en la compu se ve al pasar el mouse; en el celular, al tocarlo
+  document.querySelectorAll<HTMLButtonElement>('.pensando-w [data-ayuda]').forEach((q) => {
+    q.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const abierta = q.getAttribute('aria-expanded') !== 'true';
+      q.setAttribute('aria-expanded', String(abierta));
+      q.parentElement?.classList.toggle('abierta', abierta);
+    });
+  });
+  document.addEventListener('click', () => document.querySelectorAll('.pensando-w.abierta').forEach((w) => {
+    w.classList.remove('abierta');
+    w.querySelector('[data-ayuda]')?.setAttribute('aria-expanded', 'false');
+  }));
+
+  document.querySelectorAll<HTMLButtonElement>('[data-pensando]').forEach(async (b) => {
+    const id = Number(b.dataset.pensando);
+    const pintar = (esta: boolean) => {
+      b.setAttribute('aria-pressed', String(esta));
+      b.classList.toggle('pressed', esta);
+      b.classList.toggle('quiet', !esta);
+      b.querySelector('span')!.textContent = esta ? 'En Mi inscripción' : 'Lo estoy pensando';
+    };
+    if (!conSesion()) pintar(leerLocal().c.includes(id));
+    else if (await traerLocal()) location.reload();
+
+    b.addEventListener('click', async () => {
+      const esta = b.getAttribute('aria-pressed') === 'true';
+      if (!conSesion()) {
+        const l = leerLocal();
+        if (esta) l.c = l.c.filter((x) => x !== id);
+        else if (l.c.length >= 80) return alert('Llegaste al máximo de 80 cursos. Sacá alguno desde Mi inscripción.');
+        else l.c.push(id);
+        guardarLocal(l);
+        pintar(!esta);
+        return;
+      }
+      b.disabled = true;
+      try {
+        await api({ accion: esta ? 'quitar' : 'agregar', dictado_id: id });
+        pintar(!esta);
+      } catch (e) {
+        alert((e as Error).message);
+      } finally {
+        b.disabled = false;
+      }
+    });
+  });
+</script>

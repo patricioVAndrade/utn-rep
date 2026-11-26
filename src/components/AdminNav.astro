@@ -1,0 +1,27 @@
+---
+/** Menú lateral del panel de admin, como en la V6. */
+import { supabaseAdmin } from '../lib/supabase-admin';
+
+interface Props {
+  actual: 'resumen' | 'reportes' | 'moderacion' | 'resenas' | 'finales' | 'materias' | 'profesores' | 'importar' | 'usuarios';
+}
+const { actual } = Astro.props;
+const [{ count: repResenas }, { count: repFinales }] = await Promise.all([
+  supabaseAdmin.from('reportes_resenas').select('id', { count: 'exact', head: true }),
+  supabaseAdmin.from('reportes_finales').select('id', { count: 'exact', head: true }),
+]);
+const reportes = (repResenas || 0) + (repFinales || 0);
+const cur = (s: string) => (s === actual ? 'page' : undefined);
+---
+<nav class="anav" aria-label="Secciones del panel">
+  <a href="/admin" aria-current={cur('resumen')}>Resumen</a>
+  <a href="/admin/reportes" aria-current={cur('reportes')}>Reportes{(reportes || 0) > 0 && <span class="cnt">{reportes}</span>}</a>
+  <a href="/admin/moderacion" aria-current={cur('moderacion')}>Moderación</a>
+  <a href="/admin/resenas" aria-current={cur('resenas')}>Reseñas</a>
+  <a href="/admin/finales" aria-current={cur('finales')}>Finales</a>
+  <a href="/admin/materias" aria-current={cur('materias')}>Materias y cursos</a>
+  <a href="/admin/profesores" aria-current={cur('profesores')}>Profesores</a>
+  <a href="/admin/usuarios" aria-current={cur('usuarios')}>Usuarios</a>
+  <a href="/admin/importar" aria-current={cur('importar')}>Importar cuatrimestre</a>
+  <span class="later">Cambios de profesores <span class="soon">2027</span></span>
+</nav>

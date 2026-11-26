@@ -2,6 +2,8 @@ import { defineMiddleware } from 'astro:middleware';
 import { createSupabaseServerClient, redirectWithCookies } from './lib/supabase';
 import { safeReturnTo } from './lib/redirect';
 import { displayName } from './lib/user';
+import { recordarFinCuatri } from './lib/recordatorio';
+import { motivoDeSupabase, motivoIntercambio } from './lib/auth-error';
 
 /**
  * Middleware that:
@@ -26,7 +28,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       console.error('[Middleware] Code exchange failed:', error.message);
       return new Response(null, {
         status: 302,
-        headers: { Location: '/?auth_error=exchange_failed' },
+        headers: { Location: '/?auth_error=' + motivoIntercambio(request.headers.get('cookie'), error.message) },
       });
     }
 
@@ -51,6 +53,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return redirectWithCookies(destination, responseCookies);
   }
 
+  // Supabase volvió con un error (link vencido o ya usado) a una página cualquiera
+  if (!url.pathname.startsWith('/api/') && url.searchParams.has('error') && (url.searchParams.has('error_code') || url.searchParams.has('error_description'))) {
+    console.error('[Middleware] Auth error:', url.searchParams.get('error_code'), url.searchParams.get('error_description'));
+    return new Response(null, {
+      status: 302,
+      headers: { Location: '/?auth_error=' + motivoDeSupabase(url.searchParams.get('error_code'), url.searchParams.get('error_description')) },
+    });
+  }
+
   // ── Read session for all pages (skip API routes — they handle their own auth) ──
   if (!url.pathname.startsWith('/api/')) {
     const { client: supabase } = createSupabaseServerClient({
@@ -67,6 +78,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
         avatar: user.user_metadata?.avatar_url || undefined,
         email: user.email || '',
       };
+      // F32: avisos de fin de cuatrimestre (una vez por día)
+      await recordarFinCuatri(supabase, cookies).catch((e) => console.error('[recordatorio]', e));
     } else {
       context.locals.user = null;
     }

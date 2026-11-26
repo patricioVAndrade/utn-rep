@@ -1,0 +1,54 @@
+---
+/**
+ * Panel "Seguir esta materia" (F11, migración 6), como la V6.
+ * Desde un curso se sigue su materia. Sin sesión, el botón abre el ingreso.
+ */
+import Icon from './Icon.astro';
+import { createSupabaseServerClient } from '../lib/supabase';
+
+interface Props {
+  materiaId: number;
+  materiaNombre: string;
+}
+const { materiaId, materiaNombre } = Astro.props;
+const user = Astro.locals.user;
+let sigue = false;
+if (user) {
+  const { client } = createSupabaseServerClient({ headers: Astro.request.headers, cookies: Astro.cookies });
+  const { data } = await client.from('seguimientos').select('materia_id').eq('user_id', user.id).eq('materia_id', materiaId).maybeSingle();
+  sigue = !!data;
+}
+---
+<section class="panel seguir" data-materia={materiaId}>
+  <h3>Seguir esta materia</h3>
+  <div class="in">
+    <span>Te avisamos cuando alguien publica una reseña o cuenta un final de {materiaNombre}.</span>
+    {user
+      ? <button type="button" class:list={['btn', sigue ? 'pressed' : 'quiet']} aria-pressed={sigue ? 'true' : 'false'} data-seguir><Icon name="bell" /> <span>{sigue ? 'Siguiendo' : 'Seguir materia'}</span></button>
+      : <button type="button" class="btn quiet" data-login><Icon name="bell" /> Seguir materia</button>}
+    <span class="sub">La dejás de seguir con un clic desde acá o desde <a href="/mi-cuenta#seguis">Mi cuenta</a>.</span>
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.panel.seguir').forEach((panel) => {
+    const b = panel.querySelector<HTMLButtonElement>('[data-seguir]');
+    if (!b) return;
+    b.addEventListener('click', async () => {
+      const seguir = b.getAttribute('aria-pressed') !== 'true';
+      b.disabled = true;
+      try {
+        const res = await fetch('/api/seguir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ materia_id: Number(panel.dataset.materia), seguir }) });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo.');
+        b.setAttribute('aria-pressed', String(seguir));
+        b.classList.toggle('pressed', seguir);
+        b.classList.toggle('quiet', !seguir);
+        b.querySelector('span')!.textContent = seguir ? 'Siguiendo' : 'Seguir materia';
+      } catch (e) {
+        alert((e as Error).message);
+      } finally {
+        b.disabled = false;
+      }
+    });
+  });
+</script>

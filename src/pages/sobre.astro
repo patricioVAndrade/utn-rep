@@ -1,102 +1,135 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import HeaderNav from '../components/HeaderNav.astro';
+import Icon from '../components/Icon.astro';
+import Escudo from '../components/Escudo.astro';
+import LogroIcono from '../components/LogroIcono.astro';
+import { LOGROS, RANGOS } from '../lib/logros';
 
-const user = Astro.locals.user;
+// Preguntas plegables por tema, como en la V6. Las más consultadas vienen abiertas.
+// Rangos y logros (migración 8) va antes de "Tus datos".
+const grupos: { titulo: string; preguntas: { p: string; r: string; abierta?: boolean }[] }[] = [
+  {
+    titulo: 'Lo básico',
+    preguntas: [
+      { p: '¿Qué diferencia hay entre materia y curso?', abierta: true, r: 'La <b>materia</b> es la cátedra, por ejemplo Algoritmos y Estructuras de Datos. Adentro hay <b>cursos</b> como 1K3 o 1K11, cada uno con su turno y su equipo docente. Las reseñas son de un curso, porque cursar AED a la mañana con un equipo no es lo mismo que a la noche con otro.' },
+      { p: '¿Es un sitio oficial de la UTN?', r: 'No. Lo hace un estudiante y lo usan estudiantes de Ingeniería en Sistemas de la UTN Facultad Regional Córdoba. La facultad no participa ni revisa las reseñas, y los puntajes no son una evaluación oficial.' },
+      { p: '¿Quién puede escribir?', r: 'Cualquiera que ingrese con Google, GitHub o su mail. Se puede escribir una reseña por curso, y la podés editar o borrar cuando quieras desde Mis reseñas.' },
+      { p: '¿De dónde sale la nota de un profesor?', r: 'Es el promedio de las reseñas de los cursos en los que da clases. Cada reseña califica la cursada entera, con todo el equipo, así que conviene mirar también la nota de cada curso.' },
+    ],
+  },
+  {
+    titulo: 'Reseñas',
+    preguntas: [
+      { p: '¿Puedo ser anónimo?', abierta: true, r: 'Sí. Marcás "Publicar como anónimo" y tu nombre no aparece en ningún lado. Solo un moderador puede verlo si la reseña es reportada.' },
+      { p: '¿Qué pasa si reportan mi reseña?', r: 'Sigue visible mientras la revisamos y en Mis reseñas vas a ver que está en revisión. Si rompe una regla, te avisamos por mail; en el peor caso, se oculta.' },
+      { p: '¿Qué no se puede escribir?', r: 'Insultos, datos personales de profesores o compañeros, y cosas que no pasaron. Las críticas duras están bien si son sobre la cursada.' },
+      { p: '¿Qué significa "Me sirvió"?', r: 'Es un voto para las reseñas que te ayudaron a elegir. Las más votadas aparecen primero en cada curso.' },
+    ],
+  },
+  {
+    titulo: 'Experiencias de finales',
+    preguntas: [
+      { p: '¿Para qué sirven?', r: 'Para saber cómo toman en cada mesa: si es escrito, oral o en máquina, cuánto dura, qué temas entran y cómo corrigen. Las cuenta quien ya rindió.' },
+      { p: '¿Se ve quién la contó?', r: 'Solo si al compartirla marcás "Publicar con mi nombre". Si no, sale como anónima y tu nombre no se muestra; solo un moderador puede verlo.' },
+    ],
+  },
+  {
+    titulo: 'Tus datos',
+    preguntas: [
+      { p: '¿Qué guardan de mí?', r: 'Tu nombre, tu mail y tu foto si entrás con Google o GitHub. El detalle completo está en la <a href="/privacidad">Política de privacidad</a>.' },
+      { p: '¿Qué se guarda solo en mi navegador?', r: 'El modo noche, tu última visita (para marcar lo nuevo), los años que elegiste en Mi cuenta y los borradores que dejaste a medio escribir. No sale de tu navegador.' },
+    ],
+  },
+];
 ---
 
-<Layout title="Sobre UTN REP" description="Conocé qué es UTN REP, cómo funciona y quién lo creó.">
-
-  <header class="bg-gradient-to-r from-stone-700 to-stone-900 text-white relative overflow-hidden">
-    <div class="absolute inset-0 dot-pattern opacity-30"></div>
-    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 lg:pb-10">
-      <HeaderNav user={user} />
-      <h1 class="text-3xl sm:text-4xl font-heading font-extrabold tracking-tight flex items-center gap-3">
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        Sobre UTN REP
-      </h1>
-    </div>
-  </header>
-
-  <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-8">
-
-    <section class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6 sm:p-8">
-      <h2 class="font-heading font-bold text-xl text-neutral-100 mb-4">¿Qué es UTN REP?</h2>
-      <div class="space-y-4 text-neutral-400 text-sm leading-relaxed">
-        <p>
-          <strong class="text-neutral-200">UTN REP</strong> es una plataforma donde los estudiantes de 
-          <strong class="text-neutral-200">Ingeniería en Sistemas de Información</strong> de la 
-          <strong class="text-neutral-200">UTN — Facultad Regional Córdoba</strong> pueden compartir 
-          sus experiencias sobre materias, cátedras y profesores.
-        </p>
-        <p>
-          La idea es simple: que puedas elegir mejor tu cursada basándote en opiniones reales 
-          de otros estudiantes que ya pasaron por ahí.
-        </p>
-      </div>
-    </section>
-
-    <section class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6 sm:p-8">
-      <h2 class="font-heading font-bold text-xl text-neutral-100 mb-4">¿Cómo funciona?</h2>
-      <div class="space-y-4 text-neutral-400 text-sm leading-relaxed">
-        <div class="flex gap-4 items-start">
-          <span class="flex-shrink-0 w-8 h-8 bg-amber-900/30 text-amber-400 rounded-lg flex items-center justify-center font-bold text-sm">1</span>
-          <div>
-            <p class="font-semibold text-neutral-200 mb-1">Explorá las materias</p>
-            <p>Navegá por año de carrera o usá el buscador para encontrar una materia o profesor.</p>
-          </div>
-        </div>
-        <div class="flex gap-4 items-start">
-          <span class="flex-shrink-0 w-8 h-8 bg-amber-900/30 text-amber-400 rounded-lg flex items-center justify-center font-bold text-sm">2</span>
-          <div>
-            <p class="font-semibold text-neutral-200 mb-1">Leé las reseñas</p>
-            <p>Cada cátedra tiene reseñas con calificación (1-5 estrellas) y comentarios de estudiantes que ya cursaron.</p>
-          </div>
-        </div>
-        <div class="flex gap-4 items-start">
-          <span class="flex-shrink-0 w-8 h-8 bg-amber-900/30 text-amber-400 rounded-lg flex items-center justify-center font-bold text-sm">3</span>
-          <div>
-            <p class="font-semibold text-neutral-200 mb-1">Compartí tu experiencia</p>
-            <p>Iniciá sesión con Google o GitHub y escribí tu propia reseña. Tu nombre aparecerá junto a tu opinión.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6 sm:p-8">
-      <h2 class="font-heading font-bold text-xl text-neutral-100 mb-4">Consideraciones</h2>
-      <div class="space-y-4 text-neutral-400 text-sm leading-relaxed">
-        <ul class="list-disc list-inside space-y-2">
-          <li>Las opiniones son <strong class="text-neutral-200">responsabilidad exclusiva de los usuarios</strong> que las publican.</li>
-          <li>Las calificaciones no representan una evaluación oficial de la universidad ni de los docentes.</li>
-          <li>Se espera <strong class="text-neutral-200">respeto y buena fe</strong> en todas las reseñas. No se toleran agresiones ni difamación.</li>
-          <li>Nos reservamos el derecho de <strong class="text-neutral-200">moderar o eliminar</strong> contenido que viole estas normas.</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="bg-[#242424] rounded-2xl border border-neutral-700/60 p-6 sm:p-8">
-      <h2 class="font-heading font-bold text-xl text-neutral-100 mb-4">Creador</h2>
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center text-white font-bold text-lg">P</div>
+<Layout
+  title="¿Cómo funciona? - UTN REP"
+  description="Qué es UTN REP, cómo funcionan las reseñas de cursos y qué datos se guardan."
+  tab="ayuda"
+  crumbs={[{ label: '¿Cómo funciona?' }]}
+>
+  <div class="layout">
+    <div class="main">
+      <div class="topic">
         <div>
-          <p class="font-semibold text-neutral-200">Patricio Valentín Andrade</p>
-          <p class="text-sm text-neutral-500">Estudiante de Ingeniería en Sistemas — UTN FRC</p>
-          <a href="https://github.com/patricioVAndrade" target="_blank" rel="noopener noreferrer" class="text-xs text-amber-400 hover:text-amber-300 transition-colors mt-1 inline-flex items-center gap-1">
-            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"></path></svg>
-            GitHub
-          </a>
+          <h1>¿Cómo funciona UTN REP?</h1>
+          <p>Reseñas de cursos de Ingeniería en Sistemas de la UTN Córdoba, escritas por estudiantes.</p>
         </div>
       </div>
-    </section>
 
-    <div class="text-center">
-      <a href="/" class="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 font-semibold text-sm transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-        Volver al inicio
-      </a>
+      {grupos.map((g) => (
+        <>
+        {g.titulo === 'Tus datos' && (
+          <section class="faq-group" id="rangos">
+            <h2>Rangos y logros</h2>
+            <details class="faq" open>
+              <summary>¿Qué son los escudos al lado de los nombres?</summary>
+              <div>
+                <div class="ranks-table">
+                  {RANGOS.map((r, i) => {
+                    const hasta = RANGOS[i + 1]?.desde;
+                    const txt = r.desde === 1 ? '1 reseña' : hasta ? `${r.desde} a ${hasta - 1} reseñas` : `${r.desde} reseñas o más`;
+                    return <div><Escudo rango={r.id} /><b>{r.nombre}</b><span>{txt}</span></div>;
+                  })}
+                </div>
+                <p class="sub" style="margin:6px 0 0">El rango sale de cuántas reseñas escribiste, también las anónimas (sin decir cuáles son).</p>
+              </div>
+            </details>
+            <details class="faq">
+              <summary>¿Qué son los logros?</summary>
+              <div>
+                <p style="margin:0 0 6px">Medallas por cosas puntuales. Se ganan solos, te llega un aviso y no se pierden:</p>
+                <div class="ranks-table">
+                  {LOGROS.map((l) => <div style="grid-template-columns:24px minmax(0,1fr)"><LogroIcono id={l.id} /><span><b>{l.nombre}</b>: {l.como.charAt(0).toLowerCase() + l.como.slice(1)}.</span></div>)}
+                </div>
+              </div>
+            </details>
+            <details class="faq">
+              <summary>¿Quién ve mi perfil?</summary>
+              <div>Si tu perfil es público, cualquiera que toque tu nombre en una reseña o experiencia de final con nombre ve tu rango, cuántas reseñas y experiencias de finales escribiste, los "Me sirvió" que juntaste y tus logros. Nunca qué materias ni qué cursos reseñaste. Lo podés hacer privado desde <a href="/mi-cuenta">Mi cuenta</a>. En las anónimas no se ve.</div>
+            </details>
+          </section>
+        )}
+        <section class="faq-group">
+          <h2>{g.titulo}</h2>
+          {g.preguntas.map((q) => (
+            <details class="faq" open={q.abierta}>
+              <summary>{q.p}</summary>
+              <div set:html={q.r} />
+            </details>
+          ))}
+        </section>
+        </>
+      ))}
     </div>
 
-  </main>
-
+    <aside class="side">
+      <section class="panel">
+        <h3>¿Ya usabas UTN REP?</h3>
+        <div class="in">
+          <span>Renovamos el diseño. Si buscás algo que estaba antes, te decimos dónde quedó.</span>
+          <a href="/que-cambio">Qué cambió</a>
+          <button type="button" class="btn secondary" data-ver-recorrido>Ver el recorrido de 30 segundos</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h3>Empezá por acá</h3>
+        <div class="in">
+          <ol class="steps">
+            <li>Buscá tu materia.</li>
+            <li>Elegí el curso.</li>
+            <li>Leé y votá lo que te sirvió.</li>
+          </ol>
+          <a class="btn primary" href="/nueva-resena"><Icon name="pen" /> Escribir una reseña</a>
+        </div>
+      </section>
+      <section class="panel">
+        <h3>¿No encontraste tu respuesta?</h3>
+        <div class="in">
+          <span>Escribime a <a href="mailto:patriciovandrade@gmail.com?subject=Consulta%20sobre%20UTN%20REP">patriciovandrade@gmail.com</a>.</span>
+        </div>
+      </section>
+    </aside>
+  </div>
 </Layout>

@@ -14,3 +14,9 @@ export async function readJson(request: Request): Promise<unknown | undefined> {
     return undefined;
   }
 }
+
+/** La base frena a las cuentas bloqueadas con este código (migración 9). */
+export const esBloqueo = (error: { code?: string } | null | undefined) => error?.code === 'UB001';
+
+export const cuentaBloqueada = () =>
+  json({ error: 'Tu cuenta está bloqueada: podés leer, pero no escribir, votar ni reportar. Si creés que es un error, escribinos.' }, 403);

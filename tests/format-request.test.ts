@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estrellas, nivelColor, tiempoRelativo } from '../src/lib/format';
+import { editadaEl, estrellas, nivelColor, tiempoRelativo } from '../src/lib/format';
 import { getClientIp } from '../src/lib/request';
 
 const DIA = 24 * 60 * 60 * 1000;
@@ -46,5 +46,14 @@ describe('getClientIp', () => {
   it('usa clientAddress o "unknown" como último recurso', () => {
     expect(getClientIp(req({}), '4.4.4.4')).toBe('4.4.4.4');
     expect(getClientIp(req({}))).toBe('unknown');
+  });
+});
+
+describe('editadaEl', () => {
+  it('muestra día y mes en hora de Córdoba, o nada si no se editó', () => {
+    expect(editadaEl('2026-11-12T15:00:00Z')).toBe('Editada el 12/11');
+    expect(editadaEl('2026-11-13T01:30:00Z')).toBe('Editada el 12/11');
+    expect(editadaEl(null)).toBe('');
+    expect(editadaEl('cualquier cosa')).toBe('');
   });
 });

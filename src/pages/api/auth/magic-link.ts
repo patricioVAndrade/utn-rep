@@ -5,6 +5,8 @@ import { getClientIp } from '../../../lib/request';
 import { json, readJson } from '../../../lib/http';
 import { safeReturnTo } from '../../../lib/redirect';
 import { formatearNombre, normalizarEmail, validarNombre } from '../../../lib/auth-validation';
+import { supabaseAdmin } from '../../../lib/supabase-admin';
+import { topeDiario } from '../../../lib/mail';
 
 /**
  * POST /api/auth/magic-link
@@ -36,17 +38,31 @@ export const POST: APIRoute = async ({ request, cookies, clientAddress }) => {
     return json({ error: 'Ya te enviamos varios links. Revisá tu bandeja (y spam) o esperá un rato.' }, 429);
   }
 
-  // 5. Send magic link via Supabase
+  // 5. Tope diario de mails de Brevo (migración 17): se anota antes de mandar.
+  //    Si hoy ya salieron todos, se ofrece entrar con Google o GitHub. Si la
+  //    migración no está, no frena a nadie.
+  try {
+    const { data: hayLugar, error: errTope } = await supabaseAdmin.rpc('anotar_mail_login', { p_tope: topeDiario() });
+    if (!errTope && hayLugar === false) {
+      return json({ error: 'Hoy ya mandamos todos los mails que podemos. Entrá con Google o GitHub, o probá mañana.' }, 503);
+    }
+  } catch { /* sin registro de mails: sigue igual */ }
+
+  // 6. Send magic link via Supabase
   const { client: supabase } = createSupabaseServerClient({ headers: request.headers, cookies });
 
   const returnTo = safeReturnTo(typeof body.returnTo === 'string' ? body.returnTo : null);
   const baseUrl = new URL('/', request.url).origin;
+  // El link vuelve a la misma dirección que Google y GitHub (/api/auth/callback), que es
+  // la que está permitida en Supabase. A dónde seguir después va en una cookie (1 hora,
+  // lo que dura el link), igual que en /api/auth/login.
+  cookies.set('auth_returnTo', encodeURIComponent(returnTo), { path: '/', maxAge: 60 * 60, sameSite: 'lax', httpOnly: false });
 
   const { error } = await supabase.auth.signInWithOtp({
     email: emailResult.email,
     options: {
       data: { full_name: formatearNombre(body.nombre) },
-      emailRedirectTo: `${baseUrl}${returnTo}`,
+      emailRedirectTo: `${baseUrl}/api/auth/callback`,
     },
   });
 

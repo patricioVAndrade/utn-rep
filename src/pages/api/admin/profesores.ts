@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { requireAdmin } from '../../../lib/admin-guards';
+import { noAutorizado, requireAdmin } from '../../../lib/admin-guards';
 import { json } from '../../../lib/http';
 
 
@@ -10,7 +10,7 @@ import { json } from '../../../lib/http';
  */
 export const GET: APIRoute = async ({ request, cookies }) => {
   const user = await requireAdmin(request, cookies);
-  if (!user) return json({ error: 'No autorizado.' }, 403);
+  if (!user) return noAutorizado(request);
 
   const { data, error } = await supabaseAdmin
     .from('profesores')
@@ -41,7 +41,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const user = await requireAdmin(request, cookies, { requireCsrf: true });
-  if (!user) return json({ error: 'No autorizado.' }, 403);
+  if (!user) return noAutorizado(request);
 
   let body: any;
   try {

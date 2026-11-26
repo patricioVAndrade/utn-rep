@@ -1,0 +1,7 @@
+---
+/** Logo de UTN REP (F2): símbolo con la barra amarilla y "REP" adentro. Ver src/lib/logo.ts. */
+import { LOGO_TRAZOS, LOGO_VIEWBOX } from '../lib/logo';
+interface Props { class?: string }
+const { class: cls } = Astro.props;
+---
+<svg class={cls} viewBox={LOGO_VIEWBOX} aria-hidden="true" set:html={LOGO_TRAZOS} />

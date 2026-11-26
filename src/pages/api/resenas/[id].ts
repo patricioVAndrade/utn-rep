@@ -2,8 +2,9 @@ import type { APIRoute, AstroCookies } from 'astro';
 import { createSupabaseServerClient } from '../../../lib/supabase';
 import { isAdmin } from '../../../lib/admin';
 import { supabaseAdmin } from '../../../lib/supabase-admin';
-import { json, readJson } from '../../../lib/http';
+import { json, readJson, esBloqueo, cuentaBloqueada } from '../../../lib/http';
 import { parseBody, resenaEditSchema } from '../../../lib/validation';
+import { registrar, revisarPalabras } from '../../../lib/moderacion';
 
 /** Shared delete logic */
 async function handleDelete(params: Record<string, string | undefined>, request: Request, cookies: AstroCookies) {
@@ -64,6 +65,8 @@ async function handleDelete(params: Record<string, string | undefined>, request:
     return json({ error: 'No autorizado para eliminar esta reseña (políticas de seguridad).' }, 403);
   }
 
+  if (userIsAdmin && resena.user_id !== user.id) await registrar(user.id, 'borrar', { resena_id: resenaId, detalle: 'Desde la página del curso' });
+
   return json({ success: true });
 }
 
@@ -83,7 +86,9 @@ async function handleEdit(params: Record<string, string | undefined>, request: R
 
   const parsed = parseBody(resenaEditSchema, body);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
-  const { comentario } = parsed.data;
+  const cambios: { comentario?: string; condicion_final?: string | null } = {};
+  if (parsed.data.comentario !== undefined) cambios.comentario = parsed.data.comentario;
+  if (parsed.data.condicion_final !== undefined) cambios.condicion_final = parsed.data.condicion_final;
 
   // Verify ownership
   const { data: resena } = await supabase
@@ -100,17 +105,22 @@ async function handleEdit(params: Record<string, string | undefined>, request: R
     return json({ error: 'No podés editar una reseña que no es tuya.' }, 403);
   }
 
-  const { error: updateError } = await supabase
+  const { data: actualizada, error: updateError } = await supabase
     .from('resenas')
-    .update({ comentario })
-    .eq('id', resenaId);
+    .update(cambios)
+    .eq('id', resenaId)
+    .select('updated_at')
+    .maybeSingle();
 
   if (updateError) {
+    if (esBloqueo(updateError)) return cuentaBloqueada();
     console.error('Error updating resena:', updateError);
     return json({ error: 'No se pudo actualizar la reseña.' }, 500);
   }
 
-  return json({ success: true });
+  if (cambios.comentario) await revisarPalabras(resenaId, cambios.comentario);
+
+  return json({ success: true, updated_at: actualizada?.updated_at ?? null });
 }
 
 /**
